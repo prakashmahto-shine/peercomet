@@ -1,0 +1,32 @@
+# Keep the build context small and secrets/local data out of the image
+.git
+.gitignore
+.vscode
+.idea
+.claude
+.DS_Store
+
+node_modules
+dist
+
+.env
+.env.*
+!.env.example
+
+.venv
+**/__pycache__
+**/*.pyc
+.pytest_cache
+
+# Local runtime data
+milvus_data
+backend/data/*.sqlite3*
+backend/data/recordings
+# Demo seed data (local development only)
+backend/data/db.json
+
+tests
+docs
+Dockerfile
+docker-compose.yml
+*.log

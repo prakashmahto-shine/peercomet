@@ -5,41 +5,27 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:frontend": "vite",
     "dev:backend": "python3 run_backend.py",
     "dev:all": "python3 run_backend.py & vite",
     "server": "python3 run_backend.py",
-    "server:dev": "python3 run_backend.py",
-    "start": "python3 run_backend.py",
-    "start:all": "python3 run_backend.py & vite",
-    "test:python": "python3 test_python_backend.py",
-    "build": "pip install -r requirements.txt && tsc && vite build",
-    "build:frontend": "tsc && vite build",
-    "postinstall": "pip install -r requirements.txt || pip3 install -r requirements.txt || true",
-    "preview": "vite preview"
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "python3 tests/test_auth_and_ownership.py"
   },
   "dependencies": {
-    "@huggingface/transformers": "^4.2.0",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/node": "^26.4.1",
     "canvas-confetti": "^1.9.3",
-    "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
     "lucide-react": "^0.395.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "socket.io": "^4.8.3",
-    "socket.io-client": "^4.8.3",
-    "tsx": "^4.23.13",
-    "typescript": "^5.4.5"
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@types/canvas-confetti": "^1.9.0",
+    "@types/node": "^26.4.1",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
+    "typescript": "^5.4.5",
     "vite": "^5.3.1"
   }
 }

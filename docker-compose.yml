@@ -1,20 +1,18 @@
-version: '3.8'
-
+# Runs the PeerPath image on a single machine (VM). All settings come from .env;
+# see .env.example and docs/DEPLOYMENT.md. The database is external (DATABASE_URL).
+#
+#   docker compose up -d --build
 services:
-  shine-peerpath:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: shine-peerpath-app
-    restart: always
+  app:
+    build: .
+    image: peerpath:latest
+    env_file: .env
     ports:
       - "5001:5001"
-    environment:
-      - NODE_ENV=production
-      - PORT=5001
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:5001/api/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 5s
+    volumes:
+      # Session recordings when RECORDINGS_STORAGE=local
+      - recordings:/app/backend/data/recordings
+    restart: unless-stopped
+
+volumes:
+  recordings:

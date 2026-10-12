@@ -2,8 +2,8 @@
 Adapter for Shine's identity APIs (login + registration via OTP).
 
 PeerPath never stores passwords: Shine verifies the user, PeerPath then creates its own
-session. Pick the implementation with SHINE_AUTH_MODE:
-  - mock: for local/staging. No SMS is sent; the OTP is MOCK_OTP_CODE (default 123456).
+session. Pick the implementation with PEERPATH_AUTH_MODE:
+  - mock: local development only (refused on servers). No SMS; the OTP is MOCK_OTP_CODE.
   - live: Shine's APIs. Fill in the TODOs once the Shine auth team shares the API spec.
 """
 import re
@@ -14,7 +14,7 @@ from typing import Dict, Optional
 
 import httpx
 
-from backend.config import MOCK_OTP_CODE, SHINE_API_KEY, SHINE_AUTH_MODE, SHINE_BFF_URL
+from backend.config import MOCK_OTP_CODE, PEERPATH_AUTH_API_KEY, PEERPATH_AUTH_MODE, PEERPATH_AUTH_API_URL
 
 
 class ShineAuthError(Exception):
@@ -102,19 +102,27 @@ class LiveShineAuthClient(ShineAuthClient):
     PeerPath-specific API key."""
 
     def __init__(self):
-        if not SHINE_API_KEY:
-            raise RuntimeError("SHINE_API_KEY is required when SHINE_AUTH_MODE=live")
+        # The app still starts without a key (health checks, browsing mentors work);
+        # login then answers 503 until PEERPATH_AUTH_API_KEY and the endpoints are configured.
+        self.configured = bool(PEERPATH_AUTH_API_KEY)
+        if not self.configured:
+            print("[ShineAuth] PEERPATH_AUTH_API_KEY is not set: login is disabled until it is configured")
         self._client = httpx.Client(
-            base_url=SHINE_BFF_URL,
+            base_url=PEERPATH_AUTH_API_URL,
             timeout=10,
-            headers={"x-api-key": SHINE_API_KEY, "accept": "application/json"},
+            headers={"x-api-key": PEERPATH_AUTH_API_KEY or "", "accept": "application/json"},
         )
+
+    def _require_configured(self):
+        if not self.configured:
+            raise ShineAuthError("Login is temporarily unavailable", 503)
 
     def _lookup_candidate(self, mobile: str) -> Optional[str]:
         # TODO(Shine auth team): endpoint that resolves a mobile number to a Shine candidate id.
         raise NotImplementedError("Shine candidate lookup API not configured yet")
 
     def send_otp(self, mobile: str) -> OtpChallenge:
+        self._require_configured()
         shine_id = self._lookup_candidate(mobile)
         if shine_id:
             # Known endpoint (from shine.com's own login page)
@@ -127,13 +135,14 @@ class LiveShineAuthClient(ShineAuthClient):
         raise NotImplementedError("Shine registration OTP API not configured yet")
 
     def verify_otp(self, request_id, mobile, otp, name=None, email=None) -> ShineIdentity:
+        self._require_configured()
         # TODO(Shine auth team): OTP verify endpoint (+ registration for new users) and the
         # profile fields it returns (candidate id, name, email, mobile).
         raise NotImplementedError("Shine OTP verify API not configured yet")
 
 
 def build_client() -> ShineAuthClient:
-    if SHINE_AUTH_MODE == "live":
+    if PEERPATH_AUTH_MODE == "live":
         return LiveShineAuthClient()
     return MockShineAuthClient()
 

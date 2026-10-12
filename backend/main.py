@@ -8,7 +8,14 @@ from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 import socketio
 
-from backend.config import PORT, HOST, EMBEDDING_MODEL_NAME, CORS_ORIGINS, IS_PRODUCTION
+from backend.config import (
+    PORT, HOST, EMBEDDING_MODEL_NAME, CORS_ORIGINS, IS_DEVELOPMENT,
+    STUN_URLS, TURN_URLS, TURN_USERNAME, TURN_CREDENTIAL,
+)
+from sqlalchemy import text
+from fastapi import Depends
+from backend.auth.deps import require_user
+from backend.db import engine as db_engine
 from backend.db.seed import init_database
 from backend.data.store import store
 from backend.services.milvus_service import milvus_service
@@ -98,6 +105,26 @@ def health_check():
         "version": "2.0.0"
     }
 
+# Readiness: the app can serve traffic only if the database answers (Kubernetes readinessProbe).
+# /api/health above is the liveness check and doesn't touch the database.
+@app.get("/api/ready")
+def readiness_check():
+    try:
+        with db_engine.engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except Exception as e:
+        print(f"[Ready] Database not reachable: {e}")
+        return JSONResponse(status_code=503, content={"status": "unavailable", "database": "down"})
+    return {"status": "ready", "database": "up"}
+
+# ICE servers for WebRTC calls (TURN credentials stay server-side config, delivered to signed-in users)
+@app.get("/api/webrtc/ice-servers")
+def ice_servers(user=Depends(require_user)):
+    servers = [{"urls": STUN_URLS}] if STUN_URLS else []
+    if TURN_URLS:
+        servers.append({"urls": TURN_URLS, "username": TURN_USERNAME, "credential": TURN_CREDENTIAL})
+    return {"success": True, "data": {"iceServers": servers}}
+
 # Register Subsystem Routers
 app.include_router(auth_router)
 app.include_router(cv_router)
@@ -136,5 +163,5 @@ socket_app = socketio.ASGIApp(sio, other_asgi_app=app)
 if __name__ == "__main__":
     import uvicorn
     print(f"🚀 Starting Uvicorn + WebRTC Signaling on {HOST}:{PORT}")
-    uvicorn.run("backend.main:socket_app", host=HOST, port=PORT, reload=not IS_PRODUCTION)
+    uvicorn.run("backend.main:socket_app", host=HOST, port=PORT, reload=IS_DEVELOPMENT)
 

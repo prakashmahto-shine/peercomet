@@ -46,34 +46,41 @@ shine-peerpath/
 
 ## 🚀 Getting Started
 
-### 1. Setup Python Environment
+### 1. Setup Python Environment (Python 3.11)
 ```bash
-python3 -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
+No `.env` is needed locally: without one the app runs in development mode
+(`APP_ENV=development`, SQLite, mock OTP login, demo data). `.env.example` is the server template.
 
 ### 2. Start Python Backend (FastAPI + Milvus)
 ```bash
-# Option A: using npm script
-npm run server
-
-# Option B: using python runner
-python3 run_backend.py
+npm run server        # or: python3 run_backend.py
 ```
-The API server starts on `http://localhost:5001` with Milvus Vector Database running and collections initialized.
+The API server starts on `http://localhost:5001`. Locally it uses a SQLite file
+(`backend/data/peerpath.sqlite3`), runs migrations and loads demo data automatically.
+Set `DATABASE_URL` to use Postgres instead.
 
 ### 3. Start Frontend (Vite)
 ```bash
 npm run dev
 ```
-The frontend starts on `http://localhost:4242` and proxies `/api` calls directly to the Python backend on `5001`.
+The frontend starts on `http://localhost:4242` and proxies `/api` and `/socket.io` to the backend.
+Sign in with any 10-digit mobile number (or a demo user id such as `akash`) and OTP `123456`.
 
-### 4. Run Python Backend Test Suite
+### 4. Run Tests
 ```bash
-source .venv/bin/activate
-python3 test_python_backend.py
+npm test              # python3 tests/test_auth_and_ownership.py
 ```
+
+### 5. Docker
+```bash
+docker build -t peerpath .
+docker compose up -d --build  # uses .env (see .env.example); database is external
+```
+Deployment requirements for the infra team: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ---
 

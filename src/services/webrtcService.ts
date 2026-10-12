@@ -1,10 +1,11 @@
 import { io, Socket } from 'socket.io-client';
 
-const ICE_SERVERS: RTCConfiguration = {
+// Fallback when the backend's ICE config can't be loaded. Production adds TURN via
+// GET /api/webrtc/ice-servers (TURN_URLS etc. on the backend).
+const FALLBACK_ICE_SERVERS: RTCConfiguration = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' }
+    { urls: 'stun:stun1.l.google.com:19302' }
   ]
 };
 
@@ -47,8 +48,24 @@ export class WebRTCService {
   private isInitiator: boolean = false;
   public isRecording: boolean = false;
 
+  private iceConfig: RTCConfiguration = FALLBACK_ICE_SERVERS;
+
   constructor(callbacks: WebRTCCallbacks = {}) {
     this.callbacks = callbacks;
+  }
+
+  private async loadIceServers() {
+    try {
+      const res = await fetch(`${ENV_BACKEND_URL}/api/webrtc/ice-servers`, { credentials: 'include' });
+      if (res.ok) {
+        const json = await res.json();
+        if (Array.isArray(json?.data?.iceServers) && json.data.iceServers.length > 0) {
+          this.iceConfig = { iceServers: json.data.iceServers };
+        }
+      }
+    } catch (err) {
+      console.warn('[WebRTC] Using fallback STUN servers:', err);
+    }
   }
 
   public updateCallbacks(callbacks: WebRTCCallbacks) {
@@ -67,6 +84,7 @@ export class WebRTCService {
     localStream?: MediaStream;
   }) {
     this.roomId = params.roomId;
+    await this.loadIceServers();
     if (params.localStream) {
       this.localStream = params.localStream;
     }
@@ -167,7 +185,7 @@ export class WebRTCService {
       this.peerConnection.close();
     }
 
-    const pc = new RTCPeerConnection(ICE_SERVERS);
+    const pc = new RTCPeerConnection(this.iceConfig);
     this.peerConnection = pc;
 
     // Add local media tracks to peer connection

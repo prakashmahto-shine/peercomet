@@ -1,142 +1,126 @@
-import os
 import re
-from pathlib import Path
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import RedirectResponse, StreamingResponse
 from backend.auth.deps import load_session_for, require_user
-from backend.db.models import User
-from fastapi.responses import JSONResponse, StreamingResponse
+from backend.config import MAX_RECORDING_MB
 from backend.data.store import store
-from backend.config import DATA_DIR
+from backend.db.models import User
+from backend.services.recording_storage import recording_storage
 
 router = APIRouter(tags=["Sessions & Recordings"])
 
-RECORDINGS_DIR = DATA_DIR / "recordings"
-RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)
-
-# Session ids end up in file paths, so only allow plain id characters
+# Session ids end up in storage keys, so only allow plain id characters
 SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,80}$")
-MAX_RECORDING_BYTES = 500 * 1024 * 1024
+MAX_RECORDING_BYTES = MAX_RECORDING_MB * 1024 * 1024
+CHUNK_SIZE = 64 * 1024
+
+
+def _authorized_key(session_id: str, user: User) -> str:
+    """Validates the id, checks the caller is a participant, and returns the storage key."""
+    clean_id = session_id.replace("peerpath-", "").replace("sess-", "")
+    if not SAFE_ID_RE.match(clean_id):
+        raise HTTPException(status_code=400, detail="Invalid session id")
+    # Only the session's candidate and mentor may upload or watch its recording
+    load_session_for(f"sess-{clean_id}", user)
+    return clean_id
+
 
 @router.post("/api/sessions/{session_id}/recording")
 async def upload_recording(session_id: str, request: Request, user: User = Depends(require_user)):
-    """
-    Save session video recording (.webm / .mp4) uploaded from WebRTC client
-    """
-    clean_id = session_id.replace("peerpath-", "").replace("sess-", "")
-    if not SAFE_ID_RE.match(clean_id):
-        raise HTTPException(status_code=400, detail="Invalid session id")
-    # Only the session's candidate and mentor may upload or watch its recording
-    load_session_for(f"sess-{clean_id}", user)
+    """Saves the session's video recording (.webm) uploaded from the WebRTC client."""
+    clean_id = _authorized_key(session_id, user)
+
+    # Capped so one upload can't exhaust memory/disk
+    if int(request.headers.get("content-length") or 0) > MAX_RECORDING_BYTES:
+        raise HTTPException(status_code=413, detail="Recording is too large")
+    body = await request.body()
+    if len(body) > MAX_RECORDING_BYTES:
+        raise HTTPException(status_code=413, detail="Recording is too large")
+    if not body:
+        raise HTTPException(status_code=400, detail="Empty recording")
+
     try:
-        file_path = RECORDINGS_DIR / f"sess-{clean_id}.webm"
-
-        # Read binary body stream (capped so one upload can't exhaust memory/disk)
-        if int(request.headers.get("content-length") or 0) > MAX_RECORDING_BYTES:
-            raise HTTPException(status_code=413, detail="Recording is too large")
-        body = await request.body()
-        if len(body) > MAX_RECORDING_BYTES:
-            raise HTTPException(status_code=413, detail="Recording is too large")
-        if body and len(body) > 0:
-            with open(file_path, "wb") as f:
-                f.write(body)
-        else:
-            with open(file_path, "wb") as f:
-                f.write(b"PEERPATH_RECORDING_MARKER")
-
-        recording_url = f"/api/sessions/{clean_id}/recording"
-        
-        # Update session in store
-        store.update_session(
-            f"sess-{clean_id}",
-            {
-                "recordingUrl": recording_url,
-                "hasRecording": True
-            }
-        )
-        # Also try matching by raw id
-        store.update_session(
-            clean_id,
-            {
-                "recordingUrl": recording_url,
-                "hasRecording": True
-            }
-        )
-
-        file_size = os.path.getsize(file_path) if file_path.exists() else 0
-        print(f"[Recording] Successfully saved recording for session '{clean_id}' ({file_size} bytes)")
-
-        return {
-            "success": True,
-            "message": "Session recording saved successfully",
-            "recordingUrl": recording_url,
-            "sessionId": clean_id,
-            "sizeBytes": file_size
-        }
-    except HTTPException:
-        raise
+        size = recording_storage.save(f"sess-{clean_id}.webm", body, request.headers.get("content-type") or "video/webm")
     except Exception as e:
-        print(f"[Recording Error]: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"[Recording] Save failed for session '{clean_id}': {e}")
+        raise HTTPException(status_code=500, detail="Could not save recording")
+
+    recording_url = f"/api/sessions/{clean_id}/recording"
+    store.update_session(f"sess-{clean_id}", {"recordingUrl": recording_url, "hasRecording": True})
+    print(f"[Recording] Saved recording for session '{clean_id}' ({size} bytes, {recording_storage.kind})")
+
+    return {
+        "success": True,
+        "message": "Session recording saved successfully",
+        "recordingUrl": recording_url,
+        "sessionId": clean_id,
+        "sizeBytes": size
+    }
+
+
+def _parse_range(range_header: str, file_size: int):
+    """'bytes=START-END' / 'bytes=START-' / 'bytes=-SUFFIX' -> (start, end), or None if invalid."""
+    match = re.fullmatch(r"bytes=(\d*)-(\d*)", range_header.strip())
+    if not match or (match.group(1) == "" and match.group(2) == ""):
+        return None
+    if match.group(1) == "":
+        suffix = int(match.group(2))
+        start, end = max(0, file_size - suffix), file_size - 1
+    else:
+        start = int(match.group(1))
+        end = int(match.group(2)) if match.group(2) else file_size - 1
+    end = min(end, file_size - 1)
+    if start > end or start >= file_size:
+        return None
+    return start, end
+
 
 @router.get("/api/sessions/{session_id}/recording")
 async def stream_recording(session_id: str, request: Request, user: User = Depends(require_user)):
-    """
-    Stream session recording with HTTP 206 Partial Content (Range header) for smooth video playback & scrubbing
-    """
-    clean_id = session_id.replace("peerpath-", "").replace("sess-", "")
-    if not SAFE_ID_RE.match(clean_id):
-        raise HTTPException(status_code=400, detail="Invalid session id")
-    # Only the session's candidate and mentor may upload or watch its recording
-    load_session_for(f"sess-{clean_id}", user)
-    file_path = RECORDINGS_DIR / f"sess-{clean_id}.webm"
+    """Streams the recording (supports Range requests for seeking)."""
+    clean_id = _authorized_key(session_id, user)
+    key = f"sess-{clean_id}.webm"
 
-    if not file_path.exists():
+    if not recording_storage.exists(key):
         raise HTTPException(status_code=404, detail="Session recording video not found")
 
+    if recording_storage.kind == "s3":
+        # The bucket serves the bytes (and Range requests) via a short-lived signed link
+        return RedirectResponse(recording_storage.presigned_url(key), status_code=307)
+
+    file_path = recording_storage.path(key)
     file_size = file_path.stat().st_size
     range_header = request.headers.get("range")
 
+    def iter_bytes(start: int, length: int):
+        with open(file_path, "rb") as video:
+            video.seek(start)
+            remaining = length
+            while remaining > 0:
+                data = video.read(min(remaining, CHUNK_SIZE))
+                if not data:
+                    break
+                remaining -= len(data)
+                yield data
+
     if range_header:
-        # Parse range header e.g. "bytes=0-1048576"
-        range_str = range_header.replace("bytes=", "").strip()
-        parts = range_str.split("-")
-        start = int(parts[0]) if parts[0] else 0
-        end = int(parts[1]) if len(parts) > 1 and parts[1] else file_size - 1
-
-        if start >= file_size:
-            raise HTTPException(status_code=416, detail="Requested range not satisfiable")
-
-        chunk_size = (end - start) + 1
-
-        def iterfile():
-            with open(file_path, "rb") as video:
-                video.seek(start)
-                bytes_left = chunk_size
-                while bytes_left > 0:
-                    read_size = min(bytes_left, 64 * 1024)
-                    data = video.read(read_size)
-                    if not data:
-                        break
-                    bytes_left -= len(data)
-                    yield data
-
+        byte_range = _parse_range(range_header, file_size)
+        if byte_range is None:
+            raise HTTPException(status_code=416, detail="Requested range not satisfiable",
+                                headers={"Content-Range": f"bytes */{file_size}"})
+        start, end = byte_range
+        length = end - start + 1
         headers = {
             "Content-Range": f"bytes {start}-{end}/{file_size}",
             "Accept-Ranges": "bytes",
-            "Content-Length": str(chunk_size),
+            "Content-Length": str(length),
             "Content-Type": "video/webm",
         }
-        return StreamingResponse(iterfile(), status_code=206, headers=headers)
-    else:
-        def iterfile_full():
-            with open(file_path, "rb") as video:
-                while chunk := video.read(64 * 1024):
-                    yield chunk
+        return StreamingResponse(iter_bytes(start, length), status_code=206, headers=headers)
 
-        headers = {
-            "Content-Length": str(file_size),
-            "Accept-Ranges": "bytes",
-            "Content-Type": "video/webm",
-        }
-        return StreamingResponse(iterfile_full(), status_code=200, headers=headers)
+    headers = {
+        "Content-Length": str(file_size),
+        "Accept-Ranges": "bytes",
+        "Content-Type": "video/webm",
+    }
+    return StreamingResponse(iter_bytes(0, file_size), status_code=200, headers=headers)

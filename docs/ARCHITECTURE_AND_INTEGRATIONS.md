@@ -10,7 +10,7 @@ This document provides a comprehensive technical overview of the Shine Peerpath 
 3. [Third-Party Services & Libraries Used](#3-third-party-services--libraries-used)
 4. [Teaser Video & Session Recording System](#4-teaser-video--session-recording-system)
 5. [Real-Time Notification & Messaging Engine](#5-real-time-notification--messaging-engine)
-6. [Production Deployment & Go-Live Checklist](#6-production-deployment--go-live-checklist)
+6. [Production Deployment](#6-production-deployment)
 
 ---
 
@@ -30,7 +30,7 @@ This document provides a comprehensive technical overview of the Shine Peerpath 
                                        │
                                        ▼ (REST APIs + Socket.IO WebSockets)
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                           BACKEND LAYER (Node.js + Express 5)                │
+│                 BACKEND LAYER (Python FastAPI + python-socketio)             │
 │  - /api/cv & /api/trajectory: AI/ML Gap Analysis & Jump Matching            │
 │  - /api/creators: Mentor Profiles, Teasers & Availability                   │
 │  - /api/bookings & /api/payments: Slot Booking & Mock UPI Checkout          │
@@ -50,7 +50,7 @@ For 1-on-1 mentorship calls, the system uses **Peer-to-Peer (P2P) WebRTC**.
 
 ### How Video & Audio Flow
 * **Zero Server Video Bandwidth:** Video and audio streams travel **directly between Candidate and Mentor browsers** via encrypted P2P channels (DTLS/SRTP).
-* **The Node.js Server is ONLY a Signaling Coordinator:** It handles the initial 1-2 second connection handshake and in-call chat. Once connected, video packets do NOT flow through the server.
+* **The backend is ONLY a Signaling Coordinator:** It handles the initial 1-2 second connection handshake and in-call chat. Once connected, video packets do NOT flow through the server.
 
 ```
 [Candidate Browser] ◄═════ (Direct Encrypted HD Video/Audio) ═════► [Mentor Browser]
@@ -58,7 +58,7 @@ For 1-on-1 mentorship calls, the system uses **Peer-to-Peer (P2P) WebRTC**.
         │ (Initial 1-2 sec handshake: SDP Offer/Answer + ICE Candidates)   │
         ▼                                                                  ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                   Node.js Server (`server/services/socketService.ts`)        │
+│            Backend (`backend/services/socket_service.py`)                    │
 │   - Manages room creation (`join-room`, `leave-room`)                       │
 │   - Exchanges SDP Offer / Answer (`signal-offer`, `signal-answer`)           │
 │   - Routes ICE candidates for NAT traversal (`signal-ice`)                  │
@@ -87,11 +87,12 @@ To establish connection through firewalls and NAT routers:
 | **WebRTC (`RTCPeerConnection`)** | Browser Native API | Direct 1:1 HD Video, Audio, and Screen Sharing (`getDisplayMedia`). |
 | **Socket.IO (`socket.io` & `socket.io-client`)** | Real-Time WebSockets | WebRTC signaling, in-call chat, and instant push notifications. |
 | **MediaRecorder API** | Browser Native API | In-browser session recording into WebM chunks. |
-| **@huggingface/transformers** | Client-Side NLP | On-device semantic skill similarity and embeddings matching. |
 | **canvas-confetti** | UI Animation | Celebratory confetti for booking confirmations & badge issuance. |
 | **lucide-react** | UI Icon System | Clean, modern SVG icon set across all views. |
-| **Express 5 (`express`)** | Backend Framework | High-performance REST APIs with wildcard & sub-route support. |
-| **dotenv** | Config Management | Secure environment variable loading from `.env`. |
+| **FastAPI + Uvicorn** | Backend Framework | REST APIs (`backend/routers`). |
+| **python-socketio** | Real-Time Server | WebRTC signaling rooms and push notifications. |
+| **SQLAlchemy + Alembic + PostgreSQL** | Database | Data access and schema migrations (`backend/db`). |
+| **sentence-transformers + Milvus Lite** | Matching | Embeddings and vector search for mentor matching. |
 
 ---
 
@@ -128,17 +129,6 @@ To establish connection through firewalls and NAT routers:
 
 ---
 
-## 6. Production Deployment & Go-Live Checklist
+## 6. Production Deployment
 
-When connecting the real production environment tomorrow, the following 4 steps are required:
-
-1. **Authentication (Auth & SSO):**
-   - Attach JWT / Shine SSO token verification middleware to protected endpoints (`/api/candidates/:id`, `/api/bookings`, `/api/creator/sessions/:id/assess`).
-2. **Production Database:**
-   - Migrate `server/data/store.ts` to PostgreSQL (via Prisma / TypeORM) or MongoDB.
-3. **Domain & HTTPS/SSL:**
-   - Map domain (e.g. `https://peerpath.shine.com`). *Note: WebSockets and WebRTC camera/microphone permissions require HTTPS.*
-4. **Cloud Storage (Optional / Recommended):**
-   - Point video uploads (`/teaser-video` and `/recording`) to an AWS S3 or Cloudflare R2 bucket.
-5. **TURN Server Credentials:**
-   - Add production TURN server credentials in `src/services/webrtcService.ts` for 100% video connectivity across strict firewalls.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the container, configuration, database, storage, ingress and TURN requirements.

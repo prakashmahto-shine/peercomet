@@ -13,7 +13,7 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import delete, func, select
 
-from backend.config import BASE_DIR, DB_PATH, IS_PRODUCTION, SEED_DEMO_DATA
+from backend.config import APP_ENV, BASE_DIR, DB_PATH, SEED_DEMO_DATA
 from backend.db import engine as db_engine
 from backend.db import models as m
 from backend.db.engine import db_session
@@ -76,8 +76,8 @@ def seed_demo_data(json_path: Path = DB_PATH):
 
 
 def reset_and_seed_demo_data():
-    if IS_PRODUCTION:
-        raise RuntimeError("Refusing to reset data in production")
+    if APP_ENV != "development":
+        raise RuntimeError(f"Refusing to reset data outside local development (APP_ENV={APP_ENV})")
     with db_session() as db:
         for model in (m.Booking, m.Badge, m.Post, m.Notification, m.Creator, m.Candidate, m.KeyValue):
             db.execute(delete(model))
@@ -87,8 +87,11 @@ def reset_and_seed_demo_data():
 def init_database():
     """Called on app startup: bring the schema up to date, seed demo data locally."""
     run_migrations()
-    if SEED_DEMO_DATA and not IS_PRODUCTION and is_empty():
-        seed_demo_data()
+    if SEED_DEMO_DATA and is_empty():
+        if DB_PATH.exists():
+            seed_demo_data()
+        else:
+            print(f"[DB] SEED_DEMO_DATA is on but {DB_PATH} is missing; starting with an empty database")
 
 
 if __name__ == "__main__":
