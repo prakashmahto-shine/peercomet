@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { WebRTCService, PeerState } from '../../services/webrtcService';
-import { API_BASE } from '../../services/api';
+import { API_BASE, apiFetch } from '../../services/api';
 
 export const LiveVideoCallView: React.FC = () => {
   const { 
@@ -390,7 +390,7 @@ export const LiveVideoCallView: React.FC = () => {
     // 3. Background upload recording to backend
     if (finalBlob && activeSession?.id) {
       const cleanSessionId = activeSession.id.replace(/^peerpath-/, '').replace(/^sess-/, '');
-      fetch(`${API_BASE}/sessions/${cleanSessionId}/recording`, {
+      apiFetch(`${API_BASE}/sessions/${cleanSessionId}/recording`, {
         method: 'POST',
         headers: {
           'Content-Type': finalBlob.type || 'video/webm'

@@ -4,7 +4,7 @@ import {
   UserAccount, PeerpathJobContext, BootcampMasterclass, NamedExpertInvite,
   CommunityPost, CommunityComment, CommunityNotification
 } from '../types';
-import { peerpathApi, API_BASE } from '../services/api';
+import { peerpathApi, API_BASE, apiFetch, AuthUser } from '../services/api';
 import { pathToView, viewToPath } from '../routes';
 
 export interface ToastMessage {
@@ -23,10 +23,12 @@ interface AppContextType {
   // Authentication & Dual Roles (Prakash ⇄ Akash ⇄ Nisha)
   currentUser: UserAccount | null;
   isLoggedIn: boolean;
-  login: (username: string, password: string) => Promise<boolean>;
+  // True until the initial session check (/api/auth/me) has finished
+  isAuthLoading: boolean;
+  // Shine OTP login/registration. requestOtp returns null on error (a toast is shown).
+  requestOtp: (mobile: string) => Promise<{ requestId: string; isRegistered: boolean } | null>;
+  verifyOtp: (params: { requestId: string; mobile: string; otp: string; name?: string; email?: string }) => Promise<boolean>;
   logout: () => void;
-  switchUser: (username: string) => void;
-  resetDemoData: (targetUser?: string) => void;
 
   // Experts & Mentors
   experts: Expert[];
@@ -148,69 +150,30 @@ interface AppContextType {
   clearAllNotifications: () => void;
 }
 
-const initialBadges: PeerVerifiedBadge[] = [
-  {
-    id: 'badge-pm-1',
-    title: 'Advanced Frontend & UI Architecture',
-    subtitle: 'Verified by Akash Jain • Lead Product Manager @ Shine',
-    verifierName: 'Akash Jain',
-    verifierRole: 'Lead Product Manager',
-    verifierCompany: 'Shine (HT Media)',
-    verifierAvatar: '/avatars/akash.jpg',
-    date: 'Aug 24, 2026',
-    skills: ['React.js 19', 'TypeScript Micro-Frontends', 'UI Performance', 'Design Systems'],
-    status: 'verified',
-    credentialId: 'SH-PP-84920-ARCH',
-    verificationUrl: 'https://shine.com/verify/SH-PP-84920-ARCH',
-    badgeLevel: 'Level 3: Architecture Master',
-    scorePercentile: 'Top 5% Talent on Shine',
-    rubricSummary: 'Demonstrated mastery in Module Federation, Web Vitals, and complex State Architecture during 1:1 Live Coding & System Assessment.'
-  },
-  {
-    id: 'badge-solr-1',
-    title: 'Distributed Search & Lucene Indexing',
-    subtitle: 'Verified by Anirudh Sharma • Principal Search Architect @ Shine',
-    verifierName: 'Anirudh Sharma',
-    verifierRole: 'Principal Search Architect',
-    verifierCompany: 'Shine (HT Media)',
-    verifierAvatar: '/avatars/anirudh.jpg',
-    date: 'Aug 12, 2026',
-    skills: ['Solr Query Syntax', 'Inverted Indexing', 'Distributed Sharding', 'FastAPI'],
-    status: 'verified',
-    credentialId: 'SH-PP-71042-SOLR',
-    verificationUrl: 'https://shine.com/verify/SH-PP-71042-SOLR',
-    badgeLevel: 'Level 2: Production Ready',
-    scorePercentile: 'Top 8% Search Engineers',
-    rubricSummary: 'Verified in distributed sharding, query latency optimization (<15ms), and high-throughput Solr index building.'
-  }
-];
-
-const initialUserProfile: UserProfileData = {
-  name: 'Prakash Kumar',
-  headline: 'Senior frontend developer',
-  designation: 'Senior frontend developer',
-  experienceYears: '4 yrs',
-  noticePeriod: '2+ Months',
-  currentCtc: '5.5 Lacs',
-  expectedCtc: '66-70 Lacs',
-  location: 'Gurgaon',
-  currentCompany: 'TCS',
-  startDate: 'Aug 2022',
-  currentlyNotWorking: false,
-  profileScore: 70,
-  jobSearchStatus: 'Not Looking For Jobs',
-  summary: 'Senior Frontend Developer with 4+ years of hands-on experience building high-traffic, resilient web applications at scale. Proficient in React.js, TypeScript, Next.js, and modern CSS architecture.',
-  skills: ['Node.Js', 'Css', 'React.Js', 'Javascript'],
-  badges: initialBadges,
-  email: 'prakash.mahto@gmail.com',
-  phone: '+91 98765 43210',
-  resumeFileName: 'resume (1).pdf',
-  resumeLastUpdated: 'Almost a year ago',
-  targetCtc: '66-70 Lacs',
-  dreamCompany: 'Flipkart',
-  targetRole: 'Senior Frontend Developer',
-  isCalibrated: false
+// Shown until the signed-in user's profile has loaded from the server
+const EMPTY_PROFILE: UserProfileData = {
+  name: '',
+  headline: '',
+  experienceYears: '',
+  location: '',
+  profileScore: 0,
+  jobSearchStatus: '',
+  summary: '',
+  skills: [],
+  badges: [],
+  email: '',
+  phone: ''
 };
+
+// Maps the backend candidate profile (CandidateProfile in schemas.py) onto the UI profile shape
+const profileFromServer = (raw: any): UserProfileData => ({
+  ...EMPTY_PROFILE,
+  ...raw,
+  skills: raw?.skills || [],
+  badges: raw?.badges || [],
+  currentCompany: raw?.currentCompany || raw?.pastCompany,
+  dreamCompany: raw?.dreamCompany || raw?.targetCompany
+});
 
 const initialBootcamps: BootcampMasterclass[] = [
   {
@@ -679,132 +642,13 @@ const INITIAL_NOTIFICATIONS: CommunityNotification[] = [
   }
 ];
 
-const DEFAULT_ACCOUNTS: Record<string, { password: string; account: UserAccount; profile: UserProfileData }> = {
-  prakash: {
-    password: 'shine@123',
-    account: {
-      id: 'prakash',
-      username: 'prakash',
-      name: 'Prakash Mahto',
-      role: 'candidate',
-      avatar: '/avatars/prakash.jpg',
-      email: 'prakash.mahto@gmail.com',
-      headline: 'Senior Frontend Engineer | React.js, TypeScript, Next.js UI Architect',
-      company: 'Current: Tech Services',
-      experienceYears: '4 Years, 2 Months',
-      location: 'Bengaluru, India',
-      hasExpertBadge: false,
-      isMentorEligible: false
-    },
-    profile: initialUserProfile
-  },
-  akash: {
-    password: 'shine@123',
-    account: {
-      id: 'akash',
-      username: 'akash',
-      name: 'Akash Jain',
-      role: 'mentor',
-      avatar: '/avatars/akash.jpg',
-      email: 'akash.jain@shine.com',
-      headline: 'Lead Product Manager @ Shine (HT Media) • Ex-Paytm, Flipkart',
-      company: 'Shine (HT Media)',
-      experienceYears: '8 yrs 2 Months',
-      location: 'Gurugram / Remote',
-      earnings: 47952,
-      rating: 4.95,
-      reviewsCount: 142,
-      completedSessionsCount: 48,
-      hasExpertBadge: true,
-      isMentorEligible: true
-    },
-    profile: {
-      name: 'Akash Jain',
-      headline: 'Lead Product Manager @ Shine (HT Media) • Ex-Paytm, Flipkart',
-      experienceYears: '8 yrs 2 Months',
-      location: 'Gurugram / Bengaluru, India',
-      hasExpertBadge: true,
-      isMentorEligible: true,
-      profileScore: 95,
-      jobSearchStatus: 'Open to High-Impact Advisory Roles',
-      currentCtc: '₹34 LPA',
-      targetCtc: '₹45 LPA+',
-      summary: 'Lead Product Manager at Shine (HT Media) heading core Career Multiplier initiatives.',
-      skills: ['Product Management', 'PRD Discovery & Roadmarking', 'Product Metrics & Analytics', 'A/B Testing', 'Go-to-Market (GTM) Strategy'],
-      educationDegree: 'B.Tech + MBA',
-      educationCollege: 'IIT / IIM Alumni',
-      pastCompany: 'Paytm / Flipkart',
-      pastCompanyRole: 'Senior Product Manager',
-      badges: [],
-      isMentor: true,
-      isCalibrated: false,
-      email: 'akash.jain@shine.com',
-      phone: '+91 98111 22334'
-    }
-  },
-  nisha: {
-    password: 'shine@123',
-    account: {
-      id: 'nisha',
-      username: 'nisha',
-      name: 'Nisha Kumari',
-      role: 'mentor',
-      avatar: '/avatars/nisha.jpg',
-      email: 'nisha.kumari@flipkart.com',
-      headline: 'Staff Frontend Architect & UI Lead @ Flipkart',
-      company: 'Flipkart',
-      experienceYears: '6+ Years Exp.',
-      location: 'Bengaluru / Remote',
-      earnings: 38970,
-      rating: 4.91,
-      reviewsCount: 65,
-      completedSessionsCount: 32,
-      hasExpertBadge: true,
-      isMentorEligible: true
-    },
-    profile: {
-      name: 'Nisha Kumari',
-      headline: 'Staff Frontend Architect & UI Lead @ Flipkart',
-      experienceYears: '6+ Years Exp.',
-      location: 'Bengaluru / Remote',
-      hasExpertBadge: true,
-      isMentorEligible: true,
-      profileScore: 98,
-      jobSearchStatus: 'Leading Core Web at Flipkart',
-      currentCtc: '₹36 LPA',
-      targetCtc: '₹50 LPA+',
-      summary: 'Staff Architect at Flipkart leading core web checkout teams.',
-      skills: ['React 19', 'Micro-Frontends', 'System Design', 'Module Federation', 'Web Performance'],
-      educationDegree: 'B.Tech Computer Science',
-      educationCollege: 'NIT Trichy',
-      pastCompany: 'Leading Services Tech Firm',
-      pastCompanyRole: 'Senior Software Engineer',
-      badges: [],
-      isMentor: true,
-      email: 'nisha.kumari@flipkart.com',
-      phone: '+91 98222 33445'
-    }
-  }
-};
-
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Authentication & Dual User Management
-  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
-    try {
-      const savedUser = localStorage.getItem('shine_peerpath_current_user');
-      if (savedUser === 'null') {
-        return null;
-      }
-      if (savedUser) {
-        return JSON.parse(savedUser);
-      }
-      return DEFAULT_ACCOUNTS.prakash.account;
-    } catch {
-      return DEFAULT_ACCOUNTS.prakash.account;
-    }
-  });
+  // Authentication: the session is an httpOnly cookie; the user is loaded from /api/auth/me
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
 
   const isLoggedIn = currentUser !== null;
 
@@ -837,40 +681,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   
   const [activeSession, setActiveSession] = useState<MentorshipSession | null>(null);
 
-  // Dynamic User Profiles Map (Prakash, Akash, Nisha)
-  const [userProfiles, setUserProfiles] = useState<Record<string, UserProfileData>>(() => {
-    try {
-      const saved = localStorage.getItem('shine_peerpath_profiles_db');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return {
-          prakash: { ...DEFAULT_ACCOUNTS.prakash.profile, ...(parsed.prakash || {}) },
-          akash: { ...DEFAULT_ACCOUNTS.akash.profile, ...(parsed.akash || {}) },
-          nisha: { ...DEFAULT_ACCOUNTS.nisha.profile, ...(parsed.nisha || {}) }
-        };
-      }
-      return {
-        prakash: DEFAULT_ACCOUNTS.prakash.profile,
-        akash: DEFAULT_ACCOUNTS.akash.profile,
-        nisha: DEFAULT_ACCOUNTS.nisha.profile
-      };
-    } catch {
-      return {
-        prakash: DEFAULT_ACCOUNTS.prakash.profile,
-        akash: DEFAULT_ACCOUNTS.akash.profile,
-        nisha: DEFAULT_ACCOUNTS.nisha.profile
-      };
-    }
-  });
-
-  // Persist user profiles database to localStorage whenever updated
-  useEffect(() => {
-    try {
-      localStorage.setItem('shine_peerpath_profiles_db', JSON.stringify(userProfiles));
-    } catch (e) {
-      console.warn('Failed to save userProfiles to localStorage', e);
-    }
-  }, [userProfiles]);
+  // Candidate profiles keyed by user id (only the signed-in user's in practice), loaded from the server
+  const [userProfiles, setUserProfiles] = useState<Record<string, UserProfileData>>({});
 
   // Fetch live creators and sessions from backend API on startup
   useEffect(() => {
@@ -922,26 +734,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, [currentUser?.id]);
 
-  const activeUsername = currentUser?.username || 'prakash';
-  const userProfile: UserProfileData = userProfiles[activeUsername] || DEFAULT_ACCOUNTS[activeUsername]?.profile || DEFAULT_ACCOUNTS.prakash.profile;
+  const activeUsername = currentUser?.id || '';
+  const userProfile: UserProfileData = userProfiles[activeUsername] || EMPTY_PROFILE;
 
   // Creator / Mentor Studio Mode
-  const [isCreatorMode, setIsCreatorMode] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem('shine_peerpath_creator_mode');
-      if (saved !== null) {
-        return JSON.parse(saved);
-      }
-    } catch {}
-    try {
-      const savedUser = localStorage.getItem('shine_peerpath_current_user');
-      if (savedUser && savedUser !== 'null') {
-        const parsed = JSON.parse(savedUser);
-        return Boolean(parsed.role === 'mentor' || parsed.id === 'akash');
-      }
-    } catch {}
-    return Boolean(currentUser?.role === 'mentor' || currentUser?.id === 'akash');
-  });
+  const [isCreatorMode, setIsCreatorMode] = useState<boolean>(false);
 
   useEffect(() => {
     try {
@@ -1000,7 +797,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateCandidateResume = (fileName: string, extractedSkills?: string[], targetCtc?: string) => {
     setUserProfiles(prev => {
-      const existing = prev[activeUsername] || DEFAULT_ACCOUNTS[activeUsername]?.profile || DEFAULT_ACCOUNTS.prakash.profile;
+      const existing = prev[activeUsername] || EMPTY_PROFILE;
       const updatedSkills = extractedSkills && extractedSkills.length > 0 
         ? Array.from(new Set([...existing.skills, ...extractedSkills]))
         : existing.skills;
@@ -1025,7 +822,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const removeCandidateResume = () => {
     setUserProfiles(prev => {
-      const existing = prev[activeUsername] || DEFAULT_ACCOUNTS[activeUsername]?.profile || DEFAULT_ACCOUNTS.prakash.profile;
+      const existing = prev[activeUsername] || EMPTY_PROFILE;
       return {
         ...prev,
         [activeUsername]: {
@@ -1188,7 +985,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     const fetchInitialCommunityData = async () => {
       try {
-        const postsRes = await fetch(`${API_BASE}/community/posts?userId=` + (currentUser?.id || 'prakash'));
+        const postsRes = await apiFetch(`${API_BASE}/community/posts`);
         if (postsRes.ok) {
           const json = await postsRes.json();
           if (json.success && Array.isArray(json.data)) {
@@ -1199,8 +996,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Fallback to local state if offline
       }
 
+      if (!currentUser) {
+        setNotifications([]);
+        return;
+      }
       try {
-        const notifRes = await fetch(`${API_BASE}/notifications?userId=` + (currentUser?.id || 'prakash'));
+        // Scoped to the signed-in user by the server (session cookie)
+        const notifRes = await apiFetch(`${API_BASE}/notifications`);
         if (notifRes.ok) {
           const notifJson = await notifRes.json();
           // Set even when empty, so a previous user's notifications don't linger after switching accounts
@@ -1269,7 +1071,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCommunityPosts(prev => [newPost, ...prev]);
 
     // Async sync with backend API
-    fetch(`${API_BASE}/community/posts`, {
+    apiFetch(`${API_BASE}/community/posts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1337,7 +1139,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
 
     // Async backend call
-    fetch(`${API_BASE}/community/posts/${postId}/comments`, {
+    apiFetch(`${API_BASE}/community/posts/${postId}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1368,7 +1170,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
 
     // Async backend sync
-    fetch(`${API_BASE}/community/posts/${postId}/like`, {
+    apiFetch(`${API_BASE}/community/posts/${postId}/like`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: currentUser?.id || 'prakash' })
@@ -1397,7 +1199,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
 
     // Async backend sync
-    fetch(`${API_BASE}/community/posts/${postId}/comments/${commentId}/like`, {
+    apiFetch(`${API_BASE}/community/posts/${postId}/comments/${commentId}/like`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: currentUser?.id || 'prakash' })
@@ -1408,12 +1210,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const markNotificationAsRead = (notificationId: string) => {
     setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n));
-    fetch(`${API_BASE}/notifications/${notificationId}/read`, { method: 'PATCH' }).catch(() => {});
+    apiFetch(`${API_BASE}/notifications/${notificationId}/read`, { method: 'PATCH' }).catch(() => {});
   };
 
   const markAllNotificationsAsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-    fetch(`${API_BASE}/notifications/mark-all-read`, {
+    apiFetch(`${API_BASE}/notifications/mark-all-read`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: currentUser?.id || 'prakash' })
@@ -1423,12 +1225,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteNotification = (notificationId: string) => {
     setNotifications(prev => prev.filter(n => n.id !== notificationId));
-    fetch(`${API_BASE}/notifications/${notificationId}`, { method: 'DELETE' }).catch(() => {});
+    apiFetch(`${API_BASE}/notifications/${notificationId}`, { method: 'DELETE' }).catch(() => {});
   };
 
   const clearAllNotifications = () => {
     setNotifications([]);
-    fetch(`${API_BASE}/notifications/clear-all`, {
+    apiFetch(`${API_BASE}/notifications/clear-all`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: currentUser?.id || 'prakash' })
@@ -1456,189 +1258,104 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Authentication methods
-  // Completes login once we have a resolved { account, profile } pair, regardless of
-  // whether it came from the hardcoded DEFAULT_ACCOUNTS or a fetched backend candidate.
-  const completeLogin = (cleanUser: string, account: UserAccount, profile: UserProfileData) => {
+  // Authentication (Shine OTP via the PeerPath backend; session = httpOnly cookie)
+  const toAccount = (me: AuthUser, profile?: UserProfileData): UserAccount => ({
+    id: me.id,
+    username: me.id,
+    name: profile?.name || me.name,
+    role: me.isMentor ? 'mentor' : 'candidate',
+    avatar: me.avatar || '/brand/android-chrome-192x192.png',
+    email: me.email || '',
+    headline: profile?.headline || '',
+    experienceYears: profile?.experienceYears,
+    location: profile?.location,
+    creatorId: me.creatorId || undefined,
+    isMentorEligible: me.isMentor,
+    hasExpertBadge: me.isMentor
+  });
+
+  // Loads the signed-in user's profile and switches the app to them
+  const applySession = async (me: AuthUser): Promise<UserAccount> => {
+    let profile: UserProfileData | undefined;
+    try {
+      profile = profileFromServer(await peerpathApi.getCandidateProfile(me.id));
+      setUserProfiles(prev => ({ ...prev, [me.id]: profile as UserProfileData }));
+    } catch (err) {
+      console.warn('[API getCandidateProfile]:', err);
+    }
+    const account = toAccount(me, profile);
     setCurrentUser(account);
-    setUserProfiles(prev => ({
-      ...prev,
-      [cleanUser]: { ...profile, ...(prev[cleanUser] || {}) }
-    }));
+    setIsCreatorMode(me.isMentor);
+    return account;
+  };
+
+  // Restore an existing session on page load
+  useEffect(() => {
+    let isCurrent = true;
+    peerpathApi.getMe()
+      .then(async me => {
+        if (!isCurrent) return;
+        if (me) {
+          await applySession(me);
+        } else if (pathToView(window.location.pathname).route?.requiresAuth) {
+          navigate('login-view', '/pages/myshine/login');
+        }
+      })
+      .catch(err => console.warn('[API getMe]:', err))
+      .finally(() => {
+        if (isCurrent) setIsAuthLoading(false);
+      });
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
+  const requestOtp = async (mobile: string) => {
+    try {
+      return await peerpathApi.sendOtp(mobile.trim());
+    } catch (err) {
+      showToast('Could not send OTP', err instanceof Error ? err.message : 'Please try again.', 'warning');
+      return null;
+    }
+  };
+
+  const verifyOtp = async (params: { requestId: string; mobile: string; otp: string; name?: string; email?: string }) => {
+    let me: AuthUser;
+    try {
+      me = await peerpathApi.verifyOtp({ ...params, mobile: params.mobile.trim(), otp: params.otp.trim() });
+    } catch (err) {
+      showToast('Sign in failed', err instanceof Error ? err.message : 'Please try again.', 'warning');
+      return false;
+    }
+    const account = await applySession(me);
     setIsLoginModalOpen(false);
-    const isMentorRole = account.role === 'mentor' || Boolean(profile.isMentor);
-    setIsCreatorMode(isMentorRole);
 
     const urlParams = new URLSearchParams(window.location.search);
     const redirectParam = urlParams.get('redirect');
     const utmSource = urlParams.get('utm_source');
     const campaign = urlParams.get('campaign') || urlParams.get('utm_campaign');
 
-    if (redirectParam) {
+    if (redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//')) {
       navigate('guidance-view', redirectParam);
-    } else if (isMentorRole && !utmSource && !campaign) {
+    } else if (me.isMentor && !utmSource && !campaign) {
       navigate('mentor-dashboard-view', '/creator-studio');
-    } else {
-      // Always redirect candidate logins and campaign traffic (WhatsApp/Email) directly to Peerpath!
+    } else if (currentView === 'login-view') {
       navigate('guidance-view', '/peerpath');
     }
 
-    const campaignLabel = utmSource ? ` [${utmSource.toUpperCase()} Campaign]` : '';
-    showToast(`👋 Welcome, ${account.name}!`, `Logged in successfully • Redirected to Shine Peerpath${campaignLabel}.`);
-  };
-
-  // Any of the 50 seeded candidates (across AI/ML, Semiconductor, Cybersecurity, Full-Stack)
-  // can sign in with this shared demo password + their candidate id/email from db.json —
-  // there's no per-candidate password since these are demo records, not real accounts.
-  const SHARED_DEMO_PASSWORD = 'shine@123';
-
-  const buildAccountFromBackendCandidate = (raw: any): { account: UserAccount; profile: UserProfileData } => {
-    const account: UserAccount = {
-      id: raw.id,
-      username: raw.id,
-      name: raw.name,
-      role: 'candidate',
-      avatar: `https://i.pravatar.cc/150?u=${raw.id}`,
-      email: raw.email,
-      headline: raw.headline,
-      company: raw.pastCompany,
-      experienceYears: raw.experienceYears,
-      location: raw.location,
-      hasExpertBadge: false,
-      isMentorEligible: false
-    };
-    const profile: UserProfileData = {
-      name: raw.name,
-      headline: raw.headline,
-      experienceYears: raw.experienceYears,
-      location: raw.location,
-      profileScore: raw.profileScore,
-      jobSearchStatus: raw.jobSearchStatus,
-      summary: raw.summary,
-      skills: raw.skills || [],
-      badges: raw.badges || [],
-      email: raw.email,
-      phone: raw.phone,
-      currentCtc: raw.currentCtc,
-      targetCtc: raw.targetCtc,
-      targetRole: raw.targetRole,
-      targetCompany: raw.targetCompany,
-      educationDegree: raw.educationDegree,
-      educationCollege: raw.educationCollege,
-      pastCompany: raw.pastCompany,
-      pastCompanyRole: raw.pastCompanyRole,
-      currentCompany: raw.pastCompany,
-      dreamCompany: raw.targetCompany,
-      isCalibrated: true
-    };
-    return { account, profile };
-  };
-
-  const login = async (usernameInput: string, passwordInput: string): Promise<boolean> => {
-    const cleanUser = usernameInput.trim().toLowerCase();
-    const cleanPassword = passwordInput.trim();
-    const entry = DEFAULT_ACCOUNTS[cleanUser];
-
-    if (entry && entry.password === cleanPassword) {
-      completeLogin(cleanUser, entry.account, entry.profile);
-      return true;
-    }
-
-    // Fall back to any of the 50 seeded candidates in db.json (id or email), all sharing
-    // the same demo password since these are dummy records rather than real signups.
-    if (!entry && cleanPassword === SHARED_DEMO_PASSWORD && cleanUser) {
-      try {
-        const raw = await peerpathApi.getCandidateProfile(cleanUser);
-        if (raw && (raw as any).id) {
-          const { account, profile } = buildAccountFromBackendCandidate(raw);
-          completeLogin(cleanUser, account, profile);
-          return true;
-        }
-      } catch (err) {
-        // Not a known candidate id — fall through to the invalid-credentials toast below.
-      }
-    }
-
-    showToast('Invalid Credentials', 'Please check username or password (shine@123)', 'warning');
-    return false;
-  };
-
-  const switchUser = (targetUsername: string) => {
-    const cleanUser = targetUsername.trim().toLowerCase();
-    const entry = DEFAULT_ACCOUNTS[cleanUser];
-    if (entry) {
-      setCurrentUser(entry.account);
-      setUserProfiles(prev => ({
-        ...prev,
-        [cleanUser]: { ...entry.profile, ...(prev[cleanUser] || {}) }
-      }));
-      const isMentorRole = entry.account.role === 'mentor' || Boolean(entry.profile.isMentor);
-      setIsCreatorMode(isMentorRole);
-      
-      const urlParams = new URLSearchParams(window.location.search);
-      const redirectParam = urlParams.get('redirect');
-
-      if (redirectParam) {
-        navigate('guidance-view', redirectParam);
-      } else if (isMentorRole) {
-        navigate('mentor-dashboard-view', '/creator-studio');
-      } else {
-        // Redirect directly to Peerpath page
-        navigate('guidance-view', '/peerpath');
-      }
-      showToast(`⚡ Logged in as ${entry.account.name}`, `Redirected to Shine Peerpath.`);
-    }
-  };
-
-  const resetDemoData = (targetUsername?: string) => {
-    try {
-      localStorage.removeItem('shine_peerpath_current_user');
-      localStorage.removeItem('shine_peerpath_experts');
-      localStorage.removeItem('shine_peerpath_sessions');
-      localStorage.removeItem('shine_peerpath_profiles_db');
-      localStorage.removeItem('shine_peerpath_creator_mode');
-    } catch (e) {
-      console.warn('LocalStorage clear error', e);
-    }
-
-    const freshProfiles: Record<string, UserProfileData> = {
-      prakash: { ...JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS.prakash.profile)), isCalibrated: false },
-      akash: { ...JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS.akash.profile)), isCalibrated: false },
-      nisha: { ...JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS.nisha.profile)), isCalibrated: false }
-    };
-
-    peerpathApi.getCreators().then(c => {
-      if (c && c.length > 0) setExperts(c);
-    }).catch(() => {});
-
-    setSessions([]);
-    setUserProfiles(freshProfiles);
-
-    const target = targetUsername || currentUser?.username || 'prakash';
-    const userToSet = DEFAULT_ACCOUNTS[target]?.account || DEFAULT_ACCOUNTS.prakash.account;
-    setCurrentUser(userToSet);
-    setIsCreatorMode(userToSet.role === 'mentor');
-
-    try {
-      localStorage.setItem('shine_peerpath_current_user', JSON.stringify(userToSet));
-      localStorage.setItem('shine_peerpath_profiles_db', JSON.stringify(freshProfiles));
-    } catch (e) {
-      console.warn('LocalStorage save error', e);
-    }
-
-    peerpathApi.resetDemo().catch(err => console.warn('[API resetDemo]:', err));
-
-    navigate('dashboard-view');
-    showToast('🔄 Demo Data Reset Complete', `All 3 personas (Prakash: Candidate, Nisha: Pitch, Akash: Mentor) restored to pristine state.`, 'success');
+    showToast(`👋 Welcome, ${account.name || 'there'}!`, 'You are now signed in to PeerPath.');
+    return true;
   };
 
   const logout = () => {
+    peerpathApi.logout().catch(err => console.warn('[API logout]:', err));
     setCurrentUser(null);
+    setUserProfiles({});
     setIsCreatorMode(false);
     setActiveSession(null);
     setIsLoginModalOpen(false);
     navigate('login-view', '/pages/myshine/login');
-    showToast('Signed Out', 'You have been safely signed out of your Shine account.', 'info');
+    showToast('Signed Out', 'You have been signed out.', 'info');
   };
 
   const selectExpertById = (expertId: string) => {
@@ -1781,7 +1498,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateUserProfile = (updates: Partial<UserProfileData>) => {
     setUserProfiles(prev => {
-      const existing = prev[activeUsername] || DEFAULT_ACCOUNTS[activeUsername]?.profile || DEFAULT_ACCOUNTS.prakash.profile;
+      const existing = prev[activeUsername] || EMPTY_PROFILE;
       return {
         ...prev,
         [activeUsername]: { ...existing, ...updates }
@@ -1793,7 +1510,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateFullProfile = (updates: Partial<UserProfileData>) => {
     setUserProfiles(prev => {
-      const existing = prev[activeUsername] || DEFAULT_ACCOUNTS[activeUsername]?.profile || DEFAULT_ACCOUNTS.prakash.profile;
+      const existing = prev[activeUsername] || EMPTY_PROFILE;
       const nextScore = Math.min(100, Math.max(existing.profileScore + 20, 90));
       return {
         ...prev,
@@ -1862,7 +1579,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateJobSearchStatus = (status: string) => {
     setUserProfiles(prev => {
-      const existing = prev[activeUsername] || DEFAULT_ACCOUNTS[activeUsername]?.profile || DEFAULT_ACCOUNTS.prakash.profile;
+      const existing = prev[activeUsername] || EMPTY_PROFILE;
       return {
         ...prev,
         [activeUsername]: {
@@ -1896,7 +1613,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateMentorRatesAndAvailability = (rate: number, duration: number, days: string[], timeSlots: string[]) => {
     setUserProfiles(prev => {
-      const existing = prev[activeUsername] || DEFAULT_ACCOUNTS[activeUsername]?.profile || DEFAULT_ACCOUNTS.akash.profile;
+      const existing = prev[activeUsername] || EMPTY_PROFILE;
       return {
         ...prev,
         [activeUsername]: {
@@ -1921,7 +1638,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateMentorTeaserVideo = (teaser: { url: string; title: string; duration?: string; thumbnail?: string; uploadedAt?: string } | null) => {
     setUserProfiles(prev => {
-      const existing = prev[activeUsername] || DEFAULT_ACCOUNTS[activeUsername]?.profile || DEFAULT_ACCOUNTS.akash.profile;
+      const existing = prev[activeUsername] || EMPTY_PROFILE;
       return {
         ...prev,
         [activeUsername]: {
@@ -1941,10 +1658,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         navigate,
         currentUser,
         isLoggedIn,
-        login,
+        isAuthLoading,
+        requestOtp,
+        verifyOtp,
         logout,
-        switchUser,
-        resetDemoData,
         experts,
         selectedExpert,
         setSelectedExpert,

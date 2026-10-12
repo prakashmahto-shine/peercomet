@@ -3,7 +3,7 @@ import random
 import uuid
 from typing import List, Dict, Optional, Any
 from datetime import datetime
-from backend.data.store import store
+from backend.data.store import store, SlotTakenError
 from backend.models.schemas import MentorshipSession, CheckoutPayload, SessionReviewPayload
 
 
@@ -107,7 +107,10 @@ class BookingService:
                 sessionType=SESSION_TYPES[session_type]['title'],
                 bookedAt=_now_iso()
             )
-            store.add_session(new_session)
+            try:
+                store.add_session(new_session)
+            except SlotTakenError as e:
+                raise BookingError(str(e), 409)
 
         return {
             'success': True,
@@ -141,7 +144,10 @@ class BookingService:
         expert = store.get_creator_by_id(session.expertId) or session.expert
         with store.lock:
             self._validate_slot(expert, new_date, new_time_slot, exclude_session_id=session_id)
-            return store.update_session(session_id, {'date': new_date, 'timeSlot': new_time_slot})
+            try:
+                return store.update_session(session_id, {'date': new_date, 'timeSlot': new_time_slot})
+            except SlotTakenError as e:
+                raise BookingError(str(e), 409)
 
     def complete_session(self, session_id: str) -> MentorshipSession:
         """Marks a session as held. Idempotent; does not award badges (that's the mentor's assessment)."""

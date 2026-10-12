@@ -11,3 +11,4 @@ from .community import router as community_router
 from .notifications import router as notifications_router
 from .sessions import router as sessions_router
 
+from .auth import router as auth_router

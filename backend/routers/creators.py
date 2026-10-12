@@ -1,5 +1,8 @@
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from backend.auth.deps import require_creator_owner, require_user
+from backend.data.store import store
+from backend.db.models import User
 from backend.models.schemas import CreatorRegisterInput, AvailabilityUpdateInput, CreatorUpdateInput
 from backend.services.creator_service import creator_service
 
@@ -26,15 +29,18 @@ def get_creator_by_id(creator_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/register")
-def register_creator(payload: CreatorRegisterInput):
+def register_creator(payload: CreatorRegisterInput, user: User = Depends(require_user)):
+    if store.get_creator_by_owner(user.id):
+        raise HTTPException(status_code=409, detail="You already have a mentor profile")
     try:
-        created = creator_service.register(payload)
+        created = creator_service.register(payload, owner_user_id=user.id)
         return {"success": True, "data": created}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/{creator_id}/availability")
-def update_availability(creator_id: str, payload: AvailabilityUpdateInput):
+def update_availability(creator_id: str, payload: AvailabilityUpdateInput, user: User = Depends(require_user)):
+    require_creator_owner(creator_id, user)
     try:
         updated = creator_service.update_availability(creator_id, payload.days, payload.timeSlots)
         if not updated:
@@ -46,7 +52,8 @@ def update_availability(creator_id: str, payload: AvailabilityUpdateInput):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/{creator_id}")
-def update_creator(creator_id: str, payload: CreatorUpdateInput):
+def update_creator(creator_id: str, payload: CreatorUpdateInput, user: User = Depends(require_user)):
+    require_creator_owner(creator_id, user)
     updates = payload.model_dump(exclude_none=True)
     if not updates:
         raise HTTPException(status_code=400, detail="No updatable fields provided")

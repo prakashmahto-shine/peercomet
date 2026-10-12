@@ -1,9 +1,11 @@
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from backend.auth.deps import require_recruiter
 from backend.models.schemas import RecruiterMatchInput, RecruiterInviteInput
 from backend.services.recruiter_service import recruiter_service
 
-router = APIRouter(prefix="/api/recruiter", tags=["Recruiter"])
+# Candidate search exposes candidate profiles: recruiters/admins only (RECRUITER_USER_IDS, ADMIN_USER_IDS)
+router = APIRouter(prefix="/api/recruiter", tags=["Recruiter"], dependencies=[Depends(require_recruiter)])
 
 @router.post("/match")
 def match_recruiter_candidates(payload: RecruiterMatchInput):

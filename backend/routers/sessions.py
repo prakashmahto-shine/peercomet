@@ -2,7 +2,9 @@ import os
 import re
 from pathlib import Path
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from backend.auth.deps import load_session_for, require_user
+from backend.db.models import User
 from fastapi.responses import JSONResponse, StreamingResponse
 from backend.data.store import store
 from backend.config import DATA_DIR
@@ -14,20 +16,27 @@ RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Session ids end up in file paths, so only allow plain id characters
 SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,80}$")
+MAX_RECORDING_BYTES = 500 * 1024 * 1024
 
 @router.post("/api/sessions/{session_id}/recording")
-async def upload_recording(session_id: str, request: Request):
+async def upload_recording(session_id: str, request: Request, user: User = Depends(require_user)):
     """
     Save session video recording (.webm / .mp4) uploaded from WebRTC client
     """
     clean_id = session_id.replace("peerpath-", "").replace("sess-", "")
     if not SAFE_ID_RE.match(clean_id):
         raise HTTPException(status_code=400, detail="Invalid session id")
+    # Only the session's candidate and mentor may upload or watch its recording
+    load_session_for(f"sess-{clean_id}", user)
     try:
         file_path = RECORDINGS_DIR / f"sess-{clean_id}.webm"
 
-        # Read binary body stream
+        # Read binary body stream (capped so one upload can't exhaust memory/disk)
+        if int(request.headers.get("content-length") or 0) > MAX_RECORDING_BYTES:
+            raise HTTPException(status_code=413, detail="Recording is too large")
         body = await request.body()
+        if len(body) > MAX_RECORDING_BYTES:
+            raise HTTPException(status_code=413, detail="Recording is too large")
         if body and len(body) > 0:
             with open(file_path, "wb") as f:
                 f.write(body)
@@ -64,18 +73,22 @@ async def upload_recording(session_id: str, request: Request):
             "sessionId": clean_id,
             "sizeBytes": file_size
         }
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[Recording Error]: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/api/sessions/{session_id}/recording")
-async def stream_recording(session_id: str, request: Request):
+async def stream_recording(session_id: str, request: Request, user: User = Depends(require_user)):
     """
     Stream session recording with HTTP 206 Partial Content (Range header) for smooth video playback & scrubbing
     """
     clean_id = session_id.replace("peerpath-", "").replace("sess-", "")
     if not SAFE_ID_RE.match(clean_id):
         raise HTTPException(status_code=400, detail="Invalid session id")
+    # Only the session's candidate and mentor may upload or watch its recording
+    load_session_for(f"sess-{clean_id}", user)
     file_path = RECORDINGS_DIR / f"sess-{clean_id}.webm"
 
     if not file_path.exists():

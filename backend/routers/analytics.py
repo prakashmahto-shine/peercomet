@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from backend.config import DEMO_MODE
 from backend.services.analytics_service import analytics_service
 from backend.data.store import store
 from backend.services.milvus_service import milvus_service
@@ -14,6 +15,9 @@ def get_metrics():
 
 @router.post("/api/demo/reset")
 def reset_demo():
+    # Wipes all data: only available when DEMO_MODE=true (never in production)
+    if not DEMO_MODE:
+        raise HTTPException(status_code=404, detail="Not found")
     try:
         store.reset_to_default()
         # Re-sync milvus index

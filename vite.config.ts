@@ -8,6 +8,12 @@ export default defineConfig({
     port: Number(process.env.PORT) || 4242,
     allowedHosts: true,
     proxy: {
+      // WebRTC signaling (Socket.IO) runs on the backend too
+      '/socket.io': {
+        target: 'http://127.0.0.1:5001',
+        ws: true,
+        changeOrigin: true
+      },
       '/api': {
         target: 'http://127.0.0.1:5001',
         changeOrigin: true,
@@ -27,6 +33,12 @@ export default defineConfig({
     port: Number(process.env.PORT) || 4242,
     allowedHosts: true,
     proxy: {
+      // WebRTC signaling (Socket.IO) runs on the backend too
+      '/socket.io': {
+        target: 'http://127.0.0.1:5001',
+        ws: true,
+        changeOrigin: true
+      },
       '/api': {
         target: 'http://127.0.0.1:5001',
         changeOrigin: true,

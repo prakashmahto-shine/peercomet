@@ -12,7 +12,7 @@ class CreatorService:
     def get_by_id(self, creator_id: str) -> Optional[Creator]:
         return store.get_creator_by_id(creator_id)
 
-    def register(self, payload: CreatorRegisterInput) -> Creator:
+    def register(self, payload: CreatorRegisterInput, owner_user_id: Optional[str] = None) -> Creator:
         creator_id = f"exp-{int(time.time() * 1000)}"
         company_clean = re.sub(r'[^a-z]', '', payload.company.lower())
 
@@ -53,7 +53,7 @@ class CreatorService:
             availability=availability
         )
 
-        saved = store.add_creator(new_creator)
+        saved = store.add_creator(new_creator, owner_user_id=owner_user_id)
 
         # Upsert vector into Milvus
         try:

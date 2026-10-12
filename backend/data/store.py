@@ -1,13 +1,30 @@
-import json
-import os
+"""
+Data access layer. Services talk to `store`; this module is the only place that knows
+about the database (SQLAlchemy, see backend/db). The method names/return types match the
+previous JSON-file store, so services didn't have to change.
+"""
+import hashlib
+import secrets
 import threading
-from pathlib import Path
-from typing import List, Optional, Dict, Any
-from backend.config import DB_PATH
+import uuid
+from datetime import datetime, timedelta
+from typing import List, Optional, Dict, Any, Tuple
+
+from sqlalchemy import delete, func, or_, select
+from sqlalchemy.exc import IntegrityError
+
+from backend.config import SESSION_TTL_DAYS
+from backend.db import models as m
+from backend.db.engine import db_session
 from backend.models.schemas import (
     Creator, CandidateProfile, MentorshipSession, PeerVerifiedBadge,
     CommunityPost, CommunityComment, CommunityNotification
 )
+
+
+class SlotTakenError(Exception):
+    """The mentor's slot already has an upcoming booking (unique index on bookings)."""
+
 
 def normalize_domain_key(domain: Optional[str]) -> Optional[str]:
     if not domain:
@@ -31,62 +48,99 @@ def normalize_domain_key(domain: Optional[str]) -> Optional[str]:
         return 'Marketing'
     return None
 
+
+def _hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode('utf-8')).hexdigest()
+
+
+def _lower(value: Optional[str]) -> str:
+    return (value or '').strip().lower()
+
+
 class Store:
-    def __init__(self, db_path: Path = DB_PATH):
-        self.db_path = db_path
-        self.data: Dict[str, Any] = self._load_data()
-        # Guards read-modify-write sequences (e.g. slot check + insert) across threadpool workers
+    def __init__(self):
+        # In-process guard for read-check-write sequences. Cross-process safety for bookings
+        # comes from the unique index on bookings (see SlotTakenError).
         self.lock = threading.RLock()
 
-    def _load_data(self) -> Dict[str, Any]:
-        if os.path.exists(self.db_path):
-            try:
-                with open(self.db_path, 'r', encoding='utf-8') as f:
-                    parsed = json.load(f)
-                    if 'creators' in parsed and 'candidates' in parsed and 'sessions' in parsed:
-                        return parsed
-            except Exception as e:
-                print(f"[Store] Error reading {self.db_path}, fallback: {e}")
+    # ------------------------------------------------------------------ counters
+    def _bump_counter(self, db, name: str, by: int = 1):
+        row = db.get(m.KeyValue, 'analytics')
+        current = dict(row.value) if row else {}
+        current[name] = int(current.get(name, 0)) + by
+        if row:
+            row.value = current
+        else:
+            db.add(m.KeyValue(key='analytics', value=current))
 
-        # Default fallback structure if db.json is missing
-        return {
-            "creators": [],
-            "candidates": [],
-            "sessions": [],
-            "badges": [],
-            "analytics": {
-                "profileUpdatesThisMonth": 14820,
-                "newRegistrationsThisMonth": 6350,
-                "totalSessionsBooked": 2430,
-                "totalActiveCreators": 0
-            }
-        }
+    # ------------------------------------------------------------------ users & auth
+    def get_user(self, user_id: str) -> Optional[m.User]:
+        with db_session() as db:
+            return db.get(m.User, user_id)
 
-    def save_data(self):
-        # Write to a temp file and atomically swap it in, so a crash mid-write can't truncate db.json
-        with self.lock:
-            tmp_path = self.db_path.with_suffix('.json.tmp')
-            try:
-                self.db_path.parent.mkdir(parents=True, exist_ok=True)
-                with open(tmp_path, 'w', encoding='utf-8') as f:
-                    json.dump(self.data, f, indent=2)
-                os.replace(tmp_path, self.db_path)
-            except Exception as e:
-                print(f"[Store] Error saving {self.db_path}: {e}")
+    def upsert_user_from_shine(self, shine_candidate_id: str, name: str, email: Optional[str],
+                               mobile: Optional[str], user_id: Optional[str] = None) -> m.User:
+        """Finds the PeerPath user linked to a Shine account, creating it on first login."""
+        with db_session() as db:
+            user = db.scalar(select(m.User).where(m.User.shine_candidate_id == shine_candidate_id))
+            if not user:
+                user = m.User(
+                    id=user_id or f"u_{uuid.uuid4().hex[:16]}",
+                    shine_candidate_id=shine_candidate_id,
+                )
+                db.add(user)
+            user.name = name or user.name or ''
+            user.email = email or user.email
+            user.mobile = mobile or user.mobile
+            user.last_login_at = datetime.utcnow()
+            db.flush()
 
-    # Creators
+            # Every user gets a candidate profile (a mentor is also a candidate)
+            if not db.get(m.Candidate, user.id):
+                profile = CandidateProfile(id=user.id, name=user.name, email=user.email or '', phone=user.mobile or '')
+                db.add(m.Candidate(id=user.id, email=_lower(user.email) or None, data=profile.model_dump()))
+                self._bump_counter(db, 'newRegistrationsThisMonth')
+            return user
+
+    def create_auth_session(self, user_id: str) -> Tuple[str, datetime]:
+        token = secrets.token_urlsafe(32)
+        expires_at = datetime.utcnow() + timedelta(days=SESSION_TTL_DAYS)
+        with db_session() as db:
+            db.add(m.AuthSession(token_hash=_hash_token(token), user_id=user_id, expires_at=expires_at))
+            # Housekeeping: drop expired sessions
+            db.execute(delete(m.AuthSession).where(m.AuthSession.expires_at < datetime.utcnow()))
+        return token, expires_at
+
+    def get_user_by_session_token(self, token: str) -> Optional[m.User]:
+        if not token:
+            return None
+        with db_session() as db:
+            auth = db.get(m.AuthSession, _hash_token(token))
+            if not auth or auth.expires_at < datetime.utcnow():
+                return None
+            return db.get(m.User, auth.user_id)
+
+    def delete_auth_session(self, token: str):
+        if not token:
+            return
+        with db_session() as db:
+            db.execute(delete(m.AuthSession).where(m.AuthSession.token_hash == _hash_token(token)))
+
+    # ------------------------------------------------------------------ creators
     def get_creators(self, domain: Optional[str] = None, query: Optional[str] = None) -> List[Creator]:
-        creators_raw = self.data.get('creators', [])
-        creators = [Creator(**c) for c in creators_raw]
+        with db_session() as db:
+            rows = db.scalars(
+                select(m.Creator).where(m.Creator.status == 'approved').order_by(m.Creator.created_at.desc())
+            ).all()
+            creators = [Creator(**r.data) for r in rows]
 
         if domain and domain != 'all':
             target_norm = normalize_domain_key(domain) or domain.lower()
-            filtered = []
-            for c in creators:
-                c_norm = normalize_domain_key(c.domain) or c.domain.lower()
-                if c_norm.lower() == target_norm.lower() or c.domain.lower() == domain.lower():
-                    filtered.append(c)
-            creators = filtered
+            creators = [
+                c for c in creators
+                if (normalize_domain_key(c.domain) or c.domain.lower()).lower() == target_norm.lower()
+                or c.domain.lower() == domain.lower()
+            ]
 
         if query and query.strip():
             q = query.lower().strip()
@@ -97,75 +151,64 @@ class Store:
                 or q in c.company.lower()
                 or any(q in s.lower() for s in c.skills)
             ]
-
         return creators
 
-    def get_creator_by_id(self, creator_id: str) -> Optional[Creator]:
-        clean = (creator_id or '').strip().lower()
-        for c in self.data.get('creators', []):
-            if c.get('id', '').lower() == clean:
-                return Creator(**c)
-        return None
+    def _creator_row(self, db, creator_id: str) -> Optional[m.Creator]:
+        return db.scalar(select(m.Creator).where(func.lower(m.Creator.id) == _lower(creator_id)))
 
-    def add_creator(self, new_creator: Creator) -> Creator:
-        creators = self.data.setdefault('creators', [])
-        creator_dict = new_creator.model_dump()
-        
-        # Replace if exists, else prepend
-        idx = next((i for i, c in enumerate(creators) if c.get('id') == new_creator.id), -1)
-        if idx >= 0:
-            creators[idx] = creator_dict
-        else:
-            creators.insert(0, creator_dict)
-            self.data.setdefault('analytics', {})['totalActiveCreators'] = len(creators)
-        
-        self.save_data()
+    def get_creator_by_id(self, creator_id: str) -> Optional[Creator]:
+        with db_session() as db:
+            row = self._creator_row(db, creator_id)
+            return Creator(**row.data) if row else None
+
+    def get_creator_owner(self, creator_id: str) -> Optional[str]:
+        with db_session() as db:
+            row = self._creator_row(db, creator_id)
+            return row.owner_user_id if row else None
+
+    def get_creator_by_owner(self, user_id: str) -> Optional[Creator]:
+        with db_session() as db:
+            row = db.scalar(select(m.Creator).where(m.Creator.owner_user_id == user_id))
+            return Creator(**row.data) if row else None
+
+    def add_creator(self, new_creator: Creator, owner_user_id: Optional[str] = None) -> Creator:
+        with db_session() as db:
+            row = db.get(m.Creator, new_creator.id)
+            if row:
+                row.data = new_creator.model_dump()
+                if owner_user_id:
+                    row.owner_user_id = owner_user_id
+            else:
+                db.add(m.Creator(id=new_creator.id, owner_user_id=owner_user_id, data=new_creator.model_dump()))
         return new_creator
 
-    def update_creator_availability(self, creator_id: str, days: List[str], time_slots: List[str]) -> Optional[Creator]:
-        creator = self.get_creator_by_id(creator_id)
-        if not creator:
-            return None
-        
-        for c in self.data.get('creators', []):
-            if c.get('id', '').lower() == creator_id.strip().lower():
-                c['availability'] = {'days': days, 'timeSlots': time_slots}
-                break
-        
-        self.save_data()
-        return self.get_creator_by_id(creator_id)
-
     def update_creator(self, creator_id: str, updates: Dict[str, Any]) -> Optional[Creator]:
-        clean = (creator_id or '').strip().lower()
-        for c in self.data.get('creators', []):
-            if c.get('id', '').lower() == clean:
-                c.update(updates)
-                self.save_data()
-                return Creator(**c)
-        return None
+        with db_session() as db:
+            row = self._creator_row(db, creator_id)
+            if not row:
+                return None
+            row.data = {**row.data, **updates}
+            return Creator(**row.data)
 
-    # Sessions & Bookings
+    def update_creator_availability(self, creator_id: str, days: List[str], time_slots: List[str]) -> Optional[Creator]:
+        return self.update_creator(creator_id, {'availability': {'days': days, 'timeSlots': time_slots}})
+
+    # ------------------------------------------------------------------ bookings
     def get_sessions(self, user_id: Optional[str] = None, role: Optional[str] = None) -> List[MentorshipSession]:
-        sessions_raw = self.data.get('sessions', [])
-        sessions = [MentorshipSession(**s) for s in sessions_raw]
-        if not user_id:
-            return sessions
-        
-        # Match on ids only. Matching on name substrings leaked sessions between users
-        # (e.g. 'akash' is a substring of 'prakash').
-        uid = user_id.strip().lower()
-        if role == 'mentor':
-            return [s for s in sessions if s.expertId.lower() == uid]
-        return [s for s in sessions if s.candidateId.lower() == uid]
+        with db_session() as db:
+            stmt = select(m.Booking).order_by(m.Booking.created_at.desc())
+            if user_id:
+                # Match on ids only (name matching leaked sessions between users)
+                column = m.Booking.expert_id if role == 'mentor' else m.Booking.candidate_id
+                stmt = stmt.where(func.lower(column) == _lower(user_id))
+            return [MentorshipSession(**r.data) for r in db.scalars(stmt).all()]
 
     def get_booked_slots(self, expert_id: str) -> List[Dict[str, str]]:
-        # Upcoming bookings for a mentor, used to hide taken slots and reject double bookings
-        eid = (expert_id or '').strip().lower()
-        return [
-            {'id': s.get('id', ''), 'date': s.get('date', ''), 'timeSlot': s.get('timeSlot', '')}
-            for s in self.data.get('sessions', [])
-            if (s.get('expertId') or '').lower() == eid and s.get('status') == 'upcoming'
-        ]
+        with db_session() as db:
+            rows = db.scalars(select(m.Booking).where(
+                func.lower(m.Booking.expert_id) == _lower(expert_id), m.Booking.status == 'upcoming'
+            )).all()
+            return [{'id': r.id, 'date': r.date, 'timeSlot': r.time_slot} for r in rows]
 
     def is_slot_taken(self, expert_id: str, date: str, time_slot: str, exclude_session_id: Optional[str] = None) -> bool:
         return any(
@@ -175,39 +218,53 @@ class Store:
         )
 
     def get_session_by_id(self, session_id: str) -> Optional[MentorshipSession]:
-        for s in self.data.get('sessions', []):
-            if s.get('id') == session_id:
-                return MentorshipSession(**s)
-        return None
+        with db_session() as db:
+            row = db.get(m.Booking, session_id)
+            return MentorshipSession(**row.data) if row else None
+
+    @staticmethod
+    def _booking_columns(data: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            'expert_id': data['expertId'],
+            'candidate_id': data['candidateId'],
+            'status': data['status'],
+            'date': data['date'],
+            'time_slot': data['timeSlot'],
+        }
 
     def add_session(self, session: MentorshipSession) -> MentorshipSession:
-        sessions = self.data.setdefault('sessions', [])
-        sessions.insert(0, session.model_dump())
-        self.data.setdefault('analytics', {})['totalSessionsBooked'] = self.data['analytics'].get('totalSessionsBooked', 0) + 1
-        self.save_data()
+        data = session.model_dump()
+        try:
+            with db_session() as db:
+                db.add(m.Booking(id=session.id, data=data, **self._booking_columns(data)))
+                self._bump_counter(db, 'totalSessionsBooked')
+        except IntegrityError as e:
+            raise SlotTakenError("This slot was just booked by someone else. Please pick another slot.") from e
         return session
 
     def update_session(self, session_id: str, updates: Dict[str, Any]) -> Optional[MentorshipSession]:
-        for s in self.data.get('sessions', []):
-            if s.get('id') == session_id:
-                s.update(updates)
-                self.save_data()
-                return MentorshipSession(**s)
-        return None
+        try:
+            with db_session() as db:
+                row = db.get(m.Booking, session_id)
+                if not row:
+                    return None
+                data = {**row.data, **updates}
+                row.data = data
+                for column, value in self._booking_columns(data).items():
+                    setattr(row, column, value)
+                return MentorshipSession(**data)
+        except IntegrityError as e:
+            raise SlotTakenError("This slot is already booked. Please pick another slot.") from e
 
-    # Candidates & Profile Updates
+    # ------------------------------------------------------------------ candidates
     def get_candidate(self, candidate_id: str) -> Optional[CandidateProfile]:
-        lookup = (candidate_id or '').lower()
-        for c in self.data.get('candidates', []):
-            cid = c.get('id', '').lower()
-            cemail = c.get('email', '').lower()
-            if cid == lookup or cemail == lookup or (lookup == 'prakash' and cid == 'prakash-mahto') or (lookup == 'prakash-mahto' and cid == 'prakash'):
-                return CandidateProfile(**c)
-        return None
+        with db_session() as db:
+            row = db.scalar(select(m.Candidate).where(func.lower(m.Candidate.id) == _lower(candidate_id)))
+            return CandidateProfile(**row.data) if row else None
 
     def get_candidates(self, domain: Optional[str] = None, peer_verified_only: bool = False) -> List[CandidateProfile]:
-        cands_raw = self.data.get('candidates', [])
-        cands = [CandidateProfile(**c) for c in cands_raw]
+        with db_session() as db:
+            cands = [CandidateProfile(**r.data) for r in db.scalars(select(m.Candidate).order_by(m.Candidate.created_at.desc())).all()]
 
         if peer_verified_only:
             cands = [c for c in cands if c.badges and len(c.badges) > 0]
@@ -221,193 +278,201 @@ class Store:
                 or any(d in s.lower() for s in c.skills)
                 or (c.domain and d in c.domain.lower())
             ]
-
         return cands
 
     def update_candidate(self, candidate_id: str, updates: Dict[str, Any]) -> Optional[CandidateProfile]:
-        for c in self.data.get('candidates', []):
-            cid = c.get('id', '').lower()
-            if cid == candidate_id.lower() or (candidate_id.lower() == 'prakash' and cid == 'prakash-mahto') or (candidate_id.lower() == 'prakash-mahto' and cid == 'prakash'):
-                c.update(updates)
-                self.data.setdefault('analytics', {})['profileUpdatesThisMonth'] = self.data['analytics'].get('profileUpdatesThisMonth', 0) + 1
-                self.save_data()
-                return CandidateProfile(**c)
-        return None
+        with db_session() as db:
+            row = db.scalar(select(m.Candidate).where(func.lower(m.Candidate.id) == _lower(candidate_id)))
+            if not row:
+                return None
+            row.data = {**row.data, **updates}
+            if 'email' in updates:
+                row.email = _lower(updates.get('email')) or None
+            self._bump_counter(db, 'profileUpdatesThisMonth')
+            return CandidateProfile(**row.data)
 
     def award_badge_to_candidate(self, candidate_id: str, badge: PeerVerifiedBadge) -> Optional[CandidateProfile]:
-        cand = self.get_candidate(candidate_id)
-        if not cand:
-            return None
-        
-        for c in self.data.get('candidates', []):
-            cid = c.get('id', '').lower()
-            if cid == candidate_id.lower() or (candidate_id.lower() == 'prakash' and cid == 'prakash-mahto') or (candidate_id.lower() == 'prakash-mahto' and cid == 'prakash'):
-                existing_badges = [b for b in c.get('badges', []) if b.get('title') != badge.title]
-                c['badges'] = [badge.model_dump()] + existing_badges
-                c['profileScore'] = min(100, (c.get('profileScore', 75) + 8))
-                c['recruiterSearchMultiplier'] = min(5.0, (c.get('recruiterSearchMultiplier', 1.5) + 0.6))
-                
-                self.data.setdefault('badges', []).insert(0, badge.model_dump())
-                self.data.setdefault('analytics', {})['profileUpdatesThisMonth'] = self.data['analytics'].get('profileUpdatesThisMonth', 0) + 1
-                self.save_data()
-                return CandidateProfile(**c)
-        return None
+        with db_session() as db:
+            row = db.scalar(select(m.Candidate).where(func.lower(m.Candidate.id) == _lower(candidate_id)))
+            if not row:
+                return None
+            data = dict(row.data)
+            existing_badges = [b for b in data.get('badges', []) if b.get('title') != badge.title]
+            data['badges'] = [badge.model_dump()] + existing_badges
+            data['profileScore'] = min(100, data.get('profileScore', 75) + 8)
+            data['recruiterSearchMultiplier'] = min(5.0, (data.get('recruiterSearchMultiplier') or 1.5) + 0.6)
+            row.data = data
+            db.add(m.Badge(id=badge.id, candidate_id=row.id, data=badge.model_dump()))
+            self._bump_counter(db, 'profileUpdatesThisMonth')
+            return CandidateProfile(**data)
 
-    # Analytics
+    # ------------------------------------------------------------------ analytics
     def get_analytics(self) -> Dict[str, Any]:
-        analytics = self.data.get('analytics', {})
-        creators = self.data.get('creators', [])
-        sessions = self.data.get('sessions', [])
-        badges = self.data.get('badges', [])
+        with db_session() as db:
+            kv = db.get(m.KeyValue, 'analytics')
+            counters = dict(kv.value) if kv else {}
+            creators = db.scalar(select(func.count()).select_from(m.Creator).where(m.Creator.status == 'approved')) or 0
+            upcoming = db.scalar(select(func.count()).select_from(m.Booking).where(m.Booking.status == 'upcoming')) or 0
+            completed = db.scalar(select(func.count()).select_from(m.Booking).where(m.Booking.status == 'completed')) or 0
+            badges = db.scalar(select(func.count()).select_from(m.Badge)) or 0
 
         return {
-            **analytics,
-            'verifiedCreatorsCount': len(creators),
-            'upcomingSessionsCount': len([s for s in sessions if s.get('status') == 'upcoming']),
-            'completedSessionsCount': len([s for s in sessions if s.get('status') == 'completed']),
-            'totalBadgesIssued': len(badges),
+            **counters,
+            'totalActiveCreators': creators,
+            'verifiedCreatorsCount': creators,
+            'upcomingSessionsCount': upcoming,
+            'completedSessionsCount': completed,
+            'totalBadgesIssued': badges,
             'domainsCovered': ['Full-Stack', 'AI/ML', 'Semiconductor', 'Cybersecurity', 'SaaS Sales', 'Marketing'],
-            'growthStats': {
-                'profileUpdateRateGain': '+68% vs baseline jobs platform',
-                'passiveRegistrationsInUnderservedDomains': '42% from Topmate/LinkedIn referral',
-                'recruiterSearchShortlistSpeed': '3.4x faster for peer-verified candidates'
-            }
         }
 
-    # Community Posts & Discussions
+    # ------------------------------------------------------------------ community
     def get_posts(self, tag: Optional[str] = None, mentor_id: Optional[str] = None, user_id: Optional[str] = None) -> List[CommunityPost]:
-        posts_raw = self.data.get('posts', [])
-        posts = [CommunityPost(**p) for p in posts_raw]
+        with db_session() as db:
+            stmt = select(m.Post).order_by(m.Post.created_at.desc())
+            if mentor_id:
+                stmt = stmt.where(func.lower(m.Post.mentor_id) == _lower(mentor_id))
+            posts = [CommunityPost(**r.data) for r in db.scalars(stmt).all()]
 
         if tag and tag.lower() != 'all':
             clean_tag = tag.lower().strip()
             posts = [p for p in posts if any(clean_tag in t.lower() for t in p.tags)]
-
-        if mentor_id:
-            posts = [p for p in posts if p.mentorId.lower() == mentor_id.lower()]
-
         return posts
 
     def create_post(self, new_post: CommunityPost) -> CommunityPost:
-        self.data.setdefault('posts', []).insert(0, new_post.model_dump())
-        self.save_data()
+        with db_session() as db:
+            db.add(m.Post(id=new_post.id, mentor_id=new_post.mentorId, data=new_post.model_dump()))
         return new_post
 
     def get_post_by_id(self, post_id: str) -> Optional[CommunityPost]:
-        for p in self.data.get('posts', []):
-            if p.get('id') == post_id:
-                return CommunityPost(**p)
-        return None
+        with db_session() as db:
+            row = db.get(m.Post, post_id)
+            return CommunityPost(**row.data) if row else None
 
     def add_comment_to_post(self, post_id: str, comment: CommunityComment) -> Optional[CommunityComment]:
-        for p in self.data.get('posts', []):
-            if p.get('id') == post_id:
-                p.setdefault('comments', []).append(comment.model_dump())
-                self.save_data()
-                return comment
-        return None
+        with db_session() as db:
+            row = db.get(m.Post, post_id)
+            if not row:
+                return None
+            data = dict(row.data)
+            data['comments'] = list(data.get('comments', [])) + [comment.model_dump()]
+            row.data = data
+            return comment
 
     def toggle_post_like(self, post_id: str, user_id: str) -> Dict[str, Any]:
-        for p in self.data.get('posts', []):
-            if p.get('id') == post_id:
-                liked_by = p.setdefault('likedBy', [])
-                if user_id in liked_by:
-                    liked_by.remove(user_id)
-                    p['likes'] = max(0, p.get('likes', 1) - 1)
-                    liked = False
-                else:
-                    liked_by.append(user_id)
-                    p['likes'] = p.get('likes', 0) + 1
-                    liked = True
-                self.save_data()
-                return {"postId": post_id, "likes": p['likes'], "liked": liked}
-        return {"postId": post_id, "likes": 0, "liked": False}
+        with db_session() as db:
+            row = db.get(m.Post, post_id)
+            if not row:
+                return {"postId": post_id, "likes": 0, "liked": False}
+            data = dict(row.data)
+            liked_by = list(data.get('likedBy', []))
+            if user_id in liked_by:
+                liked_by.remove(user_id)
+                data['likes'] = max(0, data.get('likes', 1) - 1)
+                liked = False
+            else:
+                liked_by.append(user_id)
+                data['likes'] = data.get('likes', 0) + 1
+                liked = True
+            data['likedBy'] = liked_by
+            row.data = data
+            return {"postId": post_id, "likes": data['likes'], "liked": liked}
 
     def toggle_comment_like(self, post_id: str, comment_id: str, user_id: str) -> Dict[str, Any]:
-        for p in self.data.get('posts', []):
-            if p.get('id') == post_id:
-                for c in p.get('comments', []):
-                    if c.get('id') == comment_id:
-                        liked_by = c.setdefault('likedBy', [])
-                        if user_id in liked_by:
-                            liked_by.remove(user_id)
-                            c['likes'] = max(0, c.get('likes', 1) - 1)
-                            liked = False
-                        else:
-                            liked_by.append(user_id)
-                            c['likes'] = c.get('likes', 0) + 1
-                            liked = True
-                        self.save_data()
-                        return {"commentId": comment_id, "likes": c['likes'], "liked": liked}
-        return {"commentId": comment_id, "likes": 0, "liked": False}
+        with db_session() as db:
+            row = db.get(m.Post, post_id)
+            if not row:
+                return {"commentId": comment_id, "likes": 0, "liked": False}
+            data = dict(row.data)
+            comments = [dict(c) for c in data.get('comments', [])]
+            for c in comments:
+                if c.get('id') == comment_id:
+                    liked_by = list(c.get('likedBy', []))
+                    if user_id in liked_by:
+                        liked_by.remove(user_id)
+                        c['likes'] = max(0, c.get('likes', 1) - 1)
+                        liked = False
+                    else:
+                        liked_by.append(user_id)
+                        c['likes'] = c.get('likes', 0) + 1
+                        liked = True
+                    c['likedBy'] = liked_by
+                    data['comments'] = comments
+                    row.data = data
+                    return {"commentId": comment_id, "likes": c['likes'], "liked": liked}
+            return {"commentId": comment_id, "likes": 0, "liked": False}
 
-    # Notifications Repository
-    def get_notifications(self, user_id: Optional[str] = None, unread_only: bool = False) -> List[CommunityNotification]:
-        notifs_raw = self.data.get('notifications', [])
-        notifs = [CommunityNotification(**n) for n in notifs_raw]
-
+    # ------------------------------------------------------------------ notifications
+    def _notifications_for(self, user_id: Optional[str]):
+        stmt = select(m.Notification).order_by(m.Notification.created_at.desc())
         if user_id:
-            uid = user_id.lower()
-            notifs = [n for n in notifs if not n.recipientId or n.recipientId.lower() == uid or n.recipientId.lower() == 'all']
+            uid = _lower(user_id)
+            stmt = stmt.where(or_(
+                m.Notification.recipient_id.is_(None),
+                func.lower(m.Notification.recipient_id) == uid,
+                func.lower(m.Notification.recipient_id) == 'all',
+            ))
+        return stmt
 
-        if unread_only:
-            notifs = [n for n in notifs if not n.isRead]
+    def get_notifications(self, user_id: Optional[str] = None, unread_only: bool = False) -> List[CommunityNotification]:
+        with db_session() as db:
+            stmt = self._notifications_for(user_id)
+            if unread_only:
+                stmt = stmt.where(m.Notification.is_read.is_(False))
+            return [CommunityNotification(**{**r.data, 'isRead': r.is_read}) for r in db.scalars(stmt).all()]
 
-        return notifs
+    def get_notification_recipient(self, notification_id: str) -> Tuple[bool, Optional[str]]:
+        """(exists, recipient_id) for ownership checks."""
+        with db_session() as db:
+            row = db.get(m.Notification, notification_id)
+            return (row is not None, row.recipient_id if row else None)
 
     def get_unread_notification_count(self, user_id: Optional[str] = None) -> int:
         return len(self.get_notifications(user_id=user_id, unread_only=True))
 
     def create_notification(self, notification: CommunityNotification) -> CommunityNotification:
-        self.data.setdefault('notifications', []).insert(0, notification.model_dump())
-        self.save_data()
+        data = notification.model_dump()
+        with db_session() as db:
+            db.add(m.Notification(
+                id=notification.id,
+                recipient_id=data.get('recipientId'),
+                is_read=bool(data.get('isRead')),
+                data=data,
+            ))
         return notification
 
     def mark_notification_as_read(self, notification_id: str) -> Optional[CommunityNotification]:
-        for n in self.data.get('notifications', []):
-            if n.get('id') == notification_id:
-                n['isRead'] = True
-                self.save_data()
-                return CommunityNotification(**n)
-        return None
+        with db_session() as db:
+            row = db.get(m.Notification, notification_id)
+            if not row:
+                return None
+            row.is_read = True
+            row.data = {**row.data, 'isRead': True}
+            return CommunityNotification(**row.data)
 
     def mark_all_notifications_as_read(self, user_id: str) -> int:
-        count = 0
-        uid = user_id.lower()
-        for n in self.data.get('notifications', []):
-            recip = (n.get('recipientId') or '').lower()
-            if (not recip or recip == uid or recip == 'all') and not n.get('isRead'):
-                n['isRead'] = True
-                count += 1
-        if count > 0:
-            self.save_data()
-        return count
+        with db_session() as db:
+            rows = db.scalars(self._notifications_for(user_id).where(m.Notification.is_read.is_(False))).all()
+            for row in rows:
+                row.is_read = True
+                row.data = {**row.data, 'isRead': True}
+            return len(rows)
 
     def delete_notification(self, notification_id: str) -> bool:
-        notifs = self.data.get('notifications', [])
-        init_len = len(notifs)
-        self.data['notifications'] = [n for n in notifs if n.get('id') != notification_id]
-        if len(self.data['notifications']) != init_len:
-            self.save_data()
-            return True
-        return False
+        with db_session() as db:
+            result = db.execute(delete(m.Notification).where(m.Notification.id == notification_id))
+            return result.rowcount > 0
 
-    def clear_all_notifications(self, user_id: Optional[str] = None) -> int:
-        notifs = self.data.get('notifications', [])
-        init_len = len(notifs)
-        if user_id:
-            uid = user_id.lower()
-            self.data['notifications'] = [n for n in notifs if n.get('recipientId') and n.get('recipientId').lower() != uid and n.get('recipientId').lower() != 'all']
-        else:
-            self.data['notifications'] = []
-        removed = init_len - len(self.data['notifications'])
-        self.save_data()
-        return removed
+    def clear_all_notifications(self, user_id: str) -> int:
+        """Deletes the user's own notifications (broadcasts to everyone are left alone)."""
+        with db_session() as db:
+            result = db.execute(delete(m.Notification).where(func.lower(m.Notification.recipient_id) == _lower(user_id)))
+            return result.rowcount
 
-    def reset_to_default(self) -> Dict[str, Any]:
-        # Re-read initial from db.json if present
-        self.data = self._load_data()
-        self.save_data()
-        return self.data
+    # ------------------------------------------------------------------ demo
+    def reset_to_default(self) -> None:
+        from backend.db.seed import reset_and_seed_demo_data
+        reset_and_seed_demo_data()
+
 
 store = Store()

@@ -76,6 +76,8 @@ export class WebRTCService {
 
     this.socket = io(signalingUrl, {
       transports: ['websocket', 'polling'],
+      // The server authenticates the socket with the session cookie
+      withCredentials: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000
     });
@@ -389,6 +391,7 @@ export class WebRTCService {
       const cleanSessionId = sessionId.replace(/^peerpath-/, '').replace(/^sess-/, '');
       const apiBase = ENV_BACKEND_URL ? `${ENV_BACKEND_URL}/api` : '/api';
       const response = await fetch(`${apiBase}/sessions/${cleanSessionId}/recording`, {
+        credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': blob.type || 'video/webm'

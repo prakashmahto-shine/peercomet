@@ -38,6 +38,7 @@ export const ViewRouter: React.FC<ViewRouterProps> = ({
     selectExpertById, 
     setIsBookingModalOpen,
     currentUser,
+    isAuthLoading,
     setIsCreatorWizardOpen
   } = useApp();
 
@@ -129,6 +130,7 @@ export const ViewRouter: React.FC<ViewRouterProps> = ({
 
     case 'mentor-dashboard-view':
       // Client-side guard only; the backend still needs real auth to enforce this
+      if (isAuthLoading) return null;
       if (!currentUser) return <LoginView />;
       if (currentUser.role !== 'mentor' && !currentUser.creatorId) {
         return (

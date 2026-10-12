@@ -5,10 +5,10 @@ from backend.models.schemas import CommunityNotification, NotificationSendInput
 
 class NotificationService:
     def get_user_notifications(self, user_id: Optional[str] = None, unread_only: bool = False) -> List[CommunityNotification]:
-        return store.get_notifications(user_id=user_id or 'prakash', unread_only=unread_only)
+        return store.get_notifications(user_id=user_id, unread_only=unread_only)
 
     def get_unread_count(self, user_id: Optional[str] = None) -> int:
-        return store.get_unread_notification_count(user_id=user_id or 'prakash')
+        return store.get_unread_notification_count(user_id=user_id)
 
     def send_notification(self, payload: NotificationSendInput) -> CommunityNotification:
         notif_id = f"notif-{int(time.time() * 1000)}"

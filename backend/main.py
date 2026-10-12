@@ -8,7 +8,8 @@ from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 import socketio
 
-from backend.config import PORT, HOST, EMBEDDING_MODEL_NAME
+from backend.config import PORT, HOST, EMBEDDING_MODEL_NAME, CORS_ORIGINS, IS_PRODUCTION
+from backend.db.seed import init_database
 from backend.data.store import store
 from backend.services.milvus_service import milvus_service
 from backend.services.socket_service import sio
@@ -24,7 +25,8 @@ from backend.routers import (
     jobs_router,
     community_router,
     notifications_router,
-    sessions_router
+    sessions_router,
+    auth_router
 )
 
 START_TIME = time.time()
@@ -33,6 +35,8 @@ START_TIME = time.time()
 async def lifespan(app: FastAPI):
     print("====================================================")
     print("🚀 Initializing Shine Peerpath Python Backend, WebRTC Signaling & Milvus...")
+    # Schema migrations must succeed; never start serving against an out-of-date database
+    init_database()
     try:
         # Initialize Milvus connection and collections
         milvus_service.connect()
@@ -62,7 +66,7 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -95,6 +99,7 @@ def health_check():
     }
 
 # Register Subsystem Routers
+app.include_router(auth_router)
 app.include_router(cv_router)
 app.include_router(trajectory_router)
 app.include_router(creators_router)
@@ -131,5 +136,5 @@ socket_app = socketio.ASGIApp(sio, other_asgi_app=app)
 if __name__ == "__main__":
     import uvicorn
     print(f"🚀 Starting Uvicorn + WebRTC Signaling on {HOST}:{PORT}")
-    uvicorn.run("backend.main:socket_app", host=HOST, port=PORT, reload=True)
+    uvicorn.run("backend.main:socket_app", host=HOST, port=PORT, reload=not IS_PRODUCTION)
 

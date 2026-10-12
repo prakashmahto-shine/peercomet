@@ -1,14 +1,51 @@
 import time
+from http.cookies import SimpleCookie
 from typing import Dict, Any, Optional
 import socketio
 
-# Initialize ASGI Socket.IO server with permissive CORS for WebRTC & Next.js/Vite clients
+from backend.config import CORS_ORIGINS, SESSION_COOKIE_NAME
+
 sio = socketio.AsyncServer(
     async_mode='asgi',
-    cors_allowed_origins='*',
+    cors_allowed_origins=CORS_ORIGINS,
     ping_timeout=60,
     ping_interval=25
 )
+
+# Socket ID -> authenticated PeerPath user id (from the session cookie at connect time)
+socket_users: Dict[str, str] = {}
+
+
+def _user_id_from_environ(environ) -> Optional[str]:
+    from backend.data.store import store
+    cookie = SimpleCookie()
+    try:
+        cookie.load(environ.get("HTTP_COOKIE", ""))
+    except Exception:
+        return None
+    morsel = cookie.get(SESSION_COOKIE_NAME)
+    user = store.get_user_by_session_token(morsel.value) if morsel else None
+    return user.id if user else None
+
+
+def _session_id_for_room(room_id: str) -> str:
+    # The client derives roomId as 'peerpath-room-<session id without "sess-">'
+    return "sess-" + room_id.replace("peerpath-room-", "", 1).replace("sess-", "", 1)
+
+
+def _can_join_room(user_id: str, room_id: str) -> bool:
+    from backend.data.store import store
+    session = store.get_session_by_id(_session_id_for_room(room_id))
+    if not session or session.status == 'cancelled':
+        return False
+    if session.candidateId.lower() == user_id.lower():
+        return True
+    return (store.get_creator_owner(session.expertId) or '') == user_id
+
+
+def _in_same_room(sid: str, other_sid: str, room_id: Optional[str]) -> bool:
+    room = active_rooms.get(room_id or "")
+    return bool(room and sid in room["participants"] and other_sid in room["participants"])
 
 # Active WebRTC Video Calling Rooms state
 # roomId -> { roomId: str, participants: { socketId: dict }, isRecording: bool, recordingStartedAt?: float }
@@ -19,7 +56,11 @@ socket_rooms_map: Dict[str, set] = {}
 
 @sio.event
 async def connect(sid, environ):
-    print(f"[WebRTC Signaling] Client connected: {sid}")
+    user_id = _user_id_from_environ(environ)
+    if not user_id:
+        # Reject unauthenticated sockets
+        return False
+    socket_users[sid] = user_id
     socket_rooms_map[sid] = set()
 
 @sio.event
@@ -49,11 +90,12 @@ async def disconnect(sid):
                 print(f"[WebRTC Signaling] Room {room_id} emptied and closed.")
     
     socket_rooms_map.pop(sid, None)
+    socket_users.pop(sid, None)
 
 @sio.on("register-user")
 async def handle_register_user(sid, data):
-    """Register socket for targeted push notifications"""
-    user_id = data if isinstance(data, str) else (data.get("userId") if isinstance(data, dict) else None)
+    """Register socket for targeted push notifications (always for the authenticated user)"""
+    user_id = socket_users.get(sid)
     if user_id:
         user_room = f"user:{user_id.lower()}"
         await sio.enter_room(sid, user_room)
@@ -77,8 +119,12 @@ async def handle_join_room(sid, data):
     room_id = data.get("roomId")
     if not room_id:
         return
-    
-    user_id = data.get("userId") or sid
+
+    user_id = socket_users.get(sid)
+    if not user_id or not _can_join_room(user_id, room_id):
+        await sio.emit("room-error", {"roomId": room_id, "message": "You are not a participant of this session"}, to=sid)
+        return
+
     user_name = data.get("userName") or "Peer User"
     user_role = data.get("userRole") or "candidate"
     avatar = data.get("avatar")
@@ -134,7 +180,7 @@ async def handle_join_room(sid, data):
         skip_sid=sid
     )
 
-    print(f"[WebRTC Signaling] User '{user_name}' ({user_role}) joined room '{room_id}'. Total peers in room: {len(room['participants'])}")
+    print(f"[WebRTC Signaling] {user_role} joined room '{room_id}'. Total peers in room: {len(room['participants'])}")
 
 @sio.on("offer")
 async def handle_offer(sid, data):
@@ -146,7 +192,7 @@ async def handle_offer(sid, data):
     room = active_rooms.get(room_id)
     sender = room["participants"].get(sid) if room else None
 
-    if to_sid and sdp:
+    if to_sid and sdp and _in_same_room(sid, to_sid, room_id):
         await sio.emit(
             "offer",
             {
@@ -166,7 +212,7 @@ async def handle_answer(sid, data):
     room_id = data.get("roomId")
     sdp = data.get("sdp")
 
-    if to_sid and sdp:
+    if to_sid and sdp and _in_same_room(sid, to_sid, room_id):
         await sio.emit(
             "answer",
             {
@@ -185,7 +231,7 @@ async def handle_ice_candidate(sid, data):
     candidate = data.get("candidate")
     room_id = data.get("roomId")
 
-    if to_sid and candidate:
+    if to_sid and candidate and _in_same_room(sid, to_sid, room_id):
         await sio.emit(
             "ice-candidate",
             {
@@ -234,7 +280,7 @@ async def handle_recording_state(sid, data):
     is_recording = bool(data.get("isRecording"))
 
     room = active_rooms.get(room_id)
-    if room:
+    if room and sid in room["participants"]:
         room["isRecording"] = is_recording
         room["recordingStartedAt"] = (time.time() * 1000) if is_recording else None
         

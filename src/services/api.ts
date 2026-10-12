@@ -29,6 +29,8 @@ async function fetchWithRetry(url: string, options?: RequestInit, retries = 2, d
   if (method !== 'GET' && method !== 'HEAD') {
     retries = 0;
   }
+  // Send the httpOnly session cookie on every call (also when the API is on another origin)
+  options = { credentials: 'include', ...options };
   for (let i = 0; i <= retries; i++) {
     try {
       const res = await fetch(url, options);
@@ -50,6 +52,11 @@ async function fetchWithRetry(url: string, options?: RequestInit, retries = 2, d
   return fetch(url, options);
 }
 
+// Plain fetch that sends the session cookie (for call sites that don't go through peerpathApi)
+export function apiFetch(url: string, options?: RequestInit): Promise<Response> {
+  return fetch(url, { credentials: 'include', ...options });
+}
+
 // Surfaces the server's `detail` message (e.g. "This slot was just booked") instead of a generic error
 async function errorFromResponse(res: Response, fallback: string): Promise<Error> {
   try {
@@ -59,7 +66,52 @@ async function errorFromResponse(res: Response, fallback: string): Promise<Error
   return new Error(fallback);
 }
 
+export interface AuthUser {
+  id: string;
+  name: string;
+  email?: string | null;
+  mobile?: string | null;
+  avatar?: string | null;
+  creatorId?: string | null;
+  isMentor: boolean;
+}
+
 export const peerpathApi = {
+  // Auth (Shine OTP login/registration; session is an httpOnly cookie set by the server)
+  async sendOtp(mobile: string): Promise<{ requestId: string; isRegistered: boolean }> {
+    const res = await fetchWithRetry(`${API_BASE}/auth/otp/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mobile })
+    });
+    if (!res.ok) throw await errorFromResponse(res, 'Could not send OTP');
+    return res.json();
+  },
+
+  async verifyOtp(payload: { requestId: string; mobile: string; otp: string; name?: string; email?: string }): Promise<AuthUser> {
+    const res = await fetchWithRetry(`${API_BASE}/auth/otp/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw await errorFromResponse(res, 'Could not verify OTP');
+    const json = await res.json();
+    return json.data;
+  },
+
+  // Returns null when not signed in
+  async getMe(): Promise<AuthUser | null> {
+    const res = await fetchWithRetry(`${API_BASE}/auth/me`);
+    if (res.status === 401) return null;
+    if (!res.ok) throw new Error('Failed loading session');
+    const json = await res.json();
+    return json.data;
+  },
+
+  async logout(): Promise<void> {
+    await fetchWithRetry(`${API_BASE}/auth/logout`, { method: 'POST' });
+  },
+
   // Health
   async getHealth() {
     const res = await fetchWithRetry(`${API_BASE}/health`);
