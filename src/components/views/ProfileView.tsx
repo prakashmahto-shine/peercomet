@@ -8,6 +8,7 @@ import {
   Share2, Building2, MapPin, CheckCircle, TrendingUp
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { BRAND } from '../../config/brand';
 
 export const ProfileView: React.FC = () => {
   const { 
@@ -68,7 +69,7 @@ export const ProfileView: React.FC = () => {
   const handleCopyProfileLink = () => {
     const url = window.location.href;
     navigator.clipboard?.writeText(url);
-    showToast('Profile Link Copied!', 'Share your verified Peerpath profile with recruiters or hiring managers.', 'info');
+    showToast('Profile Link Copied!', `Share your verified ${BRAND.name} profile with recruiters or hiring managers.`, 'info');
   };
 
   // Readiness Gauge (e.g. 85%)
@@ -493,7 +494,7 @@ export const ProfileView: React.FC = () => {
                   <Gift size={12} /> FOUNDING MENTOR CIRCLE
                 </div>
                 <h4>Have Senior Tech Experience?</h4>
-                <p>Monetize your technical experience, guide ambitious engineers, and earn up to ₹2,500/hr on Peerpath.</p>
+                <p>Monetize your technical experience, guide ambitious engineers, and earn up to ₹2,500/hr on {BRAND.name}.</p>
                 <button 
                   className="btn-apply-mentor-profile"
                   onClick={() => setIsCreatorWizardOpen(true)}

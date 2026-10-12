@@ -6,6 +6,7 @@ import {
 } from '../types';
 import { peerpathApi, API_BASE, apiFetch, AuthUser } from '../services/api';
 import { pathToView, viewToPath } from '../routes';
+import { BRAND } from '../config/brand';
 
 export interface ToastMessage {
   id: string;
@@ -269,7 +270,7 @@ const DEFAULT_FALLBACK_EXPERT: Expert = {
   videoPoster: '/avatars/akash.jpg',
   teaserTitle: 'Teaser: Transitioning from SDE-2 to High-Impact Product Management',
   skills: ['PRD Writing', 'Product Discovery', 'Growth Metrics', 'A/B Testing'],
-  bio: 'Lead PM at Shine managing Career Multiplier & Peerpath.',
+  bio: `Lead PM at Shine managing Career Multiplier & ${BRAND.name}.`,
   verifiedEmail: 'akash.jain@shine.com',
   isVerifiedEmployer: true
 };
@@ -1030,7 +1031,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       mentorId: currentUser.id || 'mentor',
       mentorName: currentUser.name,
       mentorRole: currentUser.headline || (isCreatorMode ? 'Verified Tech Lead & Mentor' : 'Mentor'),
-      mentorCompany: currentUser.company || 'Shine Peerpath',
+      mentorCompany: currentUser.company || BRAND.name,
       mentorAvatar: currentUser.avatar || '/avatars/akash.jpg',
       title: postData.title,
       content: postData.content,
@@ -1343,7 +1344,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       navigate('guidance-view', '/peerpath');
     }
 
-    showToast(`👋 Welcome, ${account.name || 'there'}!`, 'You are now signed in to PeerPath.');
+    showToast(`👋 Welcome, ${account.name || 'there'}!`, `You are now signed in to ${BRAND.name}.`);
     return true;
   };
 
@@ -1647,7 +1648,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       };
     });
-    showToast(teaser ? '🎉 Teaser Video Published!' : 'Teaser Video Removed', teaser ? 'Candidates can now watch your introduction on Peerpath.' : undefined);
+    showToast(teaser ? '🎉 Teaser Video Published!' : 'Teaser Video Removed', teaser ? `Candidates can now watch your introduction on ${BRAND.name}.` : undefined);
   };
 
   return (

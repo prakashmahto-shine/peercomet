@@ -10,6 +10,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { peerpathApi } from '../../services/api';
 import { MentorshipSession, ZeroPrepDossier } from '../../types';
+import { BRAND } from '../../config/brand';
 
 export interface MentorSessionOffering {
   id: string;
@@ -144,7 +145,7 @@ export const MentorDashboardView: React.FC = () => {
     userProfile.headline || currentUser?.headline || 'Lead Product Manager @ Shine (HT Media) • Ex-Paytm, Flipkart'
   );
   const [bioInput, setBioInput] = useState<string>(
-    userProfile.summary || 'Lead Product Manager at Shine (HT Media) heading Career Multiplier and Peerpath mentorship initiatives. Previously senior PM at Paytm and Flipkart. I mentor high-potential engineers and product thinkers targeting 3x compensation jumps and leadership transitions.'
+    userProfile.summary || `Lead Product Manager at Shine (HT Media) heading Career Multiplier and ${BRAND.name} mentorship initiatives. Previously senior PM at Paytm and Flipkart. I mentor high-potential engineers and product thinkers targeting 3x compensation jumps and leadership transitions.`
   );
   const [skillsList, setSkillsList] = useState<string[]>(
     userProfile.skills && userProfile.skills.length > 0 
@@ -640,8 +641,8 @@ export const MentorDashboardView: React.FC = () => {
               <h1 className="md-mentor-name">{mentorName}</h1>
               
               <div className="md-badge-row">
-                <span className="md-portal-badge" title="Performance Badge Awarded by PeerPath based on candidate ratings & completed sessions">
-                  <Award size={12} className="text-amber-500" /> PeerPath Super Mentor
+                <span className="md-portal-badge" title={`Performance Badge Awarded by ${BRAND.name} based on candidate ratings & completed sessions`}>
+                  <Award size={12} className="text-amber-500" /> {BRAND.name} Super Mentor
                 </span>
               </div>
 
@@ -1218,7 +1219,7 @@ export const MentorDashboardView: React.FC = () => {
                   <div className="crc-footer-actions">
                     <div className="crc-helpful-tag">
                       <ThumbsUp size={13} className="text-emerald-600" />
-                      <span>Verified PeerPath session</span>
+                      <span>Verified {BRAND.name} session</span>
                     </div>
 
                     <div className="crc-action-buttons">

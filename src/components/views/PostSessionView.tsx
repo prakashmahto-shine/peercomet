@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Star, CheckCircle2, Download, Video, Loader2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { peerpathApi } from '../../services/api';
+import { BRAND } from '../../config/brand';
 
 export const PostSessionView: React.FC = () => {
   const { activeSession, selectedExpert, navigate, submitSessionReview, showToast } = useApp();
@@ -40,7 +41,7 @@ export const PostSessionView: React.FC = () => {
             </div>
             <div>
               <strong style={{ color: '#065F46', fontSize: '13.5px', display: 'block' }}>1:1 Video Session Completed &amp; Recorded</strong>
-              <span style={{ color: '#047857', fontSize: '11.5px' }}>HD session recording has been synced to your Shine Peerpath profile.</span>
+              <span style={{ color: '#047857', fontSize: '11.5px' }}>HD session recording has been synced to your {BRAND.name} profile.</span>
             </div>
           </div>
           <a

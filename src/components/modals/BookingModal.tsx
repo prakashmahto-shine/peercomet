@@ -10,6 +10,7 @@ import { Expert } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { peerpathApi } from '../../services/api';
 import { formatBookingDate } from '../../utils/bookingDates';
+import { BRAND } from '../../config/brand';
 
 // Used only when a mentor has no saved availability
 const DEFAULT_TIME_SLOTS = ['10:00 AM - 11:00 AM', '02:00 PM - 03:00 PM', '06:30 PM - 07:30 PM', '08:00 PM - 09:00 PM'];
@@ -550,7 +551,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <div className="rzp-m-logo">
                   <strong>Shine</strong><span>.com</span>
                 </div>
-                <div className="rzp-m-sub">PeerPath Mentorship</div>
+                <div className="rzp-m-sub">{BRAND.name} Mentorship</div>
               </div>
               <div className="rzp-m-price-box">
                 <span className="rzp-m-price-lbl">Payable Amount</span>
@@ -615,7 +616,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <div className="rzp-qr-pane">
                     <div className="rzp-qr-box">
                       <img 
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=upi://pay?pa=shine.peerpath@razorpay&pn=Shine+PeerPath&am=${payableAmount}&cu=INR`} 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=upi://pay?pa=shine.peerpath@razorpay&pn=${encodeURIComponent(BRAND.name)}&am=${payableAmount}&cu=INR`} 
                         alt="Scan UPI QR Code" 
                         className="rzp-qr-img"
                       />

@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from backend.models.schemas import CandidateTrajectoryInput
 from backend.services.trajectory_service import trajectory_service
 from backend.services.mentor_match_taxonomy import is_supported_domain, SUPPORTED_DOMAINS
+from backend.config import BRAND_NAME
 
 router = APIRouter(prefix="/api/trajectory", tags=["Trajectory"])
 
@@ -10,7 +11,7 @@ def match_trajectories(payload: CandidateTrajectoryInput):
     try:
         matches = trajectory_service.match_trajectories(payload)
         supported = not payload.domain or is_supported_domain(payload.domain)
-        message = None if supported else f"Peerpath doesn't have mentors for \"{payload.domain}\" yet — currently live for {', '.join(SUPPORTED_DOMAINS)}."
+        message = None if supported else f"{BRAND_NAME} doesn't have mentors for \"{payload.domain}\" yet — currently live for {', '.join(SUPPORTED_DOMAINS)}."
 
         return {
             "success": True,

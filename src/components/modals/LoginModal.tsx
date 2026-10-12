@@ -2,6 +2,7 @@ import React from 'react';
 import { X, Sparkles, ShieldCheck } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { OtpLoginForm } from '../auth/OtpLoginForm';
+import { BRAND } from '../../config/brand';
 
 export const LoginModal: React.FC = () => {
   const { isLoginModalOpen, setIsLoginModalOpen } = useApp();
@@ -22,7 +23,7 @@ export const LoginModal: React.FC = () => {
         <div className="login-modal-header">
           <div className="login-badge-pill">
             <Sparkles size={13} className="text-amber-500" />
-            <span>PeerPath by Shine</span>
+            <span>{BRAND.tagline}</span>
           </div>
           <h2 className="login-modal-title">Sign in to continue</h2>
           <p className="login-modal-subtitle">

@@ -10,6 +10,7 @@ import { ViewType, Expert, TrajectoryMatch } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { calculateSalaryBenchmark } from '../../utils/salaryBenchmark';
 import { peerpathApi } from '../../services/api';
+import { BRAND } from '../../config/brand';
 
 export type MentorCategoryTab = 'top' | 'all' | 'ai' | 'semi' | 'cyber' | 'fullstack' | 'others';
 
@@ -384,8 +385,8 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
             </div>
             <div className="plub-text-col">
               <div className="plub-badge-row">
-                <span className="plub-tag">Locked Peerpath</span>
-                <span className="plub-sub-tag">Shine Peerpath Transition Engine</span>
+                <span className="plub-tag">Locked {BRAND.name}</span>
+                <span className="plub-sub-tag">{BRAND.name} Transition Engine</span>
               </div>
               <h3 className="plub-title">Calibrate Your Target Career Trajectory</h3>
               <p className="plub-desc">
@@ -402,7 +403,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
               setIsCalibrationModalOpen(true);
             }}
           >
-            <Sparkles size={16} /> Unlock Peerpath
+            <Sparkles size={16} /> Unlock {BRAND.name}
           </button>
         </div>
       )}
@@ -469,7 +470,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
               {/* Ecosystem Trust Badge (Zomato/Blinkit Trust model) */}
               <div className="peerpath-ecosystem-trust-badge">
                 <span className="petb-dot"></span>
-                <span><strong>Peerpath by shine.com</strong> • Backed by 3.5Cr+ Candidate Network</span>
+                <span><strong>{BRAND.tagline}</strong> • Backed by 3.5Cr+ Candidate Network</span>
               </div>
 
               {/* Main Heading & Candidate Subtitle */}

@@ -7,6 +7,7 @@ import {
 import { ViewType } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { PeerpathLogo } from '../common/PeerpathLogo';
+import { BRAND } from '../../config/brand';
 
 interface HeaderProps {
   currentView: ViewType;
@@ -98,7 +99,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div 
               onClick={() => onNavigate(isAlreadyMentor && isCreatorMode ? 'mentor-dashboard-view' : 'guidance-view')} 
               style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-              title="Peerpath by Shine • Verified 1:1 Mentorship"
+              title={`${BRAND.tagline} • Verified 1:1 Mentorship`}
             >
               <PeerpathLogo size={36} />
             </div>

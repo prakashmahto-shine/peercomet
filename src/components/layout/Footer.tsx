@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ChevronUp, ChevronDown, ArrowUpRight, Sparkles, Compass, Briefcase, Award, TrendingUp, Users } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { PeerpathLogo, PeerpathSymbolSvg } from '../common/PeerpathLogo';
+import { BRAND } from '../../config/brand';
 
 export const Footer: React.FC = () => {
   const { navigate, currentView } = useApp();
@@ -120,7 +121,7 @@ export const Footer: React.FC = () => {
                   <ul className="footer-links-list">
                     <li><a href="#!">100% Satisfaction Guarantee</a></li>
                     <li><a href="#!">Verified Mentors Screening</a></li>
-                    <li><a href="#!">Contact Peerpath Support</a></li>
+                    <li><a href="#!">Contact {BRAND.name} Support</a></li>
                     <li><a href="#!">Privacy & Call Security</a></li>
                   </ul>
                 </div>
@@ -183,8 +184,8 @@ export const Footer: React.FC = () => {
                     <div className="f-peerpath-icon-badge">
                       <Compass size={14} />
                     </div>
-                    <span>PEERPATH</span>
-                    <span className="f-shine-sub">by shine.com</span>
+                    <span>{BRAND.name.toUpperCase()}</span>
+                    <span className="f-shine-sub">by {BRAND.parentDomain}</span>
                   </div>
                   <p className="f-peerpath-tagline">
                     1:1 Career Transition Mentorship from Swiggy, Google & Qualcomm Leads.
@@ -297,7 +298,7 @@ export const Footer: React.FC = () => {
               <div className="peerpath-footer-cta-box">
                 <div className="pfcb-text">
                   <h4>Switching into AI or Engineering Leadership?</h4>
-                  <p>Book 1:1 transition roadmap coaching on Peerpath by Shine</p>
+                  <p>Book 1:1 transition roadmap coaching on {BRAND.tagline}</p>
                 </div>
                 <button 
                   type="button" 
@@ -305,7 +306,7 @@ export const Footer: React.FC = () => {
                   onClick={() => navigate('guidance-view')}
                 >
                   <Sparkles size={13} />
-                  <span>Explore Peerpath</span>
+                  <span>Explore {BRAND.name}</span>
                   <ArrowUpRight size={13} />
                 </button>
               </div>
@@ -323,8 +324,8 @@ export const Footer: React.FC = () => {
               <div className="fb-peerpath-icon">
                 <PeerpathSymbolSvg size={18} theme="dark" />
               </div>
-              <span className="fb-brand-name">PEERPATH</span>
-              <span className="fb-brand-by">by <strong style={{ color: '#FCD34D' }}>shine.com</strong></span>
+              <span className="fb-brand-name">{BRAND.name.toUpperCase()}</span>
+              <span className="fb-brand-by">by <strong style={{ color: '#FCD34D' }}>{BRAND.parentDomain}</strong></span>
             </div>
             <span className="fb-co-brand-text">
               • © {new Date().getFullYear()} HT Media Group Enterprise • All Rights Reserved

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { CommunityPost } from '../../types';
+import { BRAND } from '../../config/brand';
 
 export const CommunityView: React.FC = () => {
   const { 
@@ -228,7 +229,7 @@ export const CommunityView: React.FC = () => {
                 onClick={() => navigate('sessions-view')}
               >
                 <Bookmark size={14} className="lpc-bookmark-icon" />
-                <span>My Peerpath Bookings</span>
+                <span>My {BRAND.name} Bookings</span>
                 <span className="lpc-bookings-badge">3</span>
               </div>
             </div>
@@ -531,7 +532,7 @@ export const CommunityView: React.FC = () => {
                               alt={post.mentorName} 
                               className="post-author-avatar" 
                             />
-                            <span className="post-avatar-badge" title="Verified Shine Peerpath Mentor">
+                            <span className="post-avatar-badge" title={`Verified ${BRAND.name} Mentor`}>
                               <CheckCircle size={11} />
                             </span>
                           </div>
@@ -1116,7 +1117,7 @@ export const CommunityView: React.FC = () => {
                 <div className="amc-tab-pane">
                   {/* 1:1 Booking Funnel */}
                   <div className="amc-panel-card">
-                    <h4 className="amc-panel-title">PeerPath Content-to-Booking Funnel</h4>
+                    <h4 className="amc-panel-title">{BRAND.name} Content-to-Booking Funnel</h4>
                     <p className="amc-panel-sub">See how your technical post converted candidates from feed readers into paying 1:1 mentees.</p>
                     
                     <div className="amc-funnel-steps">

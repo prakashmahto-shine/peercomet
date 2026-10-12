@@ -1,8 +1,16 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { BRAND } from './src/config/brand'
+
+// Fills %BRAND_NAME% / %BRAND_TAGLINE% in index.html from src/config/brand.ts
+const brandHtml = () => ({
+  name: 'brand-html',
+  transformIndexHtml: (html: string) =>
+    html.replace(/%BRAND_NAME%/g, BRAND.name).replace(/%BRAND_TAGLINE%/g, BRAND.tagline)
+})
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), brandHtml()],
   server: {
     host: '0.0.0.0',
     port: Number(process.env.PORT) || 4242,

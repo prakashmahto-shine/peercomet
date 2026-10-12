@@ -4,6 +4,7 @@ import {
   Lock, Loader2, Shield, ArrowRight, CheckCircle2, QrCode, Smartphone, CreditCard, X
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { BRAND } from '../../config/brand';
 
 export const PaymentView: React.FC = () => {
   const { bookingDraft, navigate, bookSession, selectedExpert, userProfile, setIsBookingModalOpen } = useApp();
@@ -174,7 +175,7 @@ export const PaymentView: React.FC = () => {
                 <div className="rzp-m-logo">
                   <strong>Shine</strong><span>.com</span>
                 </div>
-                <div className="rzp-m-sub">PeerPath Mentorship</div>
+                <div className="rzp-m-sub">{BRAND.name} Mentorship</div>
               </div>
               <div className="rzp-m-price-box">
                 <span className="rzp-m-price-lbl">Payable Amount</span>
@@ -239,7 +240,7 @@ export const PaymentView: React.FC = () => {
                   <div className="rzp-qr-pane">
                     <div className="rzp-qr-box">
                       <img 
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=upi://pay?pa=shine.peerpath@razorpay&pn=Shine+PeerPath&am=${payableAmount}&cu=INR`} 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=upi://pay?pa=shine.peerpath@razorpay&pn=${encodeURIComponent(BRAND.name)}&am=${payableAmount}&cu=INR`} 
                         alt="Scan UPI QR Code" 
                         className="rzp-qr-img"
                       />

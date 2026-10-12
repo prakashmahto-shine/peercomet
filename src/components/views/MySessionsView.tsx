@@ -9,6 +9,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { peerpathApi } from '../../services/api';
 import { upcomingBookableDates } from '../../utils/bookingDates';
+import { BRAND } from '../../config/brand';
 
 export const MySessionsView: React.FC = () => {
   const { 
@@ -140,7 +141,7 @@ export const MySessionsView: React.FC = () => {
         <div className="sessions-hero-content">
           <div className="sessions-hero-badge">
             <Sparkles size={12} className="text-amber-500" />
-            <span>{isMentor ? 'Peerpath Verified Mentor Studio' : 'Peerpath Mentorship Dashboard'}</span>
+            <span>{isMentor ? `${BRAND.name} Verified Mentor Studio` : `${BRAND.name} Mentorship Dashboard`}</span>
           </div>
           <h1 className="sessions-hero-title">
             {isMentor ? 'Mentorship Studio & Live Sessions' : 'My Mentorship Sessions'}
@@ -278,7 +279,7 @@ export const MySessionsView: React.FC = () => {
             <div className="empty-sessions-box-full">
               <div className="empty-icon-circle"><AlertCircle size={36} color="#94A3B8" /></div>
               <h3>No candidate bookings scheduled</h3>
-              <p>Your availability is active on Peerpath. Candidates will book calls based on your available schedule.</p>
+              <p>Your availability is active on {BRAND.name}. Candidates will book calls based on your available schedule.</p>
               <button className="btn-shine-gold" onClick={() => navigateToCreatorStudio('availability')}>
                 <Settings size={16} /> Manage Availability &amp; Pricing
               </button>

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Expert, ViewType } from '../../types';
 import { useApp } from '../../context/AppContext';
+import { BRAND } from '../../config/brand';
 
 interface ExpertProfileViewProps {
   expert: Expert;
@@ -231,7 +232,7 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
 
               <span className="up-top-mentor-pill">
                 <Sparkles size={11} className="text-amber-500" />
-                <span>Top 1% Mentor on PeerPath</span>
+                <span>Top 1% Mentor on {BRAND.name}</span>
               </span>
 
               {isSelf && <span className="up-self-tag">Your Public Profile</span>}
@@ -656,7 +657,7 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
                   </div>
                   <div className="up-cred-details">
                     <div className="up-cred-title-row">
-                      <h4 className="up-cred-heading">Verified Shine PeerPath Practitioner</h4>
+                      <h4 className="up-cred-heading">Verified {BRAND.name} Practitioner</h4>
                       <span className="up-cred-status-pill emerald">
                         <CheckCircle2 size={11} /> Identity Active
                       </span>

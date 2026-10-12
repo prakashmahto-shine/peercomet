@@ -7,6 +7,7 @@ import {
 import { ViewType, ShineJob, GapAnalysisResult, PathwayTrackKey } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { peerpathApi } from '../../services/api';
+import { BRAND } from '../../config/brand';
 
 // Fallback initial jobs list if offline
 const FALLBACK_JOBS: ShineJob[] = [
@@ -352,7 +353,7 @@ export const JobsView: React.FC<JobsViewProps> = ({
       if (!supportedDomain) {
         showToast(
           `No mentors for "${domain}" yet`,
-          message || `Peerpath doesn't cover this guild yet — check back soon!`,
+          message || `${BRAND.name} doesn't cover this guild yet — check back soon!`,
           'info'
         );
       } else if (matches && matches.length > 0) {
@@ -522,7 +523,7 @@ export const JobsView: React.FC<JobsViewProps> = ({
                 <div className="spe-pill-wrap">
                   <span className="spe-track-badge">
                     <Briefcase size={12} className="mr-1 text-purple-600" />
-                    PEERPATH MATCH: {peerpathJobContext.trackTitle.toUpperCase()}
+                    {BRAND.name.toUpperCase()} MATCH: {peerpathJobContext.trackTitle.toUpperCase()}
                   </span>
                   <span className="spe-target-pkg">{peerpathJobContext.targetPackage}</span>
                 </div>
@@ -530,7 +531,7 @@ export const JobsView: React.FC<JobsViewProps> = ({
                   type="button" 
                   className="spe-btn-close" 
                   onClick={clearPeerpathJobContext}
-                  title="Close Peerpath filter & view normal search"
+                  title={`Close ${BRAND.name} filter & view normal search`}
                 >
                   <X size={15} />
                 </button>

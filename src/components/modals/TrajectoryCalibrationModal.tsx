@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { X, ArrowRight, ChevronDown } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { BRAND } from '../../config/brand';
 
 export const TrajectoryCalibrationModal: React.FC = () => {
   const {
@@ -83,7 +84,7 @@ export const TrajectoryCalibrationModal: React.FC = () => {
             <X size={16} />
           </button>
           <h2 className="tcm-title">
-            Unlock Your Matched Peerpath
+            Unlock Your Matched {BRAND.name}
           </h2>
           <p className="tcm-desc">
             Connect with verified mentors and explore proven career transitions from your company.
@@ -207,7 +208,7 @@ export const TrajectoryCalibrationModal: React.FC = () => {
               type="submit"
               className="btn-tcm-hero-submit"
             >
-              <span>🚀 Unlock My Peerpath &amp; Matched Mentors</span>
+              <span>🚀 Unlock My {BRAND.name} &amp; Matched Mentors</span>
               <ArrowRight size={15} />
             </button>
           </div>

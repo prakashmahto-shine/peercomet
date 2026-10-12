@@ -1,4 +1,5 @@
 import React from 'react';
+import { BRAND } from '../../config/brand';
 
 interface PeerpathLogoProps {
   size?: number;
@@ -34,7 +35,7 @@ export const PeerpathSymbolSvg: React.FC<{
       xmlns="http://www.w3.org/2000/svg"
       className={`peerpath-svg-symbol ${isDark ? 'dark-theme' : 'light-theme'} ${className}`}
       style={{ display: 'block', flexShrink: 0, overflow: 'visible' }}
-      aria-label="Peerpath Logo"
+      aria-label={`${BRAND.name} Logo`}
     >
       {/* 5-Pointed Star at Top-Right Gap - Animated on hover */}
       <polygon 
@@ -145,7 +146,7 @@ export const PeerpathLogo: React.FC<PeerpathLogoProps> = ({
         {variant === 'image' && !isDark ? (
           <img 
             src="/brand/android-chrome-512x512.png" 
-            alt="Peerpath Logo" 
+            alt={`${BRAND.name} Logo`} 
             style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
           />
         ) : (
@@ -166,7 +167,7 @@ export const PeerpathLogo: React.FC<PeerpathLogoProps> = ({
               fontFamily: "'Plus Jakarta Sans', 'Outfit', 'Inter', sans-serif"
             }}
           >
-            PEERPATH
+            {BRAND.name.toUpperCase()}
           </span>
           <span 
             className="peerpath-brand-sub" 
@@ -178,7 +179,7 @@ export const PeerpathLogo: React.FC<PeerpathLogoProps> = ({
               whiteSpace: 'nowrap'
             }}
           >
-            by <strong className="shine-mark" style={{ color: isDark ? '#FCD34D' : '#0C3B6E', fontWeight: 800 }}>shine.com</strong>
+            by <strong className="shine-mark" style={{ color: isDark ? '#FCD34D' : '#0C3B6E', fontWeight: 800 }}>{BRAND.parentDomain}</strong>
           </span>
         </div>
       )}

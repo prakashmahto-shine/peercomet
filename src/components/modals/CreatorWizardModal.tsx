@@ -6,6 +6,7 @@ import {
   Mail, Layers, Compass, Edit3, Star, ArrowLeft
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { BRAND } from '../../config/brand';
 
 export const CreatorWizardModal: React.FC = () => {
   const { 
@@ -369,7 +370,7 @@ export const CreatorWizardModal: React.FC = () => {
 
                 {/* Right Col: Why Mentors Choose Shine Peerpath */}
                 <div className="why-shine-mentor-column">
-                  <h3 className="wsm-title">Why Top Leaders Choose Shine Peerpath</h3>
+                  <h3 className="wsm-title">Why Top Leaders Choose {BRAND.name}</h3>
                   
                   <div className="wsm-benefit-card highlight-benefit">
                     <div className="wsm-icon-badge gold-bg">
@@ -768,7 +769,7 @@ export const CreatorWizardModal: React.FC = () => {
             <div className="wizard-step-pane active animate-fade-in">
               <div className="wz-pane-header-clean">
                 <h2>Step 5: Review & Go Live!</h2>
-                <p>Here is how your verified profile will look to 3.5 Crore candidates and executive recruiters on Shine Peerpath.</p>
+                <p>Here is how your verified profile will look to 3.5 Crore candidates and executive recruiters on {BRAND.name}.</p>
               </div>
 
               {/* Realistic Peerpath Mentor Card Preview */}

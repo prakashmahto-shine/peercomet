@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { peerpathApi } from '../../services/api';
+import { BRAND } from '../../config/brand';
 
 export const CvUploadSyncModal: React.FC = () => {
   const { 
@@ -245,7 +246,7 @@ export const CvUploadSyncModal: React.FC = () => {
 
               <h3 className="cv-complete-title">Resume Synced & Profile Boosted!</h3>
               <p className="cv-complete-sub">
-                Your Shine profile is now updated with your latest resume details and synced across PeerPath mentors.
+                Your Shine profile is now updated with your latest resume details and synced across {BRAND.name} mentors.
               </p>
 
               <div className="cv-results-card">

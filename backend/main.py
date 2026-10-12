@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 import socketio
 
 from backend.config import (
-    PORT, HOST, EMBEDDING_MODEL_NAME, CORS_ORIGINS, IS_DEVELOPMENT,
+    PORT, HOST, EMBEDDING_MODEL_NAME, CORS_ORIGINS, IS_DEVELOPMENT, BRAND_NAME,
     STUN_URLS, TURN_URLS, TURN_USERNAME, TURN_CREDENTIAL,
 )
 from sqlalchemy import text
@@ -41,7 +41,7 @@ START_TIME = time.time()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("====================================================")
-    print("🚀 Initializing Shine Peerpath Python Backend, WebRTC Signaling & Milvus...")
+    print(f"🚀 Initializing {BRAND_NAME} Python Backend, WebRTC Signaling & Milvus...")
     # Schema migrations must succeed; never start serving against an out-of-date database
     init_database()
     try:
@@ -64,7 +64,7 @@ async def lifespan(app: FastAPI):
     milvus_service.shutdown()
 
 app = FastAPI(
-    title="Shine Peerpath Backend API (Python, WebRTC & Milvus)",
+    title=f"{BRAND_NAME} Backend API (Python, WebRTC & Milvus)",
     description="Python FastAPI backend with WebRTC Socket.IO signaling and Milvus Vector Database",
     version="2.0.0",
     lifespan=lifespan
@@ -155,7 +155,7 @@ if dist_path.exists():
         index_file = dist_path / "index.html"
         if index_file.exists():
             return FileResponse(str(index_file))
-        return JSONResponse(status_code=200, content={"message": "Shine Peerpath Python Backend running!"})
+        return JSONResponse(status_code=200, content={"message": f"{BRAND_NAME} Python Backend running!"})
 
 # Mount Socket.IO on top of FastAPI ASGI app
 socket_app = socketio.ASGIApp(sio, other_asgi_app=app)

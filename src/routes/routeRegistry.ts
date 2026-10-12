@@ -1,4 +1,5 @@
 import { ViewType } from '../types';
+import { BRAND } from '../config/brand';
 
 /**
  * Route / Page Definition for Shine Peerpath
@@ -27,7 +28,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     path: '/peerpath',
     aliases: ['/', '/guidance', '/career-guidance', '/myshine', '/dashboard'],
     view: 'guidance-view',
-    title: 'Career Guidance & Upward Trajectory | Shine Peerpath',
+    title: `Career Guidance & Upward Trajectory | ${BRAND.name}`,
     description: 'Personalized AI skill-gap analyzer and career trajectory roadmap',
     category: 'candidate'
   },
@@ -37,7 +38,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     path: '/profile',
     aliases: ['/my-profile', '/candidate-profile'],
     view: 'profile-view',
-    title: 'Candidate Profile & Verified Badges | Shine Peerpath',
+    title: `Candidate Profile & Verified Badges | ${BRAND.name}`,
     description: 'Peer-verified credentials, skill portfolio, and recruiter search score',
     category: 'candidate',
     requiresAuth: true
@@ -48,7 +49,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     path: '/jobs',
     aliases: ['/job-search', '/matching-jobs', '/new-job-search'],
     view: 'jobs-view',
-    title: 'Matched Tier-1 Jobs | Shine Peerpath',
+    title: `Matched Tier-1 Jobs | ${BRAND.name}`,
     description: 'Live job openings matched with high-growth pathway tracks',
     category: 'candidate'
   },
@@ -58,7 +59,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     path: '/experts',
     aliases: ['/mentors', '/browse-mentors'],
     view: 'experts-view',
-    title: 'Book 1:1 Mentorship from Domain Leaders | Shine Peerpath',
+    title: `Book 1:1 Mentorship from Domain Leaders | ${BRAND.name}`,
     description: 'Browse verified mentors across AI/ML, Semiconductor, Cybersecurity & Full-Stack',
     category: 'candidate'
   },
@@ -68,7 +69,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     path: '/expert/:id',
     aliases: ['/expert', '/mentor/:id', '/mentor-profile'],
     view: 'expert-profile-view',
-    title: 'Mentor Profile & 1:1 Booking | Shine Peerpath',
+    title: `Mentor Profile & 1:1 Booking | ${BRAND.name}`,
     description: 'Detailed trajectory jump story, availability calendar, and verified badge portfolio',
     category: 'candidate'
   },
@@ -78,7 +79,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     path: '/community',
     aliases: ['/feed', '/discussions'],
     view: 'community-view',
-    title: 'Technical Community & System Design Insights | Shine Peerpath',
+    title: `Technical Community & System Design Insights | ${BRAND.name}`,
     description: 'Deep-dive technical discussions, interview architectures, and mentor AMA threads',
     category: 'shared'
   },
@@ -88,7 +89,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     path: '/checkout',
     aliases: ['/payment', '/pay'],
     view: 'payment-view',
-    title: 'Confirm & Book Mentorship Slot | Shine Peerpath',
+    title: `Confirm & Book Mentorship Slot | ${BRAND.name}`,
     description: 'Secure slot reservation and payment processing',
     category: 'candidate',
     requiresAuth: true
@@ -99,7 +100,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     path: '/confirmed',
     aliases: ['/success', '/booked'],
     view: 'confirmed-view',
-    title: 'Booking Confirmed | Shine Peerpath',
+    title: `Booking Confirmed | ${BRAND.name}`,
     description: 'Session confirmation, Google Meet calendar invite, and preparation tips',
     category: 'candidate'
   },
@@ -109,7 +110,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     path: '/sessions',
     aliases: ['/my-sessions', '/bookings', '/schedule'],
     view: 'sessions-view',
-    title: 'My Mentorship Schedule & Recordings | Shine Peerpath',
+    title: `My Mentorship Schedule & Recordings | ${BRAND.name}`,
     description: 'Upcoming video calls, recorded teardowns, and verified peer certificates',
     category: 'shared',
     requiresAuth: true
@@ -120,7 +121,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     path: '/live-call',
     aliases: ['/call', '/room/peerpath-session', '/room/:id'],
     view: 'live-call-view',
-    title: 'Live Mentorship Room | Shine Peerpath',
+    title: `Live Mentorship Room | ${BRAND.name}`,
     description: 'WebRTC video call with zero-prep cockpit, code sharing, and live recording',
     category: 'shared',
     hideHeader: false,
@@ -132,7 +133,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     path: '/post-session',
     aliases: ['/session/feedback', '/feedback', '/review'],
     view: 'post-session-view',
-    title: 'Session Rating & Feedback | Shine Peerpath',
+    title: `Session Rating & Feedback | ${BRAND.name}`,
     description: 'Candidate review, mentor rating, and badge endorsement feedback',
     category: 'candidate'
   },
@@ -142,7 +143,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     path: '/recruiter',
     aliases: ['/recruiters', '/talent-search', '/hire'],
     view: 'recruiter-view',
-    title: 'Recruiter Search: 3.4x Faster Peer-Verified Talent | Shine Peerpath',
+    title: `Recruiter Search: 3.4x Faster Peer-Verified Talent | ${BRAND.name}`,
     description: 'Direct candidate sourcing with cryptographic peer-verified skill badges',
     category: 'recruiter'
   },
@@ -152,7 +153,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     path: '/mentor-dashboard',
     aliases: ['/mentor', '/mentor-portal', '/creator-studio', '/creator', '/creator-dashboard'],
     view: 'mentor-dashboard-view',
-    title: 'Mentor Studio & Earnings Analytics | Shine Peerpath',
+    title: `Mentor Studio & Earnings Analytics | ${BRAND.name}`,
     description: 'Session calendar, zero-prep candidate dossiers, reach analytics, and payout tracker',
     category: 'mentor',
     requiresAuth: true
@@ -163,7 +164,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     path: '/login',
     aliases: ['/signin', '/pages/myshine/login'],
     view: 'login-view',
-    title: 'Sign In | Shine Peerpath',
+    title: `Sign In | ${BRAND.name}`,
     description: 'Access candidate career dashboard or mentor studio',
     category: 'auth',
     hideHeader: true,

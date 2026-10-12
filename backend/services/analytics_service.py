@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Dict, Any
 from backend.data.store import store
+from backend.config import BRAND_NAME
 
 class AnalyticsService:
     def get_metrics(self) -> Dict[str, Any]:
@@ -29,7 +30,7 @@ class AnalyticsService:
                     'whyItMatters': 'Proves mentorship sessions convert to active platform profile freshness and verified skill signals.'
                 },
                 {
-                    'metric': 'New Passive Registrations Attributed to Peerpath',
+                    'metric': f'New Passive Registrations Attributed to {BRAND_NAME}',
                     'value': '6,350',
                     'whyItMatters': 'Direct acquisition of passive working professionals in underserved domains job alerts cannot touch.'
                 },

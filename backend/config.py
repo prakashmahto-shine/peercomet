@@ -24,6 +24,9 @@ MILVUS_TOKEN = os.getenv("MILVUS_TOKEN", "")
 EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "all-MiniLM-L6-v2")
 EMBEDDING_DIM = 384
 
+# Product name shown to users in API messages (the frontend's is in src/config/brand.ts)
+BRAND_NAME = os.getenv("BRAND_NAME", "PeerPath")
+
 # ------------------------------------------------------------------------------
 # Environment
 # ------------------------------------------------------------------------------
