@@ -77,24 +77,24 @@ export interface AuthUser {
 }
 
 export const peerpathApi = {
-  // Auth (Shine OTP login/registration; session is an httpOnly cookie set by the server)
-  async sendOtp(mobile: string): Promise<{ requestId: string; isRegistered: boolean }> {
+  // Auth: 6-digit code sent by email (sign-in and sign-up); session is an httpOnly cookie
+  async sendOtp(email: string): Promise<{ requestId: string; isRegistered: boolean }> {
     const res = await fetchWithRetry(`${API_BASE}/auth/otp/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mobile })
+      body: JSON.stringify({ email })
     });
-    if (!res.ok) throw await errorFromResponse(res, 'Could not send OTP');
+    if (!res.ok) throw await errorFromResponse(res, 'Could not send the code');
     return res.json();
   },
 
-  async verifyOtp(payload: { requestId: string; mobile: string; otp: string; name?: string; email?: string }): Promise<AuthUser> {
+  async verifyOtp(payload: { requestId: string; email: string; otp: string; name?: string; mobile?: string }): Promise<AuthUser> {
     const res = await fetchWithRetry(`${API_BASE}/auth/otp/verify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    if (!res.ok) throw await errorFromResponse(res, 'Could not verify OTP');
+    if (!res.ok) throw await errorFromResponse(res, 'Could not verify the code');
     const json = await res.json();
     return json.data;
   },

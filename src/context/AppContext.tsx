@@ -26,9 +26,9 @@ interface AppContextType {
   isLoggedIn: boolean;
   // True until the initial session check (/api/auth/me) has finished
   isAuthLoading: boolean;
-  // Shine OTP login/registration. requestOtp returns null on error (a toast is shown).
-  requestOtp: (mobile: string) => Promise<{ requestId: string; isRegistered: boolean } | null>;
-  verifyOtp: (params: { requestId: string; mobile: string; otp: string; name?: string; email?: string }) => Promise<boolean>;
+  // Email code sign-in / sign-up. requestOtp returns null on error (a toast is shown).
+  requestOtp: (email: string) => Promise<{ requestId: string; isRegistered: boolean } | null>;
+  verifyOtp: (params: { requestId: string; email: string; otp: string; name?: string; mobile?: string }) => Promise<boolean>;
   logout: () => void;
 
   // Experts & Mentors
@@ -1311,19 +1311,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
-  const requestOtp = async (mobile: string) => {
+  const requestOtp = async (email: string) => {
     try {
-      return await peerpathApi.sendOtp(mobile.trim());
+      return await peerpathApi.sendOtp(email.trim());
     } catch (err) {
       showToast('Could not send OTP', err instanceof Error ? err.message : 'Please try again.', 'warning');
       return null;
     }
   };
 
-  const verifyOtp = async (params: { requestId: string; mobile: string; otp: string; name?: string; email?: string }) => {
+  const verifyOtp = async (params: { requestId: string; email: string; otp: string; name?: string; mobile?: string }) => {
     let me: AuthUser;
     try {
-      me = await peerpathApi.verifyOtp({ ...params, mobile: params.mobile.trim(), otp: params.otp.trim() });
+      me = await peerpathApi.verifyOtp({ ...params, email: params.email.trim(), otp: params.otp.trim() });
     } catch (err) {
       showToast('Sign in failed', err instanceof Error ? err.message : 'Please try again.', 'warning');
       return false;

@@ -21,3 +21,4 @@ backend/data/recordings/
 *.sqlite3
 *.sqlite3-*
 *.json.tmp
+backups/

@@ -35,16 +35,18 @@ for r in (auth_router, creators_router, bookings_router, assessment_router, cand
           notifications_router, recruiter_router, analytics_router, community_router, sessions_router):
     app.include_router(r)
 
-OTP = os.getenv("MOCK_OTP_CODE", "123456")
+# Local development sends no email: the code is always DEV_OTP_CODE
+OTP = os.getenv("DEV_OTP_CODE", "123456")
 
 
-def login(identifier: str, name=None, email=None) -> TestClient:
+def login(identifier: str, name=None, mobile=None) -> TestClient:
+    """Signs in with an email (or a seeded demo user id); `name` signs up a new email."""
     client = TestClient(app)
-    res = client.post("/api/auth/otp/send", json={"mobile": identifier})
+    res = client.post("/api/auth/otp/send", json={"email": identifier})
     assert res.status_code == 200, res.text
-    body = {"requestId": res.json()["requestId"], "mobile": identifier, "otp": OTP}
+    body = {"requestId": res.json()["requestId"], "email": identifier, "otp": OTP}
     if name:
-        body.update(name=name, email=email)
+        body.update(name=name, mobile=mobile)
     res = client.post("/api/auth/otp/verify", json=body)
     assert res.status_code == 200, res.text
     return client
@@ -64,34 +66,70 @@ anon = TestClient(app)
 stranger = None
 
 
-def test_registration_requires_name_and_email():
+def test_signup_requires_name():
     global stranger
     client = TestClient(app)
-    req = client.post("/api/auth/otp/send", json={"mobile": "+91 98765 43210"}).json()
+    req = client.post("/api/auth/otp/send", json={"email": "Test.User@Example.com"}).json()
     assert req["isRegistered"] is False
-    res = client.post("/api/auth/otp/verify", json={"requestId": req["requestId"], "mobile": "9876543210", "otp": OTP})
+    res = client.post("/api/auth/otp/verify", json={"requestId": req["requestId"], "email": "test.user@example.com", "otp": OTP})
     assert res.status_code == 422
-    stranger = login("9876543210", name="Test User", email="test@example.com")
+    # The code is still usable after the form error
+    res = client.post("/api/auth/otp/verify", json={"requestId": req["requestId"], "email": "test.user@example.com", "otp": OTP,
+                                                   "name": "Test User", "mobile": "+91 98765 43210"})
+    assert res.status_code == 200, res.text
+    stranger = client
     me = stranger.get("/api/auth/me").json()["data"]
     assert me["id"].startswith("u_") and me["isMentor"] is False
+    assert me["email"] == "test.user@example.com" and me["mobile"] == "9876543210"
     assert stranger.get("/api/candidates/me").json()["data"]["name"] == "Test User"
+
+
+def test_existing_email_signs_in_same_account():
+    if stranger is None:
+        test_signup_requires_name()
+    first = stranger.get("/api/auth/me").json()["data"]["id"]
+    again = login("TEST.USER@example.com")          # case-insensitive, no name needed
+    assert again.get("/api/auth/me").json()["data"]["id"] == first
+
+
+def test_code_is_single_use_and_expires():
+    client = TestClient(app)
+    req = client.post("/api/auth/otp/send", json={"email": "single@example.com"}).json()
+    body = {"requestId": req["requestId"], "email": "single@example.com", "otp": OTP, "name": "Single Use"}
+    assert client.post("/api/auth/otp/verify", json=body).status_code == 200
+    assert client.post("/api/auth/otp/verify", json=body).status_code == 410
+    # A code for one email can't be used for another
+    req = client.post("/api/auth/otp/send", json={"email": "single@example.com"}).json()
+    assert client.post("/api/auth/otp/verify", json={**body, "requestId": req["requestId"], "email": "other@example.com"}).status_code == 410
+    # Expired code
+    from datetime import datetime, timedelta
+    from sqlalchemy import update
+    from backend.db import models as m
+    from backend.db.engine import db_session
+    req = client.post("/api/auth/otp/send", json={"email": "single@example.com"}).json()
+    with db_session() as db:
+        db.execute(update(m.EmailOtp).where(m.EmailOtp.id == req["requestId"]).values(expires_at=datetime.utcnow() - timedelta(minutes=1)))
+    assert client.post("/api/auth/otp/verify", json={**body, "requestId": req["requestId"]}).status_code == 410
 
 
 def test_bad_inputs_and_wrong_otp():
     client = TestClient(app)
-    assert client.post("/api/auth/otp/send", json={"mobile": "12345"}).status_code == 400
-    req = client.post("/api/auth/otp/send", json={"mobile": "9000000001"}).json()
-    res = client.post("/api/auth/otp/verify", json={"requestId": req["requestId"], "mobile": "9000000001", "otp": "000000"})
-    assert res.status_code == 401
+    assert client.post("/api/auth/otp/send", json={"email": "not-an-email"}).status_code == 400
+    req = client.post("/api/auth/otp/send", json={"email": "wrong@example.com"}).json()
+    body = {"requestId": req["requestId"], "email": "wrong@example.com", "otp": "000000", "name": "Wrong Code"}
+    assert client.post("/api/auth/otp/verify", json=body).status_code == 401
     for _ in range(5):
-        client.post("/api/auth/otp/verify", json={"requestId": req["requestId"], "mobile": "9000000001", "otp": "000000"})
-    res = client.post("/api/auth/otp/verify", json={"requestId": req["requestId"], "mobile": "9000000001", "otp": OTP})
-    assert res.status_code == 429
+        client.post("/api/auth/otp/verify", json=body)
+    assert client.post("/api/auth/otp/verify", json={**body, "otp": OTP}).status_code == 429
+    req = client.post("/api/auth/otp/send", json={"email": "badmobile@example.com"}).json()
+    res = client.post("/api/auth/otp/verify", json={"requestId": req["requestId"], "email": "badmobile@example.com",
+                                                   "otp": OTP, "name": "Bad Mobile", "mobile": "12345"})
+    assert res.status_code == 400
 
 
 def test_otp_send_rate_limited():
     client = TestClient(app)
-    codes = [client.post("/api/auth/otp/send", json={"mobile": "9000000002"}).status_code for _ in range(6)]
+    codes = [client.post("/api/auth/otp/send", json={"email": "ratelimit@example.com"}).status_code for _ in range(6)]
     assert codes[:5] == [200] * 5 and codes[5] == 429
 
 
@@ -104,7 +142,7 @@ def test_unauthenticated_requests_rejected():
 
 def test_booking_lifecycle_and_ownership():
     if stranger is None:
-        test_registration_requires_name_and_email()
+        test_signup_requires_name()
     creator = anon.get("/api/creators/saheli").json()["data"]
     date, slot = next_slot(creator)
 
@@ -144,7 +182,7 @@ def test_booking_lifecycle_and_ownership():
 
 def test_recordings_are_participant_only():
     if stranger is None:
-        test_registration_requires_name_and_email()
+        test_signup_requires_name()
     sid = candidate.get("/api/bookings").json()["data"][0]["id"]
     clean = sid.replace("sess-", "")
     assert stranger.post(f"/api/sessions/{clean}/recording", content=b"x", headers={"Content-Type": "video/webm"}).status_code == 404
@@ -155,7 +193,7 @@ def test_recordings_are_participant_only():
 
 def test_creator_ownership():
     if stranger is None:
-        test_registration_requires_name_and_email()
+        test_signup_requires_name()
     assert stranger.put("/api/creators/saheli", json={"price": 199}).status_code == 403
     assert stranger.put("/api/creators/saheli/availability", json={"days": ["Mon"], "timeSlots": ["10:00 AM - 11:00 AM"]}).status_code == 403
     assert mentor.put("/api/creators/saheli", json={"price": 1299}).status_code == 200

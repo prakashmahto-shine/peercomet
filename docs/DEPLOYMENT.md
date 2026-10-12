@@ -31,16 +31,18 @@ Python dependencies are fully pinned in `requirements.lock`, so rebuilding the s
 All settings are environment variables. `.env.example` is a complete server template.
 
 **No mock or demo behaviour runs on servers.** Outside `APP_ENV=development`:
-- The app refuses to start with `PEERPATH_AUTH_MODE=mock`.
+- The app refuses to start with `EMAIL_BACKEND=console` (the fixed development code).
 - It never loads demo data and has no demo-reset endpoint.
 
 | Variable | Required | Example / default | Notes |
 |---|---|---|---|
 | `APP_ENV` | yes | `production` (image default) or `staging` | |
 | `DATABASE_URL` | yes | `postgresql://peerpath:***@db-host:5432/peerpath?sslmode=require` | **Secret** |
-| `PEERPATH_AUTH_MODE` | no | `live` | The only allowed value on servers |
-| `PEERPATH_AUTH_API_KEY` | yes | | **Secret.** Key issued by Shine for the PeerPath backend. Until it is set, the app runs but login returns 503. |
-| `PEERPATH_AUTH_API_URL` | no | `https://www.shine.com/pages/bff/api/v1` | Shine auth API base URL |
+| `SMTP_HOST` / `SMTP_PORT` | yes | `smtp.example.com` / `587` | Sign-in codes are sent by email. Until `SMTP_HOST` and `EMAIL_FROM` are set, the app runs but sign-in returns 503. |
+| `SMTP_SECURITY` | no | `starttls` | `starttls` (587), `ssl` (465) or `none` |
+| `SMTP_USERNAME` / `SMTP_PASSWORD` | usually | | **Secret** |
+| `EMAIL_FROM` | yes | `PeerPath <no-reply@peerpath.in>` | Sender address. Its domain needs SPF/DKIM for the SMTP service, or mail lands in spam. |
+| `OTP_TTL_MINUTES` | no | `10` | How long a sign-in code is valid |
 | `CORS_ORIGINS` | yes | `https://peerpath.in` | Comma-separated; also used by Socket.IO |
 | `SESSION_TTL_DAYS` | no | `30` | Login session lifetime |
 | `ADMIN_USER_IDS` | no | | PeerPath user ids with admin access |
@@ -93,7 +95,7 @@ Recordings are personal data.
 ## Network egress
 
 The container needs outbound HTTPS to:
-- **Shine auth APIs** (`PEERPATH_AUTH_API_URL`).
+- **The SMTP server** (`SMTP_HOST`, usually port 587 or 465).
 - **S3**, when using S3 storage.
 
 ## Video calls (TURN)
@@ -118,16 +120,82 @@ Running several instances later needs:
 
 ## Platform notes
 
-### VM with Docker
+### Single-server setup (e.g. the Yotta staging VM)
+
+`docker-compose.yml` runs the whole stack on one Linux server:
+
+| Service | What | Enabled |
+|---|---|---|
+| `app` | PeerPath image. Listens on `127.0.0.1:5001` only. | always |
+| `postgres` | PostgreSQL 16. Data in the `pgdata` volume. | always |
+| `backup` | `pg_dump` at start-up and every 24 hours into `./backups`. Keeps `BACKUP_KEEP_DAYS` days. | always |
+| `caddy` | HTTPS (automatic Let's Encrypt certificate) on 80/443 and proxy to `app` | `COMPOSE_PROFILES` contains `caddy` |
+| `coturn` | TURN server for video calls (host network) | `COMPOSE_PROFILES` contains `turn` |
+
+**Resource limits** (the server is shared): `app` 2 CPU / 3 GB, `postgres` 1 CPU / 1 GB, the others 256 MB each.
+
+**Server prerequisites**
+- Linux x86_64 with Docker Engine and the Compose plugin.
+- 2 vCPU / 4 GB RAM free, and about 30 GB of disk.
+- DNS: an A record for `SITE_DOMAIN` pointing at the server.
+- Firewall inbound: TCP 80 and 443. For TURN: UDP and TCP 3478, plus UDP 49160–49200.
+- Outbound to the SMTP server for sign-in emails (port 587 or 465).
+
+**First deploy**
 
 ```bash
-docker build --platform linux/amd64 -t peerpath:<tag> .
-# .env from .env.example with real values (keep it out of git)
-docker compose up -d              # see docker-compose.yml
+git clone <repo> /opt/peerpath && cd /opt/peerpath
+cp .env.example .env              # fill in SITE_DOMAIN, SERVER_PUBLIC_IP, POSTGRES_PASSWORD,
+                                  # TURN_CREDENTIAL, SMTP_* and EMAIL_FROM (keep .env private)
+docker compose up -d --build
+docker compose ps                 # all services "running"; app becomes healthy in ~1-2 min
+curl -fsS https://$SITE_DOMAIN/api/ready
 ```
 
-- Put nginx (or the company load balancer) in front for TLS, WebSockets and the upload size, as described in [HTTP routing](#http-routing-reverse-proxy--load-balancer--ingress).
-- The Docker image has a `HEALTHCHECK` on `/api/health`.
+The first start creates the database tables. No demo data is loaded.
+
+**Updating to a new version**
+
+```bash
+cd /opt/peerpath && git pull
+docker compose up -d --build app  # brief restart of the app only; data is kept
+```
+
+**Backups**
+- Dumps are in `/opt/peerpath/backups`. Copy them off the server regularly, e.g. with a cron job using `rsync` or `scp`.
+- Restore, which **replaces** the current data:
+  ```bash
+  docker compose exec -T postgres pg_restore --clean --if-exists --no-owner -U peerpath -d peerpath < backups/<file>.dump
+  ```
+
+**If the server already runs nginx on 80/443:** leave `caddy` out of `COMPOSE_PROFILES` and add a site to nginx:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name peerpath.in;                  # SITE_DOMAIN
+    # ssl_certificate / ssl_certificate_key as for the server's other sites
+    client_max_body_size 500m;
+    location / {
+        proxy_pass http://127.0.0.1:5001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+}
+```
+
+**Moving to production infra later**
+1. `pg_dump` from this server and `pg_restore` into the new database.
+2. Deploy the same image there.
+3. Set `DATABASE_URL`.
+
+No code changes are needed.
 
 ### Kubernetes
 
@@ -148,6 +216,6 @@ docker compose up -d              # see docker-compose.yml
 | Dependency | Status |
 |---|---|
 | Machine/cluster, domain, TLS, PostgreSQL | Requested from infra |
-| Shine login/registration API and `PEERPATH_AUTH_API_KEY` | Pending from the Shine auth team. Login returns 503 until configured. |
+| SMTP account for sign-in emails (`SMTP_*`, `EMAIL_FROM`) | Needed before go-live. Sign-in returns 503 until configured. |
 | S3 bucket for recordings | Requested from infra |
 | TURN server | Requested from infra |

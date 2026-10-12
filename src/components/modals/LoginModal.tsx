@@ -27,7 +27,7 @@ export const LoginModal: React.FC = () => {
           </div>
           <h2 className="login-modal-title">Sign in to continue</h2>
           <p className="login-modal-subtitle">
-            Use your mobile number. Already on Shine? Use the same number. New here? We'll create your account.
+            We'll email you a 6-digit code. No password needed. New here? We'll create your account.
           </p>
         </div>
 
@@ -35,7 +35,7 @@ export const LoginModal: React.FC = () => {
 
         <div className="fgb-sso-guarantee">
           <ShieldCheck size={16} className="text-emerald-600 flex-shrink-0" />
-          <span>We never share your number with mentors.</span>
+          <span>Sign-in codes expire in 10 minutes and work only once.</span>
         </div>
       </div>
     </div>

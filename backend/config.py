@@ -64,12 +64,19 @@ SESSION_TTL_DAYS = int(os.getenv("SESSION_TTL_DAYS", "30"))
 # HTTPS-only cookie everywhere except local development
 SESSION_COOKIE_SECURE = _env_bool("SESSION_COOKIE_SECURE", not IS_DEVELOPMENT)
 
-# 'live' = Shine auth APIs (the only mode outside local development).
-# 'mock' = local development only: fixed OTP, no SMS, demo users.
-PEERPATH_AUTH_MODE = os.getenv("PEERPATH_AUTH_MODE", "mock" if IS_DEVELOPMENT else "live").lower()
-PEERPATH_AUTH_API_URL = os.getenv("PEERPATH_AUTH_API_URL", "https://www.shine.com/pages/bff/api/v1").rstrip("/")
-PEERPATH_AUTH_API_KEY = os.getenv("PEERPATH_AUTH_API_KEY", "")
-MOCK_OTP_CODE = os.getenv("MOCK_OTP_CODE", "123456")
+# Sign-in / sign-up is a one-time code sent by email.
+# 'smtp' sends real email (required on servers). 'console' prints the code to the server log
+# and always uses DEV_OTP_CODE; it's for local development only.
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "console" if IS_DEVELOPMENT else "smtp").lower()
+SMTP_HOST = os.getenv("SMTP_HOST", "")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+# starttls (port 587) | ssl (port 465) | none
+SMTP_SECURITY = os.getenv("SMTP_SECURITY", "starttls").lower()
+EMAIL_FROM = os.getenv("EMAIL_FROM", "")
+OTP_TTL_MINUTES = int(os.getenv("OTP_TTL_MINUTES", "10"))
+DEV_OTP_CODE = os.getenv("DEV_OTP_CODE", "123456")
 
 # Comma-separated PeerPath user ids with extra permissions
 ADMIN_USER_IDS = set(_env_list("ADMIN_USER_IDS"))
@@ -78,9 +85,9 @@ RECRUITER_USER_IDS = set(_env_list("RECRUITER_USER_IDS"))
 # Browser origins allowed to call the API with cookies
 CORS_ORIGINS = _env_list("CORS_ORIGINS", "http://localhost:4242,http://127.0.0.1:4242")
 
-# No dummy login on any server: mock auth is refused outside local development
-if PEERPATH_AUTH_MODE == "mock" and not IS_DEVELOPMENT:
-    raise RuntimeError(f"PEERPATH_AUTH_MODE=mock is only allowed when APP_ENV=development (APP_ENV={APP_ENV})")
+# No dummy login on any server: the console email backend (fixed code) is local-development only
+if EMAIL_BACKEND == "console" and not IS_DEVELOPMENT:
+    raise RuntimeError(f"EMAIL_BACKEND=console is only allowed when APP_ENV=development (APP_ENV={APP_ENV})")
 
 # ------------------------------------------------------------------------------
 # Session recordings storage: 'local' (directory / persistent volume) or 's3'

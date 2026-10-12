@@ -249,16 +249,16 @@ export const LoginView: React.FC = () => {
               {/* Box Header */}
               <div className="fgb-header">
                 <h2 className="fgb-title">Welcome 👋</h2>
-                <p className="fgb-subtitle">Sign in or create your account with your mobile number</p>
+                <p className="fgb-subtitle">Sign in or create your account with your email</p>
               </div>
 
               <OtpLoginForm />
 
-              {/* Shine Single Sign-On Badge */}
+              {/* Passwordless sign-in note */}
               <div className="fgb-sso-guarantee">
                 <ShieldCheck size={16} className="text-emerald-600 flex-shrink-0" />
                 <span>
-                  <strong>One account with Shine:</strong> Already on Shine? Use your registered mobile number. New here? We'll create your account.
+                  <strong>No password needed:</strong> we'll email you a 6-digit code. New here? We'll create your account.
                 </span>
               </div>
 

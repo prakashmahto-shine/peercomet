@@ -1,70 +1,149 @@
-import time
-from collections import defaultdict, deque
-from typing import Deque, Dict, Optional, Tuple
+"""
+Sign-in and sign-up with a one-time code sent by email (no passwords).
 
-from backend.auth.shine_client import (
-    OtpChallenge, ShineAuthError, MockShineAuthClient, normalize_mobile, shine_auth_client
-)
+  1. send_otp(email)    -> emails a 6-digit code, returns a request id
+  2. verify_otp(...)    -> checks the code; new emails also give their name (sign-up)
+                           -> creates the user if needed and opens a login session
+"""
+import hashlib
+import hmac
+import re
+import secrets
+from datetime import datetime, timedelta
+from typing import Optional, Tuple
+
+from backend.auth.email_sender import EmailNotConfigured, EmailSendError, send_email
+from backend.config import BRAND_NAME, DEV_OTP_CODE, EMAIL_BACKEND, OTP_TTL_MINUTES
 from backend.data.store import store
 from backend.db.models import User
 
-# Simple in-process rate limits. Fine for a single server; move to Redis if the app runs
-# on several processes.
-_OTP_SENDS_PER_WINDOW = 5
-_OTP_SEND_WINDOW_SECONDS = 15 * 60
-_MAX_VERIFY_ATTEMPTS = 5
+MAX_SENDS_PER_WINDOW = 5
+SEND_WINDOW = timedelta(minutes=15)
+MAX_VERIFY_ATTEMPTS = 5
 
-_send_history: Dict[str, Deque[float]] = defaultdict(deque)
-_verify_attempts: Dict[str, int] = defaultdict(int)
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
-def _resolve_identifier(identifier: str) -> str:
-    """Normalizes a mobile number. In mock mode also accepts a seeded demo user id."""
-    raw = (identifier or "").strip()
-    if isinstance(shine_auth_client, MockShineAuthClient) and raw and not any(ch.isdigit() for ch in raw):
-        demo_id = raw.lower()
-        if store.get_candidate(demo_id) or store.get_creator_by_id(demo_id):
-            return demo_id
-        raise ShineAuthError("Unknown demo user")
-    return normalize_mobile(raw)
+class AuthError(Exception):
+    def __init__(self, message: str, status_code: int = 400):
+        super().__init__(message)
+        self.status_code = status_code
 
 
-def send_otp(identifier: str) -> Tuple[str, OtpChallenge]:
-    mobile = _resolve_identifier(identifier)
-    now = time.time()
-    history = _send_history[mobile]
-    while history and history[0] < now - _OTP_SEND_WINDOW_SECONDS:
-        history.popleft()
-    if len(history) >= _OTP_SENDS_PER_WINDOW:
-        raise ShineAuthError("Too many OTP requests. Please try again in a few minutes.", 429)
-    history.append(now)
-    return mobile, shine_auth_client.send_otp(mobile)
+def normalize_email(raw: str) -> str:
+    email = (raw or "").strip().lower()
+    if len(email) > 320 or not _EMAIL_RE.match(email):
+        raise AuthError("Please enter a valid email address")
+    return email
+
+
+def normalize_mobile(raw: Optional[str]) -> Optional[str]:
+    digits = re.sub(r"\D", "", raw or "")
+    if not digits:
+        return None
+    if len(digits) == 12 and digits.startswith("91"):
+        digits = digits[2:]
+    if not re.fullmatch(r"[6-9]\d{9}", digits):
+        raise AuthError("Please enter a valid 10-digit Indian mobile number")
+    return digits
+
+
+def _is_dev_demo_id(identifier: str) -> bool:
+    """Local development only: a seeded demo user id (e.g. 'akash') instead of an email."""
+    if EMAIL_BACKEND != "console" or "@" in identifier:
+        return False
+    return bool(store.get_candidate(identifier) or store.get_creator_by_id(identifier))
+
+
+def _resolve(identifier: str) -> Tuple[str, bool]:
+    raw = (identifier or "").strip().lower()
+    if _is_dev_demo_id(raw):
+        return raw, True
+    return normalize_email(raw), False
+
+
+def _code_hash(request_id: str, code: str) -> str:
+    return hashlib.sha256(f"{request_id}:{code}".encode("utf-8")).hexdigest()
+
+
+def _email_body(code: str) -> Tuple[str, str, str]:
+    subject = f"{code} is your {BRAND_NAME} sign-in code"
+    text = (
+        f"Your {BRAND_NAME} sign-in code is {code}\n\n"
+        f"It expires in {OTP_TTL_MINUTES} minutes. If you didn't try to sign in, you can ignore this email.\n"
+    )
+    html = (
+        f"<p>Your {BRAND_NAME} sign-in code is</p>"
+        f"<p style=\"font-size:28px;font-weight:700;letter-spacing:6px;margin:8px 0\">{code}</p>"
+        f"<p>It expires in {OTP_TTL_MINUTES} minutes. If you didn't try to sign in, you can ignore this email.</p>"
+    )
+    return subject, text, html
+
+
+def send_otp(identifier: str) -> Tuple[str, bool]:
+    """Emails a sign-in code. Returns (request_id, is_registered)."""
+    email, is_demo = _resolve(identifier)
+
+    if store.count_recent_email_otps(email, datetime.utcnow() - SEND_WINDOW) >= MAX_SENDS_PER_WINDOW:
+        raise AuthError("Too many codes requested. Please try again in a few minutes.", 429)
+
+    code = DEV_OTP_CODE if EMAIL_BACKEND == "console" else f"{secrets.randbelow(10 ** 6):06d}"
+    request_id = secrets.token_urlsafe(16)
+    store.create_email_otp(request_id, email, _code_hash(request_id, code),
+                           datetime.utcnow() + timedelta(minutes=OTP_TTL_MINUTES))
+
+    if is_demo:
+        print(f"[Auth:dev] Sign-in code for demo user '{email}': {code}")
+        return request_id, True
+
+    subject, text, html = _email_body(code)
+    try:
+        send_email(email, subject, text, html)
+    except EmailNotConfigured:
+        print("[Auth] Email is not configured (SMTP_HOST / EMAIL_FROM): sign-in is unavailable")
+        raise AuthError("Sign-in is temporarily unavailable", 503)
+    except EmailSendError as e:
+        print(f"[Auth] Could not send sign-in email: {e}")
+        raise AuthError("We couldn't send the email. Please try again.", 502)
+
+    return request_id, store.get_user_by_email(email) is not None
 
 
 def verify_otp(request_id: str, identifier: str, otp: str,
-               name: Optional[str] = None, email: Optional[str] = None) -> Tuple[User, str]:
-    """Verifies with Shine, links/creates the PeerPath user and opens a session.
+               name: Optional[str] = None, mobile: Optional[str] = None) -> Tuple[User, str]:
+    """Checks the code, signs the user in (creating the account on first sign-in).
     Returns (user, session_token)."""
-    mobile = _resolve_identifier(identifier)
-    if _verify_attempts[request_id] >= _MAX_VERIFY_ATTEMPTS:
-        raise ShineAuthError("Too many incorrect attempts. Please request a new OTP.", 429)
-    try:
-        identity = shine_auth_client.verify_otp(request_id, mobile, (otp or "").strip(), name=name, email=email)
-    except ShineAuthError as e:
-        if e.status_code == 401:
-            _verify_attempts[request_id] += 1
-        raise
-    _verify_attempts.pop(request_id, None)
+    email, is_demo = _resolve(identifier)
 
-    is_demo_user = not mobile.isdigit()
-    user = store.upsert_user_from_shine(
-        shine_candidate_id=identity.shine_candidate_id,
-        name=identity.name,
-        email=identity.email,
-        mobile=identity.mobile or None,
-        # Demo users keep their seeded id so they own the seeded candidate/creator records
-        user_id=identity.shine_candidate_id if is_demo_user else None,
-    )
+    challenge = store.get_email_otp(request_id)
+    if (not challenge or challenge["email"] != email or challenge["consumed_at"] is not None
+            or challenge["expires_at"] < datetime.utcnow()):
+        raise AuthError("This code has expired. Please request a new one.", 410)
+    if challenge["attempts"] >= MAX_VERIFY_ATTEMPTS:
+        raise AuthError("Too many incorrect attempts. Please request a new code.", 429)
+    if not hmac.compare_digest(challenge["code_hash"], _code_hash(request_id, (otp or "").strip())):
+        store.increment_email_otp_attempts(request_id)
+        raise AuthError("Incorrect code", 401)
+
+    if is_demo:
+        if not store.consume_email_otp(request_id):
+            raise AuthError("This code has already been used. Please request a new one.", 410)
+        user = store.ensure_demo_user(email)
+    else:
+        user = store.get_user_by_email(email)
+        if user is None:
+            # Sign-up: validate before using up the code, so the user can fix the form
+            clean_name = (name or "").strip()
+            if len(clean_name) < 2:
+                raise AuthError("Please enter your name to create your account", 422)
+            clean_mobile = normalize_mobile(mobile)
+            if not store.consume_email_otp(request_id):
+                raise AuthError("This code has already been used. Please request a new one.", 410)
+            user = store.create_user(email=email, name=clean_name[:200], mobile=clean_mobile)
+        elif not store.consume_email_otp(request_id):
+            raise AuthError("This code has already been used. Please request a new one.", 410)
+
+    store.record_login(user.id)
     token, _ = store.create_auth_session(user.id)
     return user, token
 

@@ -10,7 +10,7 @@ SQLite (local) to any Postgres (self-hosted or Shine infra) by changing DATABASE
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.types import JSON
@@ -27,18 +27,34 @@ class Base(DeclarativeBase):
 
 
 class User(Base):
-    """A person who signed in via Shine. The same user can be a candidate and a mentor."""
+    """A person who signed up on PeerPath (email OTP). The same user can be a candidate and a mentor."""
     __tablename__ = "users"
+    __table_args__ = (UniqueConstraint("email", name="uq_users_email"),)
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    # Shine's candidate id; the link to Shine's user table (null only for local demo users)
+    # Optional link to a Shine account, for when login moves to Shine's identity APIs
     shine_candidate_id: Mapped[Optional[str]] = mapped_column(String(128), unique=True, nullable=True)
     name: Mapped[str] = mapped_column(String(200), default="")
+    # Login identity, stored lowercase. Null only for local demo users.
     email: Mapped[Optional[str]] = mapped_column(String(320), nullable=True)
+    email_verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     mobile: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, index=True)
     avatar: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+
+class EmailOtp(Base):
+    """A one-time sign-in code sent by email. Only a hash of the code is stored."""
+    __tablename__ = "email_otps"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)  # request id returned to the client
+    email: Mapped[str] = mapped_column(String(320), index=True)
+    code_hash: Mapped[str] = mapped_column(String(64))
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    consumed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
 
 class AuthSession(Base):

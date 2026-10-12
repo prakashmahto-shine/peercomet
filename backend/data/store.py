@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any, Tuple
 
-from sqlalchemy import delete, func, or_, select
+from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from backend.config import SESSION_TTL_DAYS
@@ -78,29 +78,93 @@ class Store:
         with db_session() as db:
             return db.get(m.User, user_id)
 
-    def upsert_user_from_shine(self, shine_candidate_id: str, name: str, email: Optional[str],
-                               mobile: Optional[str], user_id: Optional[str] = None) -> m.User:
-        """Finds the PeerPath user linked to a Shine account, creating it on first login."""
+    def get_user_by_email(self, email: str) -> Optional[m.User]:
         with db_session() as db:
-            user = db.scalar(select(m.User).where(m.User.shine_candidate_id == shine_candidate_id))
-            if not user:
+            return db.scalar(select(m.User).where(m.User.email == _lower(email)))
+
+    def _ensure_candidate_profile(self, db, user: m.User):
+        # Every user gets a candidate profile (a mentor is also a candidate)
+        if not db.get(m.Candidate, user.id):
+            profile = CandidateProfile(id=user.id, name=user.name, email=user.email or '', phone=user.mobile or '')
+            db.add(m.Candidate(id=user.id, email=_lower(user.email) or None, data=profile.model_dump()))
+            self._bump_counter(db, 'newRegistrationsThisMonth')
+
+    def create_user(self, email: str, name: str, mobile: Optional[str] = None) -> m.User:
+        """Sign-up. Returns the existing user if the email was registered concurrently."""
+        try:
+            with db_session() as db:
                 user = m.User(
-                    id=user_id or f"u_{uuid.uuid4().hex[:16]}",
-                    shine_candidate_id=shine_candidate_id,
+                    id=f"u_{uuid.uuid4().hex[:16]}",
+                    email=_lower(email),
+                    name=name,
+                    mobile=mobile,
+                    email_verified_at=datetime.utcnow(),
                 )
                 db.add(user)
-            user.name = name or user.name or ''
-            user.email = email or user.email
-            user.mobile = mobile or user.mobile
-            user.last_login_at = datetime.utcnow()
-            db.flush()
+                db.flush()
+                self._ensure_candidate_profile(db, user)
+                return user
+        except IntegrityError:
+            existing = self.get_user_by_email(email)
+            if existing is None:
+                raise
+            return existing
 
-            # Every user gets a candidate profile (a mentor is also a candidate)
-            if not db.get(m.Candidate, user.id):
-                profile = CandidateProfile(id=user.id, name=user.name, email=user.email or '', phone=user.mobile or '')
-                db.add(m.Candidate(id=user.id, email=_lower(user.email) or None, data=profile.model_dump()))
-                self._bump_counter(db, 'newRegistrationsThisMonth')
+    def ensure_demo_user(self, user_id: str) -> m.User:
+        """Local development only: a user row for a seeded demo id (owns the seeded records)."""
+        with db_session() as db:
+            user = db.get(m.User, user_id)
+            if not user:
+                candidate = db.get(m.Candidate, user_id)
+                creator = db.get(m.Creator, user_id)
+                name = (candidate.data.get('name') if candidate else None) or (creator.data.get('name') if creator else None) or user_id
+                user = m.User(id=user_id, name=name)
+                db.add(user)
+                db.flush()
+                self._ensure_candidate_profile(db, user)
             return user
+
+    def record_login(self, user_id: str):
+        with db_session() as db:
+            user = db.get(m.User, user_id)
+            if user:
+                user.last_login_at = datetime.utcnow()
+                if user.email and not user.email_verified_at:
+                    user.email_verified_at = datetime.utcnow()
+
+    # ------------------------------------------------------------------ email sign-in codes
+    def create_email_otp(self, request_id: str, email: str, code_hash: str, expires_at: datetime):
+        with db_session() as db:
+            db.add(m.EmailOtp(id=request_id, email=email, code_hash=code_hash, expires_at=expires_at))
+            # Housekeeping: drop codes that expired more than a day ago
+            db.execute(delete(m.EmailOtp).where(m.EmailOtp.expires_at < datetime.utcnow() - timedelta(days=1)))
+
+    def count_recent_email_otps(self, email: str, since: datetime) -> int:
+        with db_session() as db:
+            return db.scalar(select(func.count()).select_from(m.EmailOtp).where(
+                m.EmailOtp.email == email, m.EmailOtp.created_at >= since
+            )) or 0
+
+    def get_email_otp(self, request_id: str) -> Optional[Dict[str, Any]]:
+        with db_session() as db:
+            row = db.get(m.EmailOtp, request_id)
+            if not row:
+                return None
+            return {'email': row.email, 'code_hash': row.code_hash, 'attempts': row.attempts,
+                    'expires_at': row.expires_at, 'consumed_at': row.consumed_at}
+
+    def increment_email_otp_attempts(self, request_id: str):
+        with db_session() as db:
+            db.execute(update(m.EmailOtp).where(m.EmailOtp.id == request_id)
+                       .values(attempts=m.EmailOtp.attempts + 1))
+
+    def consume_email_otp(self, request_id: str) -> bool:
+        """Marks the code used. Atomic: only one concurrent caller gets True."""
+        with db_session() as db:
+            result = db.execute(update(m.EmailOtp)
+                                .where(m.EmailOtp.id == request_id, m.EmailOtp.consumed_at.is_(None))
+                                .values(consumed_at=datetime.utcnow()))
+            return result.rowcount == 1
 
     def create_auth_session(self, user_id: str) -> Tuple[str, datetime]:
         token = secrets.token_urlsafe(32)

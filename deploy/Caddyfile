@@ -1,0 +1,11 @@
+# HTTPS (automatic Let's Encrypt certificate) + reverse proxy to the PeerPath container.
+# SITE_DOMAIN comes from .env, e.g. peerpath.in
+{$SITE_DOMAIN} {
+	encode gzip
+	# Session recording uploads (MAX_RECORDING_MB)
+	request_body {
+		max_size 500MB
+	}
+	# Also proxies WebSockets (/socket.io) with no idle timeout
+	reverse_proxy app:5001
+}

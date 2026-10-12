@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from backend.auth import service as auth_service
 from backend.auth.deps import require_user
-from backend.auth.shine_client import ShineAuthError
+from backend.auth.service import AuthError
 from backend.config import SESSION_COOKIE_NAME, SESSION_COOKIE_SECURE, SESSION_TTL_DAYS
 from backend.data.store import store
 from backend.db.models import User
@@ -14,43 +14,40 @@ router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
 
 class OtpSendInput(BaseModel):
-    mobile: str = Field(max_length=32)
+    email: str = Field(max_length=320)
 
 
 class OtpVerifyInput(BaseModel):
     requestId: str = Field(max_length=200)
-    mobile: str = Field(max_length=32)
+    email: str = Field(max_length=320)
     otp: str = Field(max_length=10)
-    # Required only when the mobile isn't registered on Shine yet (registration)
+    # Sign-up only (email not registered yet)
     name: Optional[str] = Field(default=None, max_length=200)
-    email: Optional[str] = Field(default=None, max_length=320)
+    mobile: Optional[str] = Field(default=None, max_length=32)
 
 
-def _raise_auth(e: Exception):
-    if isinstance(e, ShineAuthError):
-        raise HTTPException(status_code=e.status_code, detail=str(e))
-    if isinstance(e, NotImplementedError):
-        raise HTTPException(status_code=503, detail="Login is temporarily unavailable")
-    raise e
+def _raise(e: AuthError):
+    raise HTTPException(status_code=e.status_code, detail=str(e))
 
 
 @router.post("/otp/send")
 def send_otp(payload: OtpSendInput):
+    """Emails a 6-digit sign-in code. `isRegistered: false` means the verify step must include a name."""
     try:
-        _, challenge = auth_service.send_otp(payload.mobile)
-    except Exception as e:
-        _raise_auth(e)
-    return {"success": True, "requestId": challenge.request_id, "isRegistered": challenge.is_registered}
+        request_id, is_registered = auth_service.send_otp(payload.email)
+    except AuthError as e:
+        _raise(e)
+    return {"success": True, "requestId": request_id, "isRegistered": is_registered}
 
 
 @router.post("/otp/verify")
 def verify_otp(payload: OtpVerifyInput, response: Response):
     try:
         user, token = auth_service.verify_otp(
-            payload.requestId, payload.mobile, payload.otp, name=payload.name, email=payload.email
+            payload.requestId, payload.email, payload.otp, name=payload.name, mobile=payload.mobile
         )
-    except Exception as e:
-        _raise_auth(e)
+    except AuthError as e:
+        _raise(e)
     response.set_cookie(
         SESSION_COOKIE_NAME,
         token,
