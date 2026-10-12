@@ -42,16 +42,19 @@ export const ExpertsGalleryView: React.FC<ExpertsGalleryViewProps> = ({
 
   useEffect(() => {
     let isCurrent = true;
-    peerpathApi.getCreators(activeDomain !== 'all' ? activeDomain : undefined, searchTerm.trim() || undefined)
-      .then(fetched => {
-        if (isCurrent && fetched && fetched.length > 0) {
-          setCreatorsList(fetched);
-        }
-      })
-      .catch(err => console.warn('[Creators API Fallback]:', err));
+    // Debounced so typing in search doesn't fire a request per keystroke
+    const timer = setTimeout(() => {
+      peerpathApi.getCreators(activeDomain !== 'all' ? activeDomain : undefined, searchTerm.trim() || undefined)
+        .then(fetched => {
+          // Set even when empty, so a search with no matches doesn't keep showing the previous results
+          if (isCurrent) setCreatorsList(fetched || []);
+        })
+        .catch(err => console.warn('[Creators API]:', err));
+    }, 300);
 
     return () => {
       isCurrent = false;
+      clearTimeout(timer);
     };
   }, [activeDomain, searchTerm]);
 

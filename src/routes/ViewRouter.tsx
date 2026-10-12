@@ -36,7 +36,9 @@ export const ViewRouter: React.FC<ViewRouterProps> = ({
     experts, 
     selectedExpert, 
     selectExpertById, 
-    setIsBookingModalOpen 
+    setIsBookingModalOpen,
+    currentUser,
+    setIsCreatorWizardOpen
   } = useApp();
 
   const handleSelectExpert = (expertId: string) => {
@@ -126,6 +128,19 @@ export const ViewRouter: React.FC<ViewRouterProps> = ({
       return <RecruiterView onNavigate={navigate} />;
 
     case 'mentor-dashboard-view':
+      // Client-side guard only; the backend still needs real auth to enforce this
+      if (!currentUser) return <LoginView />;
+      if (currentUser.role !== 'mentor' && !currentUser.creatorId) {
+        return (
+          <div className="content-wrapper" style={{ padding: '48px 16px', textAlign: 'center' }}>
+            <h2>Creator Studio is for mentors</h2>
+            <p style={{ margin: '12px 0 20px' }}>Set up your mentor profile to start hosting 1:1 sessions.</p>
+            <button type="button" className="btn-shine-gold-sm" onClick={() => setIsCreatorWizardOpen(true)}>
+              Become a Mentor
+            </button>
+          </div>
+        );
+      }
       return <MentorDashboardView />;
 
     // 7. Authentication

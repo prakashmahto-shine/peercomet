@@ -33,16 +33,21 @@ interface AppContextType {
   selectedExpert: Expert;
   setSelectedExpert: (expert: Expert) => void;
   selectExpertById: (expertId: string) => void;
-  addExpert: (expert: Omit<Expert, 'id'> | Expert) => Expert;
+  addExpert: (expert: Omit<Expert, 'id'> | Expert) => Promise<Expert | null>;
 
   // Sessions Management
   sessions: MentorshipSession[];
   activeSession: MentorshipSession | null;
   setActiveSession: (session: MentorshipSession | null) => void;
-  bookSession: (expert: Expert, date: string, timeSlot: string, attachedCvName?: string) => MentorshipSession;
-  cancelSession: (sessionId: string) => void;
-  rescheduleSession: (sessionId: string, newDate: string, newTimeSlot: string) => void;
-  completeSession: (sessionId: string, rating: number, notes: string, badgeTitle?: string) => void;
+  bookSession: (expert: Expert, date: string, timeSlot: string, sessionType?: string) => Promise<MentorshipSession | null>;
+  cancelSession: (sessionId: string) => Promise<boolean>;
+  rescheduleSession: (sessionId: string, newDate: string, newTimeSlot: string) => Promise<boolean>;
+  // Mentor's assessment: rating of the candidate + peer badge. Only from MentorAssessmentModal.
+  completeSession: (sessionId: string, rating: number, notes: string, badgeTitle?: string, skillsVerified?: string[]) => Promise<boolean>;
+  // Call ended: marks the session as held, no badge
+  markSessionHeld: (sessionId: string) => Promise<void>;
+  // Candidate's rating & review of the mentor
+  submitSessionReview: (sessionId: string, rating: number, comment: string) => Promise<boolean>;
 
   // Candidate Profile Data
   userProfile: UserProfileData;
@@ -782,21 +787,6 @@ const DEFAULT_ACCOUNTS: Record<string, { password: string; account: UserAccount;
   }
 };
 
-const initialSessions: MentorshipSession[] = [
-  {
-    id: 'sess-1',
-    expert: DEFAULT_FALLBACK_EXPERT,
-    candidateName: 'Prakash Mahto',
-    candidateRole: 'Senior Frontend Engineer',
-    candidateAvatar: '/avatars/prakash.jpg',
-    candidateGoal: 'Transition to High-Growth Product Roles / ₹18L–₹24L target & Mock Interview',
-    date: 'Saturday, 5 Sep 2026',
-    timeSlot: '07:00 PM - 08:00 PM',
-    status: 'upcoming',
-    meetingLink: 'https://meet.shine.com/room/peerpath-akash-prakash'
-  }
-];
-
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -842,14 +832,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [selectedExpert, setSelectedExpert] = useState<Expert>(DEFAULT_FALLBACK_EXPERT);
   
   // Dynamic Sessions
-  const [sessions, setSessions] = useState<MentorshipSession[]>(() => {
-    try {
-      const saved = localStorage.getItem('shine_peerpath_sessions');
-      return saved ? JSON.parse(saved) : initialSessions;
-    } catch {
-      return initialSessions;
-    }
-  });
+  // Sessions always come from the backend for the logged-in user (see effect below)
+  const [sessions, setSessions] = useState<MentorshipSession[]>([]);
   
   const [activeSession, setActiveSession] = useState<MentorshipSession | null>(null);
 
@@ -918,16 +902,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }).catch(err => console.log('[API getCreatorById]:', err));
     }
 
-    peerpathApi.getSessions('prakash', 'candidate').then(fetchedSessions => {
-      if (isCurrent && fetchedSessions && fetchedSessions.length > 0) {
-        setSessions(fetchedSessions);
-      }
-    }).catch(err => console.log('[API getSessions]:', err));
-
     return () => {
       isCurrent = false;
     };
   }, []);
+
+  // Candidate's own bookings; refetched whenever the logged-in user changes
+  useEffect(() => {
+    if (!currentUser?.id) {
+      setSessions([]);
+      return;
+    }
+    let isCurrent = true;
+    peerpathApi.getSessions(currentUser.id, 'candidate').then(fetchedSessions => {
+      if (isCurrent) setSessions(fetchedSessions || []);
+    }).catch(err => console.warn('[API getSessions]:', err));
+    return () => {
+      isCurrent = false;
+    };
+  }, [currentUser?.id]);
 
   const activeUsername = currentUser?.username || 'prakash';
   const userProfile: UserProfileData = userProfiles[activeUsername] || DEFAULT_ACCOUNTS[activeUsername]?.profile || DEFAULT_ACCOUNTS.prakash.profile;
@@ -974,6 +967,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     timeSlots: ['10:00 AM - 11:00 AM', '02:00 PM - 03:00 PM', '06:30 PM - 07:30 PM', '08:00 PM - 09:00 PM']
   });
 
+  // The logged-in mentor's creator id (a candidate who became a mentor gets a separate creator id)
+  const mentorCreatorId = currentUser?.creatorId || currentUser?.id || '';
+
+  // Load the mentor's saved availability from their creator record instead of local defaults
+  useEffect(() => {
+    const creator = experts.find(e => e.id.toLowerCase() === mentorCreatorId.toLowerCase());
+    if (creator?.availability?.days?.length && creator.availability.timeSlots?.length) {
+      setMentorAvailability({ days: creator.availability.days, timeSlots: creator.availability.timeSlots });
+    }
+  }, [experts, mentorCreatorId]);
+
   // Modals & UI Drafts
   const [isBookingModalOpen, setIsBookingModalOpen] = useState<boolean>(false);
   const [isCreatorWizardOpen, setIsCreatorWizardOpen] = useState<boolean>(false);
@@ -986,8 +990,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [bookingDraft, setBookingDraft] = useState<{ expert: Expert; date: string; timeSlot: string; attachedCvName?: string; sessionType?: string; amount?: number; duration?: string }>({
     expert: DEFAULT_FALLBACK_EXPERT,
-    date: 'Tomorrow, 5 Sep',
-    timeSlot: '10:00 AM - 11:00 AM',
+    date: '',
+    timeSlot: '',
     attachedCvName: 'Prakash_Mahto_Frontend_Resume.pdf',
     sessionType: 'Career guidance',
     amount: DEFAULT_FALLBACK_EXPERT.price,
@@ -1049,47 +1053,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     currentCtc?: string;
     targetCtc?: string;
   }) => {
-    let syncPayload: Partial<UserProfileData> = {};
-    setUserProfiles(prev => {
-      const existing = prev[activeUsername] || DEFAULT_ACCOUNTS[activeUsername]?.profile || DEFAULT_ACCOUNTS.prakash.profile;
-      const updatedSkills = data.skills && data.skills.length > 0
-        ? Array.from(new Set([...existing.skills, ...data.skills]))
-        : existing.skills;
-      const headline = `${data.currentRole} @ ${data.currentCompany} ➔ Aspiring ${data.targetRole} @ ${data.dreamCompany}`;
-      const resumeLastUpdated = data.resumeFileName ? 'Calibrated & Synced just now' : existing.resumeLastUpdated;
-      const currentCtc = data.currentCtc || existing.currentCtc;
-      const targetCtc = data.targetCtc || existing.targetCtc;
-      const profileScore = Math.max(existing.profileScore, 92);
+    // Computed outside the setState updater: React may run updaters lazily, so values assigned
+    // inside one aren't guaranteed to be set by the time the sync call below runs.
+    const existing = userProfile;
+    const updatedSkills = data.skills && data.skills.length > 0
+      ? Array.from(new Set([...existing.skills, ...data.skills]))
+      : existing.skills;
+    const headline = `${data.currentRole} @ ${data.currentCompany} ➔ Aspiring ${data.targetRole} @ ${data.dreamCompany}`;
+    const resumeLastUpdated = data.resumeFileName ? 'Calibrated & Synced just now' : existing.resumeLastUpdated;
+    const currentCtc = data.currentCtc || existing.currentCtc;
+    const targetCtc = data.targetCtc || existing.targetCtc;
+    const profileScore = Math.max(existing.profileScore, 92);
 
-      // Mirror onto the canonical backend field names (pastCompany/pastCompanyRole/targetCompany)
-      // as well as the newer currentCompany/dreamCompany ones, so both read paths stay in sync
-      // and the persisted db.json record actually reflects the calibrated trajectory.
-      syncPayload = {
-        headline,
-        pastCompany: data.currentCompany,
-        pastCompanyRole: data.currentRole,
-        currentCompany: data.currentCompany,
-        targetCompany: data.dreamCompany,
-        dreamCompany: data.dreamCompany,
-        targetRole: data.targetRole,
-        skills: updatedSkills,
-        resumeFileName: data.resumeFileName || existing.resumeFileName,
-        currentCtc,
-        targetCtc,
-        profileScore
-      };
+    // Mirror onto the canonical backend field names (pastCompany/pastCompanyRole/targetCompany)
+    // as well as the newer currentCompany/dreamCompany ones, so both read paths stay in sync
+    // and the persisted db.json record actually reflects the calibrated trajectory.
+    const syncPayload: Partial<UserProfileData> = {
+      headline,
+      pastCompany: data.currentCompany,
+      pastCompanyRole: data.currentRole,
+      currentCompany: data.currentCompany,
+      targetCompany: data.dreamCompany,
+      dreamCompany: data.dreamCompany,
+      targetRole: data.targetRole,
+      skills: updatedSkills,
+      resumeFileName: data.resumeFileName || existing.resumeFileName,
+      currentCtc,
+      targetCtc,
+      profileScore
+    };
 
-      return {
-        ...prev,
-        [activeUsername]: {
-          ...existing,
-          ...syncPayload,
-          isCalibrated: true,
-          calibratedAt: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-          resumeLastUpdated
-        }
-      };
-    });
+    setUserProfiles(prev => ({
+      ...prev,
+      [activeUsername]: {
+        ...(prev[activeUsername] || existing),
+        ...syncPayload,
+        isCalibrated: true,
+        calibratedAt: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+        resumeLastUpdated
+      }
+    }));
     syncCandidateProfile(activeUsername, syncPayload);
     setIsCalibrationModalOpen(false);
     showToast('🎯 Trajectory Calibrated!', `Matching you with verified mentors who transitioned from ${data.currentCompany} to ${data.dreamCompany}!`, 'success');
@@ -1188,7 +1191,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const postsRes = await fetch(`${API_BASE}/community/posts?userId=` + (currentUser?.id || 'prakash'));
         if (postsRes.ok) {
           const json = await postsRes.json();
-          if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          if (json.success && Array.isArray(json.data)) {
             setCommunityPosts(json.data);
           }
         }
@@ -1200,7 +1203,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const notifRes = await fetch(`${API_BASE}/notifications?userId=` + (currentUser?.id || 'prakash'));
         if (notifRes.ok) {
           const notifJson = await notifRes.json();
-          if (notifJson.success && Array.isArray(notifJson.data) && notifJson.data.length > 0) {
+          // Set even when empty, so a previous user's notifications don't linger after switching accounts
+          if (notifJson.success && Array.isArray(notifJson.data)) {
             setNotifications(notifJson.data);
           }
         }
@@ -1603,13 +1607,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       nisha: { ...JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS.nisha.profile)), isCalibrated: false }
     };
 
-    const freshSessions = JSON.parse(JSON.stringify(initialSessions));
-
     peerpathApi.getCreators().then(c => {
       if (c && c.length > 0) setExperts(c);
     }).catch(() => {});
 
-    setSessions(freshSessions);
+    setSessions([]);
     setUserProfiles(freshProfiles);
 
     const target = targetUsername || currentUser?.username || 'prakash';
@@ -1619,7 +1621,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     try {
       localStorage.setItem('shine_peerpath_current_user', JSON.stringify(userToSet));
-      localStorage.setItem('shine_peerpath_sessions', JSON.stringify(freshSessions));
       localStorage.setItem('shine_peerpath_profiles_db', JSON.stringify(freshProfiles));
     } catch (e) {
       console.warn('LocalStorage save error', e);
@@ -1633,6 +1634,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const logout = () => {
     setCurrentUser(null);
+    setIsCreatorMode(false);
+    setActiveSession(null);
     setIsLoginModalOpen(false);
     navigate('login-view', '/pages/myshine/login');
     showToast('Signed Out', 'You have been safely signed out of your Shine account.', 'info');
@@ -1654,87 +1657,119 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const addExpert = (newExpertData: Omit<Expert, 'id'>): Expert => {
-    const id = 'exp-' + Date.now();
-    const fullExpert: Expert = { ...newExpertData, id };
-    setExperts(prev => [fullExpert, ...prev]);
+  // Registers a mentor on the backend and uses the server-assigned creator id everywhere
+  // (a client-generated id would never match bookings made against the backend record).
+  const addExpert = async (newExpertData: Omit<Expert, 'id'> | Expert): Promise<Expert | null> => {
+    try {
+      const created = await peerpathApi.registerCreator({
+        ...newExpertData,
+        days: newExpertData.availability?.days,
+        timeSlots: newExpertData.availability?.timeSlots
+      });
+      setExperts(prev => [created, ...prev.filter(e => e.id !== created.id)]);
+      if (currentUser) {
+        setCurrentUser({ ...currentUser, role: 'mentor', creatorId: created.id, isMentorEligible: true });
+      }
+      return created;
+    } catch (err) {
+      showToast('Could not publish mentor profile', err instanceof Error ? err.message : 'Please try again.', 'warning');
+      return null;
+    }
+  };
 
-    // Asynchronously publish to backend API store
-    peerpathApi.registerCreator(fullExpert).catch(err => console.warn('[API registerCreator]:', err));
-
-    return fullExpert;
+  const replaceSession = (updated: MentorshipSession) => {
+    setSessions(prev => prev.map(s => (s.id === updated.id ? { ...s, ...updated } : s)));
+    setActiveSession(prev => (prev?.id === updated.id ? { ...prev, ...updated } : prev));
   };
 
   // Sessions Management
-  const bookSession = (expert: Expert, date: string, timeSlot: string): MentorshipSession => {
-    const newSession: MentorshipSession = {
-      id: 'sess-' + Date.now(),
-      expert,
-      candidateName: userProfile.name || 'Prakash Mahto',
-      candidateRole: userProfile.headline?.split('|')[0]?.trim() || 'Senior Frontend Engineer',
-      candidateAvatar: '/avatars/prakash.jpg',
-      candidateGoal: `Career Guidance & Transition Strategy into ${expert.company}`,
-      date,
-      timeSlot,
-      status: 'upcoming',
-      meetingLink: `https://meet.shine.com/room/peerpath-${expert.id}-${Date.now().toString().slice(-4)}`
-    };
-
-    setSessions(prev => [newSession, ...prev]);
-
-    // Post to backend API
-    peerpathApi.checkoutAndBookSession({
-      expertId: expert.id,
-      candidateName: newSession.candidateName,
-      candidateRole: newSession.candidateRole,
-      date,
-      timeSlot,
-      paymentMethod: 'upi',
-      amount: expert.price || 999
-    }).catch(err => console.warn('[API checkout]:', err));
-
-    showToast('🎉 Session Booked Successfully!', `Meeting scheduled with ${expert.name} on ${date}.`);
-    return newSession;
+  // Books via the backend and only shows the session once the server has confirmed it, so the
+  // candidate, the mentor and the video room all use the same server-assigned session id.
+  const bookSession = async (expert: Expert, date: string, timeSlot: string, sessionType?: string): Promise<MentorshipSession | null> => {
+    if (!currentUser) {
+      showToast('Sign in required', 'Please sign in to book a session.', 'info');
+      setIsLoginModalOpen(true);
+      return null;
+    }
+    try {
+      const { session } = await peerpathApi.checkoutAndBookSession({
+        expertId: expert.id,
+        candidateId: currentUser.id,
+        candidateName: userProfile.name || currentUser.name,
+        candidateRole: userProfile.headline?.split('|')[0]?.trim() || currentUser.headline,
+        candidateAvatar: currentUser.avatar,
+        candidateEmail: currentUser.email,
+        candidateGoal: `Career Guidance & Transition Strategy into ${expert.company}`,
+        date,
+        timeSlot,
+        sessionType,
+        paymentMethod: 'upi'
+      });
+      setSessions(prev => [session, ...prev.filter(s => s.id !== session.id)]);
+      showToast('🎉 Session Booked Successfully!', `Meeting scheduled with ${expert.name} on ${date}.`);
+      return session;
+    } catch (err) {
+      showToast('Booking failed', err instanceof Error ? err.message : 'Please try again.', 'warning');
+      return null;
+    }
   };
 
-  const cancelSession = (sessionId: string) => {
-    setSessions(prev => prev.filter(s => s.id !== sessionId));
-    showToast('Session Cancelled', 'Your mentorship booking has been removed.', 'info');
+  const cancelSession = async (sessionId: string): Promise<boolean> => {
+    try {
+      replaceSession(await peerpathApi.cancelSession(sessionId));
+      showToast('Session Cancelled', 'Your mentorship booking has been cancelled.', 'info');
+      return true;
+    } catch (err) {
+      showToast('Could not cancel session', err instanceof Error ? err.message : 'Please try again.', 'warning');
+      return false;
+    }
   };
 
-  const rescheduleSession = (sessionId: string, newDate: string, newTimeSlot: string) => {
-    setSessions(prev => prev.map(s => {
-      if (s.id === sessionId) {
-        return { ...s, date: newDate, timeSlot: newTimeSlot };
-      }
-      return s;
-    }));
-    showToast('Session Rescheduled', `Updated to ${newDate} (${newTimeSlot}).`);
+  const rescheduleSession = async (sessionId: string, newDate: string, newTimeSlot: string): Promise<boolean> => {
+    try {
+      replaceSession(await peerpathApi.rescheduleSession(sessionId, newDate, newTimeSlot));
+      showToast('Session Rescheduled', `Updated to ${newDate} (${newTimeSlot}).`);
+      return true;
+    } catch (err) {
+      showToast('Could not reschedule', err instanceof Error ? err.message : 'Please try again.', 'warning');
+      return false;
+    }
   };
 
-  const completeSession = (sessionId: string, rating: number, notes: string, badgeTitle?: string) => {
-    setSessions(prev => prev.map(s => {
-      if (s.id === sessionId) {
-        return {
-          ...s,
-          status: 'completed',
-          rating,
-          feedbackNotes: notes,
-          badgeAwarded: badgeTitle
-        };
-      }
-      return s;
-    }));
+  const markSessionHeld = async (sessionId: string): Promise<void> => {
+    try {
+      replaceSession(await peerpathApi.completeSession(sessionId));
+    } catch (err) {
+      console.warn('[API completeSession]:', err);
+    }
+  };
 
-    // Post rubric & badge to backend assessment API
-    peerpathApi.submitAssessment(sessionId, {
-      badgeTitle: badgeTitle || 'Peer-Verified Skill Badge',
-      feedbackNotes: notes,
-      rating,
-      skillsVerified: ['System Architecture', 'Problem Solving']
-    }).catch(err => console.warn('[API submitAssessment]:', err));
+  const submitSessionReview = async (sessionId: string, rating: number, comment: string): Promise<boolean> => {
+    try {
+      replaceSession(await peerpathApi.reviewSession(sessionId, rating, comment));
+      showToast('Review Submitted', 'Thanks! Your rating helps other candidates pick the right mentor.');
+      return true;
+    } catch (err) {
+      showToast('Could not submit review', err instanceof Error ? err.message : 'Please try again.', 'warning');
+      return false;
+    }
+  };
 
-    showToast('🎉 Assessment Complete!', 'Skill badge and feedback updated on your profile.');
+  const completeSession = async (sessionId: string, rating: number, notes: string, badgeTitle?: string, skillsVerified?: string[]): Promise<boolean> => {
+    try {
+      const result = await peerpathApi.submitAssessment(sessionId, {
+        badgeTitle: badgeTitle || 'Peer-Verified Skill Badge',
+        feedbackNotes: notes,
+        rating,
+        skillsVerified
+      });
+      replaceSession(result.session);
+      showToast('🎉 Assessment Complete!', 'Skill badge and feedback sent to the candidate.');
+      return true;
+    } catch (err) {
+      showToast('Could not submit assessment', err instanceof Error ? err.message : 'Please try again.', 'warning');
+      return false;
+    }
   };
 
   // Fire-and-forget: persists candidate edits to server/data/db.json via PUT /api/candidates/:id.
@@ -1778,81 +1813,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateProfileSummary = (summary: string) => {
-    let nextProfileScore = 0;
-    setUserProfiles(prev => {
-      const existing = prev[activeUsername] || DEFAULT_ACCOUNTS[activeUsername]?.profile || DEFAULT_ACCOUNTS.prakash.profile;
-      nextProfileScore = Math.min(100, existing.profileScore + 5);
-      return {
-        ...prev,
-        [activeUsername]: {
-          ...existing,
-          summary,
-          profileScore: nextProfileScore
-        }
-      };
-    });
+    const nextProfileScore = Math.min(100, userProfile.profileScore + 5);
+    setUserProfiles(prev => ({
+      ...prev,
+      [activeUsername]: { ...(prev[activeUsername] || userProfile), summary, profileScore: nextProfileScore }
+    }));
     syncCandidateProfile(activeUsername, { summary, profileScore: nextProfileScore });
     showToast('Summary Boosted (+5%)', 'Your profile strength is now higher for recruiters!');
   };
 
   const addSkill = (skill: string) => {
-    let nextSkills: string[] | null = null;
-    let nextProfileScore = 0;
-    setUserProfiles(prev => {
-      const existing = prev[activeUsername] || DEFAULT_ACCOUNTS[activeUsername]?.profile || DEFAULT_ACCOUNTS.prakash.profile;
-      if (!existing.skills.includes(skill)) {
-        nextSkills = [...existing.skills, skill];
-        nextProfileScore = Math.min(100, existing.profileScore + 2);
-        return {
-          ...prev,
-          [activeUsername]: {
-            ...existing,
-            skills: nextSkills,
-            profileScore: nextProfileScore
-          }
-        };
-      }
-      return prev;
-    });
-    if (nextSkills) syncCandidateProfile(activeUsername, { skills: nextSkills, profileScore: nextProfileScore });
+    if (userProfile.skills.includes(skill)) return;
+    const nextSkills = [...userProfile.skills, skill];
+    const nextProfileScore = Math.min(100, userProfile.profileScore + 2);
+    setUserProfiles(prev => ({
+      ...prev,
+      [activeUsername]: { ...(prev[activeUsername] || userProfile), skills: nextSkills, profileScore: nextProfileScore }
+    }));
+    syncCandidateProfile(activeUsername, { skills: nextSkills, profileScore: nextProfileScore });
     showToast('Skill Added', `${skill} added to your verified profile.`);
   };
 
   const removeSkill = (skill: string) => {
-    let nextSkills: string[] = [];
-    setUserProfiles(prev => {
-      const existing = prev[activeUsername] || DEFAULT_ACCOUNTS[activeUsername]?.profile || DEFAULT_ACCOUNTS.prakash.profile;
-      nextSkills = existing.skills.filter(s => s !== skill);
-      return {
-        ...prev,
-        [activeUsername]: {
-          ...existing,
-          skills: nextSkills
-        }
-      };
-    });
+    const nextSkills = userProfile.skills.filter(s => s !== skill);
+    setUserProfiles(prev => ({
+      ...prev,
+      [activeUsername]: { ...(prev[activeUsername] || userProfile), skills: nextSkills }
+    }));
     syncCandidateProfile(activeUsername, { skills: nextSkills });
     showToast('Skill Removed', `${skill} removed from profile.`, 'info');
   };
 
+  // Reflects a badge on the logged-in user's profile locally. Badges are issued server-side by the
+  // mentor's assessment (POST /sessions/:id/assess), so this never writes badges to the backend.
   const awardBadge = (newBadge: PeerVerifiedBadge) => {
-    let nextBadges: PeerVerifiedBadge[] = [];
-    let nextProfileScore = 0;
-    const targetUser = 'prakash';
     setUserProfiles(prev => {
-      const existing = prev[targetUser] || DEFAULT_ACCOUNTS.prakash.profile;
-      nextBadges = [newBadge, ...existing.badges.filter(b => b.title !== newBadge.title)];
-      nextProfileScore = Math.min(100, existing.profileScore + 8);
+      const existing = prev[activeUsername] || userProfile;
       return {
         ...prev,
-        [targetUser]: {
+        [activeUsername]: {
           ...existing,
-          badges: nextBadges,
-          profileScore: nextProfileScore
+          badges: [newBadge, ...existing.badges.filter(b => b.title !== newBadge.title)],
+          profileScore: Math.min(100, existing.profileScore + 8)
         }
       };
     });
-    syncCandidateProfile(targetUser, { badges: nextBadges, profileScore: nextProfileScore });
   };
 
   const updateJobSearchStatus = (status: string) => {
@@ -1870,9 +1875,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('Job Status Updated', `Status changed to "${status}".`);
   };
 
+  // Persists the mentor's slots on their creator record, which BookingModal reads to offer slots
+  const saveCreatorAvailability = async (days: string[], timeSlots: string[]): Promise<boolean> => {
+    try {
+      const updated = await peerpathApi.updateCreatorAvailability(mentorCreatorId, days, timeSlots);
+      setExperts(prev => prev.map(e => (e.id === updated.id ? updated : e)));
+      return true;
+    } catch (err) {
+      showToast('Could not save availability', err instanceof Error ? err.message : 'Please try again.', 'warning');
+      return false;
+    }
+  };
+
   const updateMentorAvailability = (days: string[], timeSlots: string[]) => {
     setMentorAvailability({ days, timeSlots });
-    showToast('Availability Saved', 'Your weekly mentorship slots have been updated.');
+    saveCreatorAvailability(days, timeSlots).then(saved => {
+      if (saved) showToast('Availability Saved', 'Your weekly mentorship slots have been updated.');
+    });
   };
 
   const updateMentorRatesAndAvailability = (rate: number, duration: number, days: string[], timeSlots: string[]) => {
@@ -1889,7 +1908,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       };
     });
     setMentorAvailability({ days, timeSlots });
-    showToast('Mentorship Settings Saved', `Session fee set to ₹${rate} & schedule updated!`);
+    Promise.all([
+      peerpathApi.updateCreator(mentorCreatorId, { price: rate }),
+      peerpathApi.updateCreatorAvailability(mentorCreatorId, days, timeSlots)
+    ]).then(([, updated]) => {
+      setExperts(prev => prev.map(e => (e.id === updated.id ? updated : e)));
+      showToast('Mentorship Settings Saved', `Session fee set to ₹${rate} & schedule updated!`);
+    }).catch(err => {
+      showToast('Could not save mentorship settings', err instanceof Error ? err.message : 'Please try again.', 'warning');
+    });
   };
 
   const updateMentorTeaserVideo = (teaser: { url: string; title: string; duration?: string; thumbnail?: string; uploadedAt?: string } | null) => {
@@ -1930,6 +1957,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         cancelSession,
         rescheduleSession,
         completeSession,
+        markSessionHeld,
+        submitSessionReview,
         userProfile,
         updateUserProfile,
         updateFullProfile,

@@ -36,63 +36,6 @@ export interface CandidateReviewItem {
   replyText?: string;
 }
 
-const candidateReviewsList: CandidateReviewItem[] = [
-  {
-    id: 'rev-1',
-    candidateName: 'Prakash Mahto',
-    candidateRole: 'Senior Frontend Engineer (4+ Years)',
-    candidateAvatar: '/avatars/prakash.jpg',
-    rating: 5,
-    date: 'Yesterday, 4:30 PM',
-    sessionType: '1:1 Career Transition & Architecture Teardown',
-    comment: 'Akash completely transformed my approach to career transitions. The framework shared for handling interview objections and system design was invaluable! Received 2 recruiter calls directly after the session.',
-    isHelpfulCount: 14
-  },
-  {
-    id: 'rev-2',
-    candidateName: 'Sneha Menon',
-    candidateRole: 'Senior SDE-2 @ Fintech Firm',
-    candidateAvatar: '/avatars/saheli.jpg',
-    rating: 5,
-    date: '4 Sep 2026',
-    sessionType: 'Mock Interview & Recruiter Assessment',
-    comment: 'The mock interview was ruthless in a good way. The detailed feedback and scorecard helped me crack system design rounds with ₹28L+ packages.',
-    isHelpfulCount: 19
-  },
-  {
-    id: 'rev-3',
-    candidateName: 'Rahul Kapoor',
-    candidateRole: 'Product Engineer @ Healthtech SaaS',
-    candidateAvatar: '/avatars/anirudh.jpg',
-    rating: 5,
-    date: '28 Aug 2026',
-    sessionType: '1:1 Career Transition Call',
-    comment: 'Akash pointed out 3 critical flaws in my pitch that were costing me interviews. Within 3 weeks of implementing his advice, I cleared the final round at Swiggy for a Senior role!',
-    isHelpfulCount: 24
-  },
-  {
-    id: 'rev-4',
-    candidateName: 'Vikramaditya Roy',
-    candidateRole: 'Full Stack Tech Lead',
-    candidateAvatar: '/avatars/prakash.jpg',
-    rating: 5,
-    date: '21 Aug 2026',
-    sessionType: 'Salary Negotiation & Exec Coaching',
-    comment: 'Direct, honest, and high-impact. He guided me on how to frame system design trade-offs and negotiate ₹34 LPA without counter-offers.',
-    isHelpfulCount: 8
-  },
-  {
-    id: 'rev-5',
-    candidateName: 'Neha Sharma',
-    candidateRole: 'Associate Product Manager',
-    candidateAvatar: '/avatars/nisha.jpg',
-    rating: 4.9,
-    date: '15 Aug 2026',
-    sessionType: '1:1 Career Transition Call',
-    comment: 'Clear roadmap for moving from APM to PM-2 in consumer tech. The framework for metrics and North Star definition is top-notch.',
-    isHelpfulCount: 15
-  }
-];
 
 export const MentorDashboardView: React.FC = () => {
   const { 
@@ -108,6 +51,10 @@ export const MentorDashboardView: React.FC = () => {
     updateMentorTeaserVideo,
     creatorActiveTab,
     setCreatorActiveTab,
+    isAssessmentModalOpen,
+    setIsAssessmentModalOpen,
+    setAssessmentDraftSession,
+    experts,
     showToast
   } = useApp();
 
@@ -247,14 +194,23 @@ export const MentorDashboardView: React.FC = () => {
   const [sessionRate1, setSessionRate1] = useState<number>(userProfile.mentorRate || 999);
   const [isInstantBookingEnabled, setIsInstantBookingEnabled] = useState<boolean>(true);
   const [payoutMethod, setPayoutMethod] = useState<'upi' | 'bank'>('upi');
-  const [upiId, setUpiId] = useState<string>('akash.jain@okaxis');
-  const [bankAccount, setBankAccount] = useState<string>('918237461928');
-  const [ifscCode, setIfscCode] = useState<string>('HDFC0001234');
-  const [accountHolder, setAccountHolder] = useState<string>(currentUser?.name || 'Akash Jain');
+  const [upiId, setUpiId] = useState<string>('');
+  const [bankAccount, setBankAccount] = useState<string>('');
+  const [ifscCode, setIfscCode] = useState<string>('');
+  const [accountHolder, setAccountHolder] = useState<string>(currentUser?.name || '');
 
-  const mentorId = currentUser?.id || 'akash';
-  const mentorName = currentUser?.name || 'Akash Jain';
+  // Bookings are stored against the creator id, which differs from the user id for candidates who became mentors
+  const mentorId = currentUser?.creatorId || currentUser?.id || '';
+  const mentorName = currentUser?.name || '';
   const mentorAvatar = currentUser?.avatar || '/avatars/akash.jpg';
+  const myCreator = experts.find(e => e.id.toLowerCase() === mentorId.toLowerCase());
+
+  // Start pricing from the mentor's real listed price, so saving settings never resets it to a default
+  useEffect(() => {
+    if (!myCreator?.price) return;
+    setSessionRate1(myCreator.price);
+    setSessionOfferings(prev => prev.map((o, i) => (i === 0 ? { ...o, price: myCreator.price } : o)));
+  }, [myCreator?.id, myCreator?.price]);
 
   // 1. Fetch live sessions from Backend API
   useEffect(() => {
@@ -263,24 +219,13 @@ export const MentorDashboardView: React.FC = () => {
 
     peerpathApi.getSessions(mentorId, 'mentor')
       .then((sessions) => {
-        if (isCurrent && sessions && sessions.length > 0) {
-          setLiveSessions(sessions);
-        } else if (isCurrent) {
-          const filtered = localSessions.filter(s => 
-            s.expert.id === mentorId || 
-            s.expert.name.toLowerCase().includes(mentorName.split(' ')[0].toLowerCase())
-          );
-          setLiveSessions(filtered);
-        }
+        if (isCurrent) setLiveSessions(sessions || []);
       })
       .catch((err) => {
-        console.warn('[API getSessions Fallback]:', err);
+        console.warn('[API getSessions]:', err);
         if (isCurrent) {
-          const filtered = localSessions.filter(s => 
-            s.expert.id === mentorId || 
-            s.expert.name.toLowerCase().includes(mentorName.split(' ')[0].toLowerCase())
-          );
-          setLiveSessions(filtered);
+          setLiveSessions([]);
+          showToast('Could not load your bookings', 'Please refresh the page to try again.', 'warning');
         }
       })
       .finally(() => {
@@ -299,14 +244,34 @@ export const MentorDashboardView: React.FC = () => {
     return () => {
       isCurrent = false;
     };
-  }, [mentorId, mentorName, localSessions]);
+  }, [mentorId, isAssessmentModalOpen]);
 
   const upcomingMentorSessions = liveSessions.filter(s => s.status === 'upcoming');
   const completedMentorSessions = liveSessions.filter(s => s.status === 'completed');
 
-  // Dynamic calculations
-  const totalEarnings = completedMentorSessions.length * sessionRate1 + 28971;
-  const badgesIssuedCount = completedMentorSessions.filter(s => s.badgeAwarded).length + 4;
+  // Computed from real sessions only
+  const totalEarnings = completedMentorSessions.reduce((sum, s) => sum + (s.amountPaid ?? s.expert.price ?? 0), 0);
+  const badgesIssuedCount = completedMentorSessions.filter(s => s.badgeAwarded).length;
+  const reviewedSessions = liveSessions.filter(s => s.candidateRating != null);
+  const averageRating = reviewedSessions.length
+    ? reviewedSessions.reduce((sum, s) => sum + (s.candidateRating || 0), 0) / reviewedSessions.length
+    : null;
+  const sessionReviews: CandidateReviewItem[] = reviewedSessions.map(s => ({
+    id: `rev-${s.id}`,
+    candidateName: s.candidateName,
+    candidateRole: s.candidateRole || 'Candidate',
+    candidateAvatar: s.candidateAvatar || '/avatars/prakash.jpg',
+    rating: s.candidateRating || 0,
+    date: s.date,
+    sessionType: s.sessionType || '1:1 Mentorship Session',
+    comment: s.candidateReview || '',
+    isHelpfulCount: 0
+  }));
+
+  const openAssessment = (session: MentorshipSession) => {
+    setAssessmentDraftSession(session);
+    setIsAssessmentModalOpen(true);
+  };
 
   const handleHostCall = (session: MentorshipSession) => {
     setActiveSession(session);
@@ -321,39 +286,9 @@ export const MentorDashboardView: React.FC = () => {
       const dossier = await peerpathApi.getZeroPrepDossier(session.id);
       setSelectedDossier(dossier);
     } catch (error) {
-      console.warn('Fallback generating dossier:', error);
-      setSelectedDossier({
-        sessionId: session.id,
-        candidate: {
-          name: session.candidateName,
-          headline: session.candidateRole || 'Senior Frontend Engineer',
-          experienceYears: '4+ Years',
-          currentCtc: '₹7.5 LPA',
-          targetCtc: '₹22L - ₹34L',
-          targetRole: 'High-Growth Tech Lead',
-          skills: ['React.js', 'TypeScript', 'Node.js', 'Redux', 'System Architecture'],
-          summary: `${session.candidateName} is preparing for a transition to top product companies. Goal: ${session.candidateGoal || 'CV review & system design mock'}.`
-        },
-        gapReport: {
-          missingSkills: ['Micro-Frontend Architecture', 'System Scalability', 'Executive Tech Scoping'],
-          targetJump: '3.2x Salary Multiplication',
-          suggestedFocusAreas: [
-            'Assess deep dive knowledge in component state synchronization',
-            'Probe handling of high concurrency and distributed data structures',
-            'Verify readiness for direct recruiter fast-track shortlist'
-          ]
-        },
-        recommendedAssessmentRubric: [
-          { category: 'Architecture & System Design', criteria: ['Micro-frontend isolation', 'Webpack Module Federation', 'State caching'] },
-          { category: 'Code Quality & Typing', criteria: ['TypeScript generics', 'Performance profiling', 'Clean code'] },
-          { category: 'Executive Communication', criteria: ['Structured answering', 'Trade-off justification'] }
-        ],
-        quickDiscussionPrompts: [
-          `"Walk me through how you structured your latest large-scale frontend or fullstack refactor."`,
-          `"If your service receives 50k concurrent requests, what breaks first in your current architecture?"`,
-          `"How do you negotiate technical debt vs business deliverables with product leaders?"`
-        ]
-      });
+      console.warn('[API getZeroPrepDossier]:', error);
+      setIsDossierModalOpen(false);
+      showToast('Could not load dossier', 'Please try again in a moment.', 'warning');
     } finally {
       setIsLoadingDossier(false);
     }
@@ -385,11 +320,10 @@ export const MentorDashboardView: React.FC = () => {
     }
   };
 
+  // Saves availability only (and toasts on success); price is saved from the Pricing tab
   const handleSaveAvailability = () => {
     updateMentorAvailability(selectedDays, activeSlots);
-    updateMentorRatesAndAvailability(sessionRate1, 60, selectedDays, activeSlots);
     setIsEditingAvailability(false);
-    showToast('Weekly Availability Saved', 'Your active days and slots have been updated and locked.');
   };
 
   const handleCancelAvailability = () => {
@@ -794,7 +728,7 @@ export const MentorDashboardView: React.FC = () => {
               <div className="md-mini-tile">
                 <div className="md-mt-header">
                   <div className="md-mt-icon icon-green"><DollarSign size={13} /></div>
-                  <span className="md-mt-trend positive">+18.4%</span>
+                  <span className="md-mt-trend positive">{completedMentorSessions.length} paid</span>
                 </div>
                 <strong className="md-mt-val">₹{totalEarnings.toLocaleString('en-IN')}</strong>
                 <span className="md-mt-label">Total Earnings</span>
@@ -803,27 +737,27 @@ export const MentorDashboardView: React.FC = () => {
               <div className="md-mini-tile">
                 <div className="md-mt-header">
                   <div className="md-mt-icon icon-purple"><Users size={13} /></div>
-                  <span className="md-mt-trend purple">+28 new</span>
+                  <span className="md-mt-trend purple">{upcomingMentorSessions.length} upcoming</span>
                 </div>
-                <strong className="md-mt-val">1,840</strong>
-                <span className="md-mt-label">Followers</span>
+                <strong className="md-mt-val">{badgesIssuedCount}</strong>
+                <span className="md-mt-label">Badges Issued</span>
               </div>
 
               <div className="md-mini-tile">
                 <div className="md-mt-header">
                   <div className="md-mt-icon icon-indigo"><Sparkles size={13} /></div>
-                  <span className="md-mt-trend blue">Top 1%</span>
+                  <span className="md-mt-trend blue">{reviewedSessions.length} reviews</span>
                 </div>
-                <strong className="md-mt-val">100%</strong>
-                <span className="md-mt-label">Satisfaction</span>
+                <strong className="md-mt-val">{averageRating != null ? `${averageRating.toFixed(1)} ★` : 'New'}</strong>
+                <span className="md-mt-label">Avg. Rating</span>
               </div>
 
               <div className="md-mini-tile">
                 <div className="md-mt-header">
                   <div className="md-mt-icon icon-blue"><CheckCircle2 size={13} /></div>
-                  <span className="md-mt-trend gold">4.95 ★</span>
+                  <span className="md-mt-trend gold">{myCreator?.sessionsCount ?? completedMentorSessions.length} total</span>
                 </div>
-                <strong className="md-mt-val">{completedMentorSessions.length + 30}</strong>
+                <strong className="md-mt-val">{completedMentorSessions.length}</strong>
                 <span className="md-mt-label">Completed</span>
               </div>
             </div>
@@ -918,7 +852,7 @@ export const MentorDashboardView: React.FC = () => {
                 onClick={() => setSessionSubFilter('completed')}
               >
                 <Award size={14} />
-                <span>Completed History ({completedMentorSessions.length + 30})</span>
+                <span>Completed History ({completedMentorSessions.length})</span>
               </button>
             </div>
           </div>
@@ -1042,174 +976,86 @@ export const MentorDashboardView: React.FC = () => {
           {sessionSubFilter === 'completed' && (
             <div className="mentor-cards-stack">
               
-              {/* Completed Session 1 */}
-              <div className="mentor-session-card completed-history-card">
-                <div className="msc-card-top-row">
-                  <div className="msc-candidate-meta">
-                    <div className="msc-avatar-wrap">
-                      <img src="/avatars/prakash.jpg" alt="Prakash" className="msc-candidate-avatar" />
-                      <span className="msc-avatar-badge-done">✓</span>
-                    </div>
-                    <div className="msc-candidate-info">
-                      <div className="msc-name-tag-row">
-                        <h3 className="msc-cand-name">Prakash Mahto</h3>
-                        <span className="msc-badge-completed-pill">
-                          <CheckCircle2 size={12} /> Call Completed
-                        </span>
+              {completedMentorSessions.length === 0 && (
+                <div className="mentor-session-card completed-history-card">
+                  <p className="msc-cand-role">No completed sessions yet.</p>
+                </div>
+              )}
+              {completedMentorSessions.map(sess => (
+                <div key={sess.id} className="mentor-session-card completed-history-card">
+                  <div className="msc-card-top-row">
+                    <div className="msc-candidate-meta">
+                      <div className="msc-avatar-wrap">
+                        <img src={sess.candidateAvatar || '/avatars/prakash.jpg'} alt={sess.candidateName} className="msc-candidate-avatar" />
+                        <span className="msc-avatar-badge-done">✓</span>
                       </div>
-                      <p className="msc-cand-role">Senior Frontend Developer • 45 Mins Mock Interview</p>
-                    </div>
-                  </div>
-
-                  <div className="msc-top-right-meta">
-                    <div className="msc-payout-pill completed">
-                      <CheckCircle2 size={13} className="text-emerald-600" />
-                      <span className="msc-payout-val">₹999 Transferred</span>
-                      <span className="msc-fee-tag">0% Fee</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Session Notes & Guidance Strip */}
-                <div className="sc-session-notes-strip">
-                  <div className="sc-notes-icon">
-                    <FileText size={16} className="text-blue-600" />
-                  </div>
-                  <div className="sc-notes-content">
-                    <span className="sc-notes-label">Mentor Session Notes & Action Plan:</span>
-                    <p className="sc-notes-quote">
-                      "Prakash demonstrated deep understanding of Next.js hydration, Web Vitals profiling, and state caching. Comprehensive roadmap shared for Senior Frontend roles."
-                    </p>
-                  </div>
-                </div>
-
-                {/* Footer Bar */}
-                <div className="msc-card-footer">
-                  <div className="msc-meta-pills-row">
-                    <span className="msc-meta-pill">
-                      <Calendar size={13} className="text-slate-500" />
-                      <span>28 Aug 2026</span>
-                    </span>
-                    <span className="msc-meta-pill">
-                      <Star size={13} fill="#F59E0B" color="#F59E0B" />
-                      <span>5.0 Candidate Rating</span>
-                    </span>
-                  </div>
-
-                  <div className="msc-action-buttons-group">
-                    <button 
-                      type="button" 
-                      className="btn-msc-secondary-action"
-                      onClick={() => handleViewDossier({
-                        id: 'sess-comp-1',
-                        candidateName: 'Prakash Mahto',
-                        candidateRole: 'Senior Frontend Developer',
-                        date: '28 Aug 2026',
-                        timeSlot: '7:00 PM',
-                        price: 999
-                      } as any)}
-                    >
-                      <BookOpen size={13} className="text-slate-600" />
-                      <span>View Dossier & Notes</span>
-                    </button>
-                    <button 
-                      type="button" 
-                      className="btn-msc-secondary-action"
-                      onClick={() => {
-                        showToast('Message Candidate', 'Opening direct chat with Prakash Mahto...', 'info');
-                      }}
-                    >
-                      <MessageSquare size={13} className="text-purple-600" />
-                      <span>Message</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Completed Session 2 */}
-              <div className="mentor-session-card completed-history-card">
-                <div className="msc-card-top-row">
-                  <div className="msc-candidate-meta">
-                    <div className="msc-avatar-wrap">
-                      <img src="/avatars/anirudh.jpg" alt="Ankit" className="msc-candidate-avatar" />
-                      <span className="msc-avatar-badge-done">✓</span>
-                    </div>
-                    <div className="msc-candidate-info">
-                      <div className="msc-name-tag-row">
-                        <h3 className="msc-cand-name">Ankit Verma</h3>
-                        <span className="msc-badge-completed-pill">
-                          <CheckCircle2 size={12} /> Call Completed
-                        </span>
+                      <div className="msc-candidate-info">
+                        <div className="msc-name-tag-row">
+                          <h3 className="msc-cand-name">{sess.candidateName}</h3>
+                          <span className="msc-badge-completed-pill">
+                            <CheckCircle2 size={12} /> Call Completed
+                          </span>
+                        </div>
+                        <p className="msc-cand-role">{sess.candidateRole || 'Candidate'} • {sess.sessionType || '1:1 Mentorship Session'}</p>
                       </div>
-                      <p className="msc-cand-role">Product Analyst • 60 Mins Strategy & Mock Session</p>
+                    </div>
+
+                    <div className="msc-top-right-meta">
+                      <div className="msc-payout-pill completed">
+                        <CheckCircle2 size={13} className="text-emerald-600" />
+                        <span className="msc-payout-val">₹{(sess.amountPaid ?? sess.expert.price ?? 0).toLocaleString('en-IN')}</span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="msc-top-right-meta">
-                    <div className="msc-payout-pill completed">
-                      <CheckCircle2 size={13} className="text-emerald-600" />
-                      <span className="msc-payout-val">₹1,499 Transferred</span>
-                      <span className="msc-fee-tag">0% Fee</span>
+                  {sess.feedbackNotes && (
+                    <div className="sc-session-notes-strip">
+                      <div className="sc-notes-icon">
+                        <FileText size={16} className="text-blue-600" />
+                      </div>
+                      <div className="sc-notes-content">
+                        <span className="sc-notes-label">Your Assessment Notes:</span>
+                        <p className="sc-notes-quote">"{sess.feedbackNotes}"</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="msc-card-footer">
+                    <div className="msc-meta-pills-row">
+                      <span className="msc-meta-pill">
+                        <Calendar size={13} className="text-slate-500" />
+                        <span>{sess.date}</span>
+                      </span>
+                      {sess.candidateRating != null && (
+                        <span className="msc-meta-pill">
+                          <Star size={13} fill="#F59E0B" color="#F59E0B" />
+                          <span>{sess.candidateRating.toFixed(1)} Candidate Rating</span>
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="msc-action-buttons-group">
+                      <button 
+                        type="button" 
+                        className="btn-msc-secondary-action"
+                        disabled={Boolean(sess.badgeAwarded)}
+                        onClick={() => openAssessment(sess)}
+                      >
+                        <Award size={13} className="text-slate-600" />
+                        <span>{sess.badgeAwarded ? `Assessed: ${sess.badgeAwarded}` : 'Assess Candidate'}</span>
+                      </button>
+                      <button 
+                        type="button" 
+                        className="btn-msc-secondary-action"
+                        onClick={() => handleViewDossier(sess)}
+                      >
+                        <BookOpen size={13} className="text-slate-600" />
+                        <span>View Dossier</span>
+                      </button>
                     </div>
                   </div>
                 </div>
-
-                {/* Session Notes & Guidance Strip */}
-                <div className="sc-session-notes-strip">
-                  <div className="sc-notes-icon">
-                    <FileText size={16} className="text-blue-600" />
-                  </div>
-                  <div className="sc-notes-content">
-                    <span className="sc-notes-label">Mentor Session Notes & Action Plan:</span>
-                    <p className="sc-notes-quote">
-                      "Simulated a top product engineering mock interview. Clear hypothesis formulation and metric trade-off justification. Next step: Deep dive into GTM experimentation."
-                    </p>
-                  </div>
-                </div>
-
-                {/* Footer Bar */}
-                <div className="msc-card-footer">
-                  <div className="msc-meta-pills-row">
-                    <span className="msc-meta-pill">
-                      <Calendar size={13} className="text-slate-500" />
-                      <span>22 Aug 2026</span>
-                    </span>
-                    <span className="msc-meta-pill">
-                      <Star size={13} fill="#F59E0B" color="#F59E0B" />
-                      <span>5.0 Candidate Rating</span>
-                    </span>
-                  </div>
-
-                  <div className="msc-action-buttons-group">
-                    <button 
-                      type="button" 
-                      className="btn-msc-secondary-action"
-                      onClick={() => handleViewDossier({
-                        id: 'sess-comp-2',
-                        candidateName: 'Ankit Verma',
-                        candidateRole: 'Product Analyst',
-                        date: '22 Aug 2026',
-                        timeSlot: '6:00 PM',
-                        price: 1499
-                      } as any)}
-                    >
-                      <BookOpen size={13} className="text-slate-600" />
-                      <span>View Dossier & Notes</span>
-                    </button>
-                    <button 
-                      type="button" 
-                      className="btn-msc-secondary-action"
-                      onClick={() => {
-                        showToast('Message Candidate', 'Opening direct chat with Ankit Verma...', 'info');
-                      }}
-                    >
-                      <MessageSquare size={13} className="text-purple-600" />
-                      <span>Message</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
+              ))}
             </div>
           )}
 
@@ -1263,7 +1109,7 @@ export const MentorDashboardView: React.FC = () => {
               <div className="rdo-comm-header">
                 <div className="rdo-comm-icon"><Users size={20} /></div>
                 <div>
-                  <h4>1,840 Active Followers</h4>
+                  <h4>Follower Alerts</h4>
                   <span className="rdo-comm-sub">Candidates subscribed to your mentorship alerts</span>
                 </div>
               </div>
@@ -1273,15 +1119,15 @@ export const MentorDashboardView: React.FC = () => {
                   <span className="rdo-perk-bullet">⚡</span>
                   <div>
                     <strong>Instant Broadcast Reach:</strong>
-                    <p>When you open new slots or host AMAs, all 1,840 followers get instant WhatsApp alerts.</p>
+                    <p>When you open new slots or host AMAs, your followers get notified.</p>
                   </div>
                 </div>
 
                 <div className="rdo-perk-item">
                   <span className="rdo-perk-bullet">🏆</span>
                   <div>
-                    <strong>100% Recommendation Rate:</strong>
-                    <p>94% of reviewed candidates landed interviews within 30 days of your mentorship.</p>
+                    <strong>Your Rating:</strong>
+                    <p>{averageRating != null ? `${averageRating.toFixed(1)} ★ from ${reviewedSessions.length} candidate review(s).` : 'No candidate reviews yet.'}</p>
                   </div>
                 </div>
               </div>
@@ -1298,7 +1144,7 @@ export const MentorDashboardView: React.FC = () => {
                 onClick={() => setReviewFilter('all')}
               >
                 <MessageSquare size={14} />
-                <span>All Candidate Feedback (145)</span>
+                <span>All Candidate Feedback ({sessionReviews.length})</span>
               </button>
 
               <button 
@@ -1307,7 +1153,7 @@ export const MentorDashboardView: React.FC = () => {
                 onClick={() => setReviewFilter('detailed')}
               >
                 <CheckCircle2 size={14} />
-                <span>Detailed Reviews (28)</span>
+                <span>Detailed Reviews ({sessionReviews.filter(r => r.comment.length > 80).length})</span>
               </button>
 
               <button 
@@ -1316,14 +1162,19 @@ export const MentorDashboardView: React.FC = () => {
                 onClick={() => setReviewFilter('5star')}
               >
                 <Star size={14} fill="#F59E0B" color="#F59E0B" />
-                <span>5-Star Testimonials (139)</span>
+                <span>5-Star Testimonials ({sessionReviews.filter(r => r.rating === 5).length})</span>
               </button>
             </div>
           </div>
 
           {/* Reviews List Stack */}
           <div className="creator-reviews-feed-stack">
-            {candidateReviewsList
+            {sessionReviews.length === 0 && (
+              <div className="creator-review-card">
+                <p className="crc-comment-text">No reviews yet. Reviews appear here after candidates rate their completed sessions.</p>
+              </div>
+            )}
+            {sessionReviews
               .filter(rev => {
                 if (reviewFilter === '5star') return rev.rating === 5;
                 return true;
@@ -1347,7 +1198,7 @@ export const MentorDashboardView: React.FC = () => {
                     <div className="crc-rating-meta">
                       <div className="crc-stars">
                         {[1, 2, 3, 4, 5].map((s) => (
-                          <Star key={s} size={14} fill="#F59E0B" color="#F59E0B" />
+                          <Star key={s} size={14} fill={s <= Math.round(rev.rating) ? '#F59E0B' : 'none'} color="#F59E0B" />
                         ))}
                       </div>
                       <span className="crc-date">{rev.date}</span>
@@ -1367,7 +1218,7 @@ export const MentorDashboardView: React.FC = () => {
                   <div className="crc-footer-actions">
                     <div className="crc-helpful-tag">
                       <ThumbsUp size={13} className="text-emerald-600" />
-                      <span>{rev.isHelpfulCount} candidates found this review helpful</span>
+                      <span>Verified PeerPath session</span>
                     </div>
 
                     <div className="crc-action-buttons">
@@ -2309,7 +2160,7 @@ export const MentorDashboardView: React.FC = () => {
                     className="btn-shine-gold-sm"
                     onClick={() => {
                       setIsDossierModalOpen(false);
-                      const targetSess = upcomingMentorSessions.find(s => s.id === selectedDossier.sessionId) || upcomingMentorSessions[0];
+                      const targetSess = upcomingMentorSessions.find(s => s.id === selectedDossier.sessionId);
                       if (targetSess) handleHostCall(targetSess);
                     }}
                   >

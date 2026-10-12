@@ -1,5 +1,6 @@
 import sys
 import time
+from datetime import datetime, timedelta
 import requests
 from backend.models.schemas import CandidateTrajectoryInput, GapAnalysisInput, RecruiterMatchInput
 
@@ -74,17 +75,25 @@ def test_backend():
 
     # 6. Bookings & Checkout
     print("\n6. Testing Booking & Checkout Flow...")
+    # Book the first slot the mentor actually offers, on the next matching weekday
+    availability = creators[0].get("availability") or {}
+    slot = (availability.get("timeSlots") or ["07:00 PM - 08:00 PM"])[0]
+    days = availability.get("days") or []
+    booking_day = next(
+        d for d in (datetime.now() + timedelta(days=i) for i in range(1, 15))
+        if not days or d.strftime("%a") in days
+    )
     checkout_payload = {
         "expertId": first_creator_id,
         "candidateId": "prakash-mahto",
         "candidateName": "Prakash Mahto",
         "candidateRole": "Senior Frontend Engineer",
         "candidateGoal": "Transition Strategy to Lead Architect",
-        "date": "2026-10-05",
-        "timeSlot": "07:00 PM - 08:00 PM",
+        "date": f"{booking_day.strftime('%a')}, {booking_day.day} {booking_day.strftime('%b %Y')}",
+        "timeSlot": slot,
+        "sessionType": "career-guidance",
         "paymentMethod": "upi",
-        "upiId": "prakash@okhdfcbank",
-        "amount": 999
+        "upiId": "prakash@okhdfcbank"
     }
     res = requests.post(f"{BASE_URL}/api/payments/checkout", json=checkout_payload)
     assert res.status_code == 200, f"Checkout failed: {res.text}"

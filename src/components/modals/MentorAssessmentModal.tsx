@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Award, Star, CheckCircle2, ShieldCheck, Sparkles, User, FileText } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -7,22 +7,23 @@ export const MentorAssessmentModal: React.FC = () => {
     isAssessmentModalOpen, 
     setIsAssessmentModalOpen, 
     assessmentDraftSession, 
-    completeSession,
-    awardBadge 
+    completeSession
   } = useApp();
 
   const [rating, setRating] = useState<number>(5);
-  const [badgeTitle, setBadgeTitle] = useState<string>('Advanced UI Architecture & Performance');
-  const [feedbackNotes, setFeedbackNotes] = useState<string>(
-    'Prakash demonstrated strong technical clarity in Next.js architecture, component lifecycle optimization, and clean state design. Highly recommended for Senior Frontend roles at top product companies.'
-  );
+  const [badgeTitle, setBadgeTitle] = useState<string>('');
+  const [feedbackNotes, setFeedbackNotes] = useState<string>('');
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([
-    'React.js 19',
-    'Next.js App Router',
-    'Core Web Vitals',
-    'Micro-Frontends'
-  ]);
+  // Fresh form for every session being assessed (the modal stays mounted between opens)
+  useEffect(() => {
+    if (!assessmentDraftSession) return;
+    setRating(5);
+    setBadgeTitle(`${assessmentDraftSession.expert.domain} Competency Verified`);
+    setFeedbackNotes('');
+    setSelectedSkills([]);
+  }, [assessmentDraftSession?.id]);
 
   if (!isAssessmentModalOpen || !assessmentDraftSession) return null;
 
@@ -32,37 +33,30 @@ export const MentorAssessmentModal: React.FC = () => {
     );
   };
 
-  const handleIssueBadge = (e: React.FormEvent) => {
+  // The badge is issued to the session's candidate by the backend (POST /sessions/:id/assess)
+  const handleIssueBadge = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (assessmentDraftSession) {
-      completeSession(assessmentDraftSession.id, rating, feedbackNotes, badgeTitle);
-      
-      const newBadge = {
-        id: 'badge-' + Date.now(),
-        title: badgeTitle,
-        subtitle: `Verified by ${assessmentDraftSession.expert.name} • ${assessmentDraftSession.expert.role} @ ${assessmentDraftSession.expert.company}`,
-        verifierName: assessmentDraftSession.expert.name,
-        verifierRole: `${assessmentDraftSession.expert.role} @ ${assessmentDraftSession.expert.company}`,
-        verifierAvatar: assessmentDraftSession.expert.avatar,
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        skills: selectedSkills,
-        status: 'verified' as const
-      };
-      awardBadge(newBadge);
-      setIsAssessmentModalOpen(false);
-    }
+    if (!assessmentDraftSession || isSubmitting) return;
+    if (!feedbackNotes.trim()) return;
+    setIsSubmitting(true);
+    const ok = await completeSession(
+      assessmentDraftSession.id,
+      rating,
+      feedbackNotes.trim(),
+      badgeTitle.trim() || undefined,
+      selectedSkills.length > 0 ? selectedSkills : undefined
+    );
+    setIsSubmitting(false);
+    if (ok) setIsAssessmentModalOpen(false);
   };
 
-  const availableSkillTags = [
-    'React.js 19',
-    'Next.js App Router',
-    'Core Web Vitals',
-    'Micro-Frontends',
-    'TypeScript 5.x',
-    'State Architecture',
-    'Machine Coding Practice',
-    'Salary Negotiation Strategy'
-  ];
+  const availableSkillTags = Array.from(new Set([
+    ...(assessmentDraftSession.expert.skills || []),
+    ...(assessmentDraftSession.expert.trajectory?.keyJumpSkills || []),
+    'System Design',
+    'Problem Solving',
+    'Communication'
+  ]));
 
   return (
     <div className="app-modal-backdrop open">

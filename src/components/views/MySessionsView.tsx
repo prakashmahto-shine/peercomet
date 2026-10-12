@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Video, Plus, Calendar, FileCheck, CheckCircle2, 
   Award, Clock, AlertCircle, ArrowLeft, RotateCcw, 
@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { peerpathApi } from '../../services/api';
+import { upcomingBookableDates } from '../../utils/bookingDates';
 
 export const MySessionsView: React.FC = () => {
   const { 
@@ -19,6 +20,8 @@ export const MySessionsView: React.FC = () => {
     cancelSession, 
     rescheduleSession, 
     setActiveSession,
+    setAssessmentDraftSession,
+    setIsAssessmentModalOpen,
     isCreatorMode,
     updateCandidateResume,
     removeCandidateResume,
@@ -26,28 +29,24 @@ export const MySessionsView: React.FC = () => {
   } = useApp();
 
   const isMentor = isCreatorMode || currentUser?.role === 'mentor';
-  const loggedInFirstName = (currentUser?.name || userProfile.name || 'Prakash').split(' ')[0].toLowerCase();
+  const mentorCreatorId = currentUser?.creatorId || currentUser?.id;
 
-  // 1. Candidate's booked sessions (where user is the candidate)
-  const candidateBookedUpcoming = sessions.filter(s => 
-    s.status === 'upcoming' && 
-    s.candidateName.toLowerCase().includes(loggedInFirstName) &&
-    !s.expert.name.toLowerCase().includes(loggedInFirstName)
-  );
-  const candidateBookedCompleted = sessions.filter(s => 
-    s.status === 'completed' && 
-    s.candidateName.toLowerCase().includes(loggedInFirstName)
-  );
+  // 1. Candidate's booked sessions: `sessions` is already scoped to this user's id by the backend
+  const candidateBookedUpcoming = sessions.filter(s => s.status === 'upcoming');
+  const candidateBookedCompleted = sessions.filter(s => s.status === 'completed');
 
-  // 2. Mentor's hosted sessions (candidate bookings with this mentor)
-  const mentorHostedUpcoming = sessions.filter(s => 
-    s.status === 'upcoming' && 
-    (s.expert.name.toLowerCase().includes(loggedInFirstName) || s.expert.id === currentUser?.id)
-  );
-  const mentorHostedCompleted = sessions.filter(s => 
-    s.status === 'completed' && 
-    (s.expert.name.toLowerCase().includes(loggedInFirstName) || s.expert.id === currentUser?.id)
-  );
+  // 2. Mentor's hosted sessions, fetched by creator id (never by name)
+  const [mentorSessions, setMentorSessions] = useState<typeof sessions>([]);
+  useEffect(() => {
+    if (!isMentor || !mentorCreatorId) return;
+    let isCurrent = true;
+    peerpathApi.getSessions(mentorCreatorId, 'mentor')
+      .then(fetched => { if (isCurrent) setMentorSessions(fetched || []); })
+      .catch(err => console.warn('[API getSessions mentor]:', err));
+    return () => { isCurrent = false; };
+  }, [isMentor, mentorCreatorId]);
+  const mentorHostedUpcoming = mentorSessions.filter(s => s.status === 'upcoming');
+  const mentorHostedCompleted = mentorSessions.filter(s => s.status === 'completed');
 
   const displayUpcoming = isMentor ? mentorHostedUpcoming : candidateBookedUpcoming;
   const displayCompleted = isMentor ? mentorHostedCompleted : candidateBookedCompleted;
@@ -57,8 +56,22 @@ export const MySessionsView: React.FC = () => {
   );
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [reschedulingId, setReschedulingId] = useState<string | null>(null);
-  const [rescheduleDate, setRescheduleDate] = useState<string>('Tomorrow, 6 Sep');
-  const [rescheduleTime, setRescheduleTime] = useState<string>('06:00 PM - 07:00 PM');
+  const [rescheduleDate, setRescheduleDate] = useState<string>('');
+  const [rescheduleTime, setRescheduleTime] = useState<string>('');
+
+  // Reschedule options come from the mentor's real availability
+  const reschedulingSession = [...sessions, ...mentorSessions].find(s => s.id === reschedulingId);
+  const rescheduleDateOptions = upcomingBookableDates(reschedulingSession?.expert.availability?.days);
+  const rescheduleTimeOptions = reschedulingSession?.expert.availability?.timeSlots?.length
+    ? reschedulingSession.expert.availability.timeSlots
+    : ['10:00 AM - 11:00 AM', '02:00 PM - 03:00 PM', '06:30 PM - 07:30 PM', '08:00 PM - 09:00 PM'];
+
+  const openReschedule = (sessionId: string) => {
+    const sess = [...sessions, ...mentorSessions].find(s => s.id === sessionId);
+    setReschedulingId(sessionId);
+    setRescheduleDate(upcomingBookableDates(sess?.expert.availability?.days)[0] || '');
+    setRescheduleTime(sess?.expert.availability?.timeSlots?.[0] || '10:00 AM - 11:00 AM');
+  };
   const [preJoinCheckSession, setPreJoinCheckSession] = useState<typeof sessions[0] | null>(null);
   const [selectedRecordingSession, setSelectedRecordingSession] = useState<typeof sessions[0] | null>(null);
 
@@ -77,9 +90,10 @@ export const MySessionsView: React.FC = () => {
     }
   };
 
-  const handleConfirmReschedule = (sessionId: string) => {
-    rescheduleSession(sessionId, rescheduleDate, rescheduleTime);
-    setReschedulingId(null);
+  const handleConfirmReschedule = async (sessionId: string) => {
+    if (!rescheduleDate || !rescheduleTime) return;
+    const ok = await rescheduleSession(sessionId, rescheduleDate, rescheduleTime);
+    if (ok) setReschedulingId(null);
   };
 
   return (
@@ -327,7 +341,7 @@ export const MySessionsView: React.FC = () => {
                     <button 
                       type="button" 
                       className="btn-scc-link" 
-                      onClick={() => setReschedulingId(sess.id)}
+                      onClick={() => openReschedule(sess.id)}
                     >
                       <RotateCcw size={12} /> Reschedule
                     </button>
@@ -352,9 +366,9 @@ export const MySessionsView: React.FC = () => {
                           onChange={(e) => setRescheduleDate(e.target.value)} 
                           className="rd-select"
                         >
-                          <option value="Tomorrow, 5 Sep">Tomorrow, 5 Sep</option>
-                          <option value="Sat, 6 Sep">Sat, 6 Sep</option>
-                          <option value="Sun, 7 Sep">Sun, 7 Sep</option>
+                          {rescheduleDateOptions.map(d => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
                         </select>
                       </div>
 
@@ -365,10 +379,9 @@ export const MySessionsView: React.FC = () => {
                           onChange={(e) => setRescheduleTime(e.target.value)} 
                           className="rd-select"
                         >
-                          <option value="10:00 AM - 11:00 AM">10:00 AM - 11:00 AM (Morning)</option>
-                          <option value="02:00 PM - 03:00 PM">02:00 PM - 03:00 PM (Afternoon)</option>
-                          <option value="06:30 PM - 07:30 PM">06:30 PM - 07:30 PM (Evening)</option>
-                          <option value="08:00 PM - 09:00 PM">08:00 PM - 09:00 PM (Late Evening)</option>
+                          {rescheduleTimeOptions.map(t => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
                         </select>
                       </div>
 
@@ -488,7 +501,7 @@ export const MySessionsView: React.FC = () => {
                     <button 
                       type="button" 
                       className="btn-scc-link" 
-                      onClick={() => setReschedulingId(sess.id)}
+                      onClick={() => openReschedule(sess.id)}
                     >
                       <RotateCcw size={12} /> Reschedule
                     </button>
@@ -497,7 +510,7 @@ export const MySessionsView: React.FC = () => {
                       type="button" 
                       className="btn-scc-link text-danger" 
                       onClick={() => {
-                        if (window.confirm(`Are you sure you want to cancel your session with ${sess.expert.name}? 100% refund will be credited.`)) {
+                        if (window.confirm(`Are you sure you want to cancel your session with ${sess.expert.name}?`)) {
                           cancelSession(sess.id);
                         }
                       }}
@@ -525,9 +538,9 @@ export const MySessionsView: React.FC = () => {
                           onChange={(e) => setRescheduleDate(e.target.value)} 
                           className="rd-select"
                         >
-                          <option value="Tomorrow, 5 Sep">Tomorrow, 5 Sep</option>
-                          <option value="Sat, 6 Sep">Sat, 6 Sep</option>
-                          <option value="Sun, 7 Sep">Sun, 7 Sep</option>
+                          {rescheduleDateOptions.map(d => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
                         </select>
                       </div>
 
@@ -538,11 +551,9 @@ export const MySessionsView: React.FC = () => {
                           onChange={(e) => setRescheduleTime(e.target.value)} 
                           className="rd-select"
                         >
-                          <option value="10:00 AM - 11:00 AM">10:00 AM - 11:00 AM (Morning)</option>
-                          <option value="02:00 PM - 03:00 PM">02:00 PM - 03:00 PM (Afternoon)</option>
-                          <option value="04:30 PM - 05:30 PM">04:30 PM - 05:30 PM (Evening)</option>
-                          <option value="07:00 PM - 08:00 PM">07:00 PM - 08:00 PM (Evening)</option>
-                          <option value="08:30 PM - 09:30 PM">08:30 PM - 09:30 PM (Late Evening)</option>
+                          {rescheduleTimeOptions.map(t => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
                         </select>
                       </div>
 
@@ -609,17 +620,38 @@ export const MySessionsView: React.FC = () => {
 
                   <div className="scc-outcome-pill">
                     <CheckCircle2 size={14} className="text-emerald-600 flex-shrink-0" />
-                    <span><strong>Evaluation:</strong> 1:1 Technical Mentorship Completed</span>
+                    <span>
+                      <strong>Evaluation:</strong>{' '}
+                      {sess.badgeAwarded ? `${sess.badgeAwarded}${sess.feedbackNotes ? ` — ${sess.feedbackNotes}` : ''}` : 'Mentor assessment pending'}
+                    </span>
                   </div>
 
                   <div className="scc-action-cta" style={{ display: 'flex', gap: '8px' }}>
-                    <button 
-                      type="button" 
-                      className="btn-scc-view-assessment" 
-                      onClick={() => navigate('post-session-view')}
-                    >
-                      <Award size={13} /> <span>View Scorecard</span>
-                    </button>
+                    {isMentor ? (
+                      <button 
+                        type="button" 
+                        className="btn-scc-view-assessment" 
+                        disabled={Boolean(sess.badgeAwarded)}
+                        onClick={() => {
+                          setAssessmentDraftSession(sess);
+                          setIsAssessmentModalOpen(true);
+                        }}
+                      >
+                        <Award size={13} /> <span>{sess.badgeAwarded ? 'Assessed' : 'Assess Candidate'}</span>
+                      </button>
+                    ) : (
+                      <button 
+                        type="button" 
+                        className="btn-scc-view-assessment" 
+                        disabled={sess.candidateRating != null}
+                        onClick={() => {
+                          setActiveSession(sess);
+                          navigate('post-session-view');
+                        }}
+                      >
+                        <Star size={13} /> <span>{sess.candidateRating != null ? `You rated ${sess.candidateRating}★` : 'Rate Session'}</span>
+                      </button>
+                    )}
                     <button 
                       type="button" 
                       className="btn-scc-recording" 

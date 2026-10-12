@@ -106,15 +106,35 @@ export const CreatorWizardModal: React.FC = () => {
     }
   };
 
-  const handlePublish = () => {
-    addExpert({
+  const [isPublishing, setIsPublishing] = useState<boolean>(false);
+
+  const handlePublish = async () => {
+    if (isPublishing) return;
+    if (!fullName.trim() || !headline.trim() || !company.trim()) {
+      showToast('Profile incomplete', 'Please fill in your name, role and company.', 'warning');
+      setStep(2);
+      return;
+    }
+    if (!Number.isFinite(sessionPrice) || sessionPrice < 99 || sessionPrice > 100000) {
+      showToast('Invalid session price', 'Session price must be between ₹99 and ₹1,00,000.', 'warning');
+      setStep(3);
+      return;
+    }
+    if (selectedDays.length === 0 || selectedTimeSlots.length === 0) {
+      showToast('Add your availability', 'Pick at least one day and one time slot.', 'warning');
+      setStep(4);
+      return;
+    }
+
+    setIsPublishing(true);
+    const created = await addExpert({
       name: fullName,
       role: headline,
       company,
       domain,
       experience: currentUser?.experienceYears || userProfile.experienceYears || '6+ Years Exp.',
       rating: 5.0,
-      reviewsCount: 1,
+      reviewsCount: 0,
       sessionsCount: 0,
       price: sessionPrice,
       location: 'Bengaluru / Remote',
@@ -124,8 +144,12 @@ export const CreatorWizardModal: React.FC = () => {
       teaserTitle: `Teaser: Mastering ${domain} & Cracking Top Product Tech`,
       skills: selectedSkills,
       bio,
-      verifiedEmail: '@flipkart.com'
+      // Derived from the company server-side; real work-email verification is still TODO
+      verifiedEmail: '',
+      availability: { days: selectedDays, timeSlots: [...new Set(selectedTimeSlots)] }
     });
+    setIsPublishing(false);
+    if (!created) return;
 
     // Upgrade user profile to active mentor!
     updateUserProfile({
@@ -145,10 +169,6 @@ export const CreatorWizardModal: React.FC = () => {
         uploadedAt: 'Just now'
       } : undefined
     });
-
-    if (currentUser) {
-      currentUser.role = 'mentor';
-    }
 
     setIsCreatorMode(true);
     setIsCreatorWizardOpen(false);
@@ -841,6 +861,7 @@ export const CreatorWizardModal: React.FC = () => {
                 type="button" 
                 className="btn-wizard-publish glow-pulse"
                 onClick={handlePublish}
+                disabled={isPublishing}
               >
                 <Sparkles size={18} /> Publish Profile & Activate Mentor Status
               </button>

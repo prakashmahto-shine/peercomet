@@ -37,7 +37,7 @@ class CreatorService:
             domain=payload.domain or 'Full-Stack',
             experience=payload.experience or '6+ Years Exp.',
             rating=5.0,
-            reviewsCount=1,
+            reviewsCount=0,
             sessionsCount=0,
             price=payload.price or 999,
             location='Bengaluru / Remote',
@@ -65,5 +65,14 @@ class CreatorService:
 
     def update_availability(self, creator_id: str, days: List[str], time_slots: List[str]) -> Optional[Creator]:
         return store.update_creator_availability(creator_id, days, time_slots)
+
+    def update_profile(self, creator_id: str, updates: Dict[str, Any]) -> Optional[Creator]:
+        updated = store.update_creator(creator_id, updates)
+        if updated:
+            try:
+                milvus_service.upsert_creator(updated)
+            except Exception as e:
+                print(f"[CreatorService] Milvus upsert warning: {e}")
+        return updated
 
 creator_service = CreatorService()

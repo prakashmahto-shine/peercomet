@@ -60,7 +60,9 @@ export interface BookingDetails {
 
 export interface MentorshipSession {
   id: string;
+  expertId?: string;
   expert: Expert;
+  candidateId?: string;
   candidateName: string;
   candidateRole?: string;
   candidateAvatar?: string;
@@ -75,6 +77,12 @@ export interface MentorshipSession {
   recordingUrl?: string;
   recordingDuration?: number;
   hasRecording?: boolean;
+  sessionType?: string;
+  amountPaid?: number;
+  completedAt?: string;
+  // Candidate's review of the mentor (rating/feedbackNotes above are the mentor's assessment)
+  candidateRating?: number;
+  candidateReview?: string;
 }
 
 export interface PeerVerifiedBadge {
@@ -202,6 +210,8 @@ export interface UserAccount {
   completedSessionsCount?: number;
   hasExpertBadge?: boolean;
   isMentorEligible?: boolean;
+  // Creator (mentor profile) id when this user is a mentor; may differ from the user id
+  creatorId?: string;
 }
 
 export interface PeerpathJobContext {

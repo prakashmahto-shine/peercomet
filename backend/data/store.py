@@ -1,5 +1,6 @@
 import json
 import os
+import threading
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from backend.config import DB_PATH
@@ -34,6 +35,8 @@ class Store:
     def __init__(self, db_path: Path = DB_PATH):
         self.db_path = db_path
         self.data: Dict[str, Any] = self._load_data()
+        # Guards read-modify-write sequences (e.g. slot check + insert) across threadpool workers
+        self.lock = threading.RLock()
 
     def _load_data(self) -> Dict[str, Any]:
         if os.path.exists(self.db_path):
@@ -60,12 +63,16 @@ class Store:
         }
 
     def save_data(self):
-        try:
-            self.db_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.db_path, 'w', encoding='utf-8') as f:
-                json.dump(self.data, f, indent=2)
-        except Exception as e:
-            print(f"[Store] Error saving {self.db_path}: {e}")
+        # Write to a temp file and atomically swap it in, so a crash mid-write can't truncate db.json
+        with self.lock:
+            tmp_path = self.db_path.with_suffix('.json.tmp')
+            try:
+                self.db_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(tmp_path, 'w', encoding='utf-8') as f:
+                    json.dump(self.data, f, indent=2)
+                os.replace(tmp_path, self.db_path)
+            except Exception as e:
+                print(f"[Store] Error saving {self.db_path}: {e}")
 
     # Creators
     def get_creators(self, domain: Optional[str] = None, query: Optional[str] = None) -> List[Creator]:
@@ -128,6 +135,15 @@ class Store:
         self.save_data()
         return self.get_creator_by_id(creator_id)
 
+    def update_creator(self, creator_id: str, updates: Dict[str, Any]) -> Optional[Creator]:
+        clean = (creator_id or '').strip().lower()
+        for c in self.data.get('creators', []):
+            if c.get('id', '').lower() == clean:
+                c.update(updates)
+                self.save_data()
+                return Creator(**c)
+        return None
+
     # Sessions & Bookings
     def get_sessions(self, user_id: Optional[str] = None, role: Optional[str] = None) -> List[MentorshipSession]:
         sessions_raw = self.data.get('sessions', [])
@@ -135,10 +151,28 @@ class Store:
         if not user_id:
             return sessions
         
-        uid = user_id.lower()
+        # Match on ids only. Matching on name substrings leaked sessions between users
+        # (e.g. 'akash' is a substring of 'prakash').
+        uid = user_id.strip().lower()
         if role == 'mentor':
-            return [s for s in sessions if s.expertId == user_id or uid in s.expert.name.lower()]
-        return [s for s in sessions if s.candidateId == user_id or uid in s.candidateName.lower()]
+            return [s for s in sessions if s.expertId.lower() == uid]
+        return [s for s in sessions if s.candidateId.lower() == uid]
+
+    def get_booked_slots(self, expert_id: str) -> List[Dict[str, str]]:
+        # Upcoming bookings for a mentor, used to hide taken slots and reject double bookings
+        eid = (expert_id or '').strip().lower()
+        return [
+            {'id': s.get('id', ''), 'date': s.get('date', ''), 'timeSlot': s.get('timeSlot', '')}
+            for s in self.data.get('sessions', [])
+            if (s.get('expertId') or '').lower() == eid and s.get('status') == 'upcoming'
+        ]
+
+    def is_slot_taken(self, expert_id: str, date: str, time_slot: str, exclude_session_id: Optional[str] = None) -> bool:
+        return any(
+            b['date'] == date and b['timeSlot'] == time_slot
+            for b in self.get_booked_slots(expert_id)
+            if b['id'] != exclude_session_id
+        )
 
     def get_session_by_id(self, session_id: str) -> Optional[MentorshipSession]:
         for s in self.data.get('sessions', []):

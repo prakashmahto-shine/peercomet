@@ -32,7 +32,7 @@ class Creator(BaseModel):
     domain: str
     experience: str = "6+ Years Exp."
     rating: float = 5.0
-    reviewsCount: int = 1
+    reviewsCount: int = 0
     sessionsCount: int = 0
     price: int = 999
     location: str = "Bengaluru / Remote"
@@ -104,6 +104,11 @@ class MentorshipSession(BaseModel):
     paymentId: Optional[str] = None
     amountPaid: Optional[int] = None
     bookedAt: str = ""
+    sessionType: Optional[str] = None
+    completedAt: Optional[str] = None
+    # Candidate's review of the mentor (separate from the mentor's assessment above)
+    candidateRating: Optional[float] = None
+    candidateReview: Optional[str] = None
 
 class TrajectoryMatch(BaseModel):
     creator: Creator
@@ -175,7 +180,7 @@ class CreatorRegisterInput(BaseModel):
     company: str
     domain: str
     experience: Optional[str] = '6+ Years Exp.'
-    price: Optional[int] = 999
+    price: Optional[int] = Field(default=999, ge=99, le=100000)
     duration: Optional[str] = '01:15'
     skills: List[str] = Field(default_factory=list)
     bio: str = ""
@@ -193,6 +198,17 @@ class AvailabilityUpdateInput(BaseModel):
     days: List[str]
     timeSlots: List[str]
 
+class CreatorUpdateInput(BaseModel):
+    # Whitelisted fields a mentor may edit on their own profile
+    price: Optional[int] = Field(default=None, ge=99, le=100000)
+    role: Optional[str] = None
+    company: Optional[str] = None
+    bio: Optional[str] = Field(default=None, max_length=4000)
+    skills: Optional[List[str]] = None
+    teaserTitle: Optional[str] = None
+    duration: Optional[str] = None
+    location: Optional[str] = None
+
 class CheckoutPayload(BaseModel):
     expertId: str
     candidateId: Optional[str] = None
@@ -203,13 +219,19 @@ class CheckoutPayload(BaseModel):
     candidateEmail: Optional[str] = None
     date: str
     timeSlot: str
+    sessionType: Optional[str] = None
     paymentMethod: Literal['upi', 'card', 'netbanking', 'wallet'] = 'upi'
     upiId: Optional[str] = None
+    # Ignored by the server: price is always computed from the creator's rate and sessionType
     amount: Optional[int] = None
 
 class ReschedulePayload(BaseModel):
     newDate: str
     newTimeSlot: str
+
+class SessionReviewPayload(BaseModel):
+    rating: float = Field(ge=1, le=5)
+    comment: str = Field(default="", max_length=2000)
 
 class AssessmentSubmitPayload(BaseModel):
     rating: float

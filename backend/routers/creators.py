@@ -1,6 +1,6 @@
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
-from backend.models.schemas import CreatorRegisterInput, AvailabilityUpdateInput
+from backend.models.schemas import CreatorRegisterInput, AvailabilityUpdateInput, CreatorUpdateInput
 from backend.services.creator_service import creator_service
 
 router = APIRouter(prefix="/api/creators", tags=["Creators"])
@@ -44,3 +44,17 @@ def update_availability(creator_id: str, payload: AvailabilityUpdateInput):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/{creator_id}")
+def update_creator(creator_id: str, payload: CreatorUpdateInput):
+    updates = payload.model_dump(exclude_none=True)
+    if not updates:
+        raise HTTPException(status_code=400, detail="No updatable fields provided")
+    try:
+        updated = creator_service.update_profile(creator_id, updates)
+    except Exception as e:
+        print(f"[Creators] Update error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+    if not updated:
+        raise HTTPException(status_code=404, detail="Creator not found")
+    return {"success": True, "data": updated}

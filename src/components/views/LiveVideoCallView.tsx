@@ -16,8 +16,9 @@ export const LiveVideoCallView: React.FC = () => {
     userProfile, 
     currentUser, 
     isCreatorMode,
-    completeSession,
-    awardBadge,
+    markSessionHeld,
+    setAssessmentDraftSession,
+    setIsAssessmentModalOpen,
     showToast 
   } = useApp();
 
@@ -399,17 +400,23 @@ export const LiveVideoCallView: React.FC = () => {
       setRecordingUploaded(true);
     }
 
-    // 4. Complete session in state with feedback notes
+    // 4. Mark the session as held. Badges/ratings are NOT issued here: the mentor assesses the
+    //    candidate in MentorAssessmentModal and the candidate reviews the mentor in PostSessionView.
     if (activeSession?.id) {
-      completeSession(
-        activeSession.id,
-        5,
-        `1:1 ${expert.domain} Guidance call with ${expert.name}. Candidate received comprehensive feedback, scorecard teardown, and personalized career roadmap.`
-      );
+      markSessionHeld(activeSession.id);
     }
 
-    showToast('Session Completed', 'Your session feedback and recording have been synced.', 'success');
-    navigate('post-session-view');
+    if (isMentor) {
+      showToast('Session Completed', 'Share your assessment so the candidate gets their scorecard.', 'success');
+      navigate('mentor-dashboard-view');
+      if (activeSession) {
+        setAssessmentDraftSession(activeSession);
+        setIsAssessmentModalOpen(true);
+      }
+    } else {
+      showToast('Session Completed', 'Your recording has been synced. Tell us how the session went!', 'success');
+      navigate('post-session-view');
+    }
   };
 
   const otherParticipantName = isMentor ? candidateName : expert.name;

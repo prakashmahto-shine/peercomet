@@ -222,9 +222,8 @@ export const JobsView: React.FC<JobsViewProps> = ({
       q: searchKeyword.trim() || undefined
     })
       .then(fetched => {
-        if (isCurrent && fetched && fetched.length > 0) {
-          setJobsList(fetched);
-        }
+        // Set even when empty, so a search with no matches doesn't keep showing the previous results
+        if (isCurrent) setJobsList(fetched || []);
       })
       .catch(err => {
         console.warn('[Jobs API fallback]:', err);

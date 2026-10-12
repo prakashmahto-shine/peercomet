@@ -6,7 +6,7 @@ import {
 import { useApp } from '../../context/AppContext';
 
 export const PaymentView: React.FC = () => {
-  const { bookingDraft, navigate, bookSession, selectedExpert, userProfile } = useApp();
+  const { bookingDraft, navigate, bookSession, selectedExpert, userProfile, setIsBookingModalOpen } = useApp();
   const expert = bookingDraft.expert || selectedExpert || {
     id: 'deepika-pm',
     name: 'Deepika Sen',
@@ -16,8 +16,8 @@ export const PaymentView: React.FC = () => {
     avatar: '/avatars/deepika.jpg'
   };
 
-  const date = bookingDraft.date || 'Fri, 2 Oct 2026';
-  const timeSlot = bookingDraft.timeSlot || '07:00 PM - 08:00 PM';
+  const date = bookingDraft.date;
+  const timeSlot = bookingDraft.timeSlot;
   const sessionType = bookingDraft.sessionType || 'Career Guidance & Strategy';
   const sessionDuration = bookingDraft.duration || '30 Mins';
   const payableAmount = bookingDraft.amount || expert.price || 1399;
@@ -28,17 +28,24 @@ export const PaymentView: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
   const handleOpenRazorpay = () => {
+    if (!date || !timeSlot) {
+      // No slot picked yet: send them to the booking calendar instead of booking a made-up time
+      setIsBookingModalOpen(true);
+      return;
+    }
     setIsRazorpayModalOpen(true);
   };
 
-  const handleCompletePayment = () => {
+  const handleCompletePayment = async () => {
     setIsProcessing(true);
-    setTimeout(() => {
-      setIsProcessing(false);
-      setIsRazorpayModalOpen(false);
-      bookSession(expert as any, date, timeSlot);
+    const booked = await bookSession(expert as any, date, timeSlot, sessionType);
+    setIsProcessing(false);
+    setIsRazorpayModalOpen(false);
+    if (booked) {
       navigate('confirmed-view');
-    }, 1200);
+    } else {
+      setIsBookingModalOpen(true);
+    }
   };
 
   return (
@@ -57,7 +64,7 @@ export const PaymentView: React.FC = () => {
           <div>
             <h4>{expert.name}</h4>
             <p>{expert.role} at {expert.company} • <strong className="text-blue-600">{sessionType}</strong></p>
-            <div className="pay-chip"><Calendar size={13} /> {date} • {timeSlot}</div>
+            <div className="pay-chip"><Calendar size={13} /> {date && timeSlot ? `${date} • ${timeSlot}` : 'No slot selected yet'}</div>
           </div>
         </div>
 

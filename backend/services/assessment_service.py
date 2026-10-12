@@ -2,6 +2,7 @@ import time
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from backend.data.store import store
+from backend.services.booking_service import booking_service
 from backend.models.schemas import (
     PeerVerifiedBadge,
     ZeroPrepDossier,
@@ -11,6 +12,9 @@ from backend.models.schemas import (
     MentorshipSession,
     AssessmentSubmitPayload
 )
+
+class AssessmentConflictError(Exception):
+    pass
 
 class AssessmentService:
     def get_zero_prep_dossier(self, session_id: str) -> ZeroPrepDossier:
@@ -87,6 +91,10 @@ class AssessmentService:
         session = store.get_session_by_id(session_id)
         if not session:
             raise ValueError(f"Session {session_id} not found")
+        if session.status == 'cancelled':
+            raise AssessmentConflictError("Cancelled sessions cannot be assessed")
+        if session.badgeAwarded:
+            raise AssessmentConflictError("This session has already been assessed")
 
         badge_title = payload.badgeTitle or f"{session.expert.domain} Competency Verified"
         company_tag = session.expert.company[:3].upper() if session.expert.company else "SHN"
@@ -111,8 +119,11 @@ class AssessmentService:
 
         updated_cand = store.award_badge_to_candidate(session.candidateId, new_badge)
 
+        # Assessing an upcoming session means the call happened; mark it held (bumps mentor's sessionsCount)
+        if session.status == 'upcoming':
+            booking_service.complete_session(session_id)
+
         updated_session = store.update_session(session_id, {
-            'status': 'completed',
             'rating': payload.rating,
             'feedbackNotes': payload.feedbackNotes,
             'badgeAwarded': badge_title

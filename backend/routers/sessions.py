@@ -1,4 +1,5 @@
 import os
+import re
 from pathlib import Path
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Request, Response, status
@@ -11,13 +12,18 @@ router = APIRouter(tags=["Sessions & Recordings"])
 RECORDINGS_DIR = DATA_DIR / "recordings"
 RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)
 
+# Session ids end up in file paths, so only allow plain id characters
+SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,80}$")
+
 @router.post("/api/sessions/{session_id}/recording")
 async def upload_recording(session_id: str, request: Request):
     """
     Save session video recording (.webm / .mp4) uploaded from WebRTC client
     """
+    clean_id = session_id.replace("peerpath-", "").replace("sess-", "")
+    if not SAFE_ID_RE.match(clean_id):
+        raise HTTPException(status_code=400, detail="Invalid session id")
     try:
-        clean_id = session_id.replace("peerpath-", "").replace("sess-", "")
         file_path = RECORDINGS_DIR / f"sess-{clean_id}.webm"
 
         # Read binary body stream
@@ -68,6 +74,8 @@ async def stream_recording(session_id: str, request: Request):
     Stream session recording with HTTP 206 Partial Content (Range header) for smooth video playback & scrubbing
     """
     clean_id = session_id.replace("peerpath-", "").replace("sess-", "")
+    if not SAFE_ID_RE.match(clean_id):
+        raise HTTPException(status_code=400, detail="Invalid session id")
     file_path = RECORDINGS_DIR / f"sess-{clean_id}.webm"
 
     if not file_path.exists():

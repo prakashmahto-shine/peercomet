@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from backend.models.schemas import AssessmentSubmitPayload
-from backend.services.assessment_service import assessment_service
+from backend.services.assessment_service import assessment_service, AssessmentConflictError
 
 router = APIRouter(tags=["Assessment & Briefing"])
 
@@ -21,6 +21,8 @@ def submit_assessment(session_id: str, payload: AssessmentSubmitPayload):
     try:
         result = assessment_service.submit_assessment(session_id, payload)
         return {"success": True, "data": result}
+    except AssessmentConflictError as ce:
+        raise HTTPException(status_code=409, detail=str(ce))
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
     except Exception as e:

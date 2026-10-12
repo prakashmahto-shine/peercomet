@@ -8,6 +8,22 @@ import {
 } from 'lucide-react';
 import { Expert } from '../../types';
 import { useApp } from '../../context/AppContext';
+import { peerpathApi } from '../../services/api';
+import { formatBookingDate } from '../../utils/bookingDates';
+
+// Used only when a mentor has no saved availability
+const DEFAULT_TIME_SLOTS = ['10:00 AM - 11:00 AM', '02:00 PM - 03:00 PM', '06:30 PM - 07:30 PM', '08:00 PM - 09:00 PM'];
+
+// '06:30 PM - 07:30 PM' -> { time, label: '06:30 PM', period: 'Evening', startHour: 18, startMin: 30 }
+const parseSlot = (time: string) => {
+  const m = time.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (!m) return null;
+  let startHour = Number(m[1]) % 12;
+  if (m[3].toUpperCase() === 'PM') startHour += 12;
+  const startMin = Number(m[2]);
+  const period = startHour < 12 ? 'Morning' : startHour < 17 ? 'Afternoon' : startHour < 21 ? 'Evening' : 'Late Eve';
+  return { time, label: `${m[1]}:${m[2]} ${m[3].toUpperCase()}`, period, startHour, startMin };
+};
 
 interface BookingModalProps {
   expert?: Expert;
@@ -41,17 +57,17 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     updateCandidateResume
   } = useApp();
 
-  // Dynamically calculate next 7 days starting strictly from Today
+  // Next 14 days starting from today; filtered below to the mentor's available weekdays
   const next7Days = useMemo(() => {
     const days = [];
     const today = new Date();
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 14; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() + i);
       const dayOfWeek = d.toLocaleDateString('en-US', { weekday: 'short' });
       const month = d.toLocaleDateString('en-US', { month: 'short' });
       const dayNum = d.getDate();
-      const fullDateStr = `${dayOfWeek}, ${dayNum} ${month} ${d.getFullYear()}`;
+      const fullDateStr = formatBookingDate(d);
       days.push({
         dateObj: d,
         fullDateStr,
@@ -65,40 +81,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
     return days;
   }, []);
-
-  // Today is ALWAYS default if no date passed
-  const activeDateStr = selectedDate || next7Days[0]?.fullDateStr || '';
-
-  // Determine current active date's today status
-  const activeDayObj = next7Days.find(d => d.fullDateStr === activeDateStr);
-  const isSelectedDateToday = activeDayObj ? activeDayObj.isToday : false;
-
-  // Real-time slot filter (filtering out past slots for today)
-  const availableSlots = useMemo(() => {
-    const rawSlots = [
-      { time: '10:00 AM - 11:00 AM', label: '10:00 AM', period: 'Morning', startHour: 10, startMin: 0 },
-      { time: '11:30 AM - 12:30 PM', label: '11:30 AM', period: 'Morning', startHour: 11, startMin: 30 },
-      { time: '02:00 PM - 03:00 PM', label: '02:00 PM', period: 'Afternoon', startHour: 14, startMin: 0 },
-      { time: '04:30 PM - 05:30 PM', label: '04:30 PM', period: 'Afternoon', startHour: 16, startMin: 30 },
-      { time: '06:30 PM - 07:30 PM', label: '06:30 PM', period: 'Evening', startHour: 18, startMin: 30 },
-      { time: '08:00 PM - 09:00 PM', label: '08:00 PM', period: 'Evening', startHour: 20, startMin: 0 },
-      { time: '09:00 PM - 10:00 PM', label: '09:00 PM', period: 'Late Eve', startHour: 21, startMin: 0 }
-    ];
-
-    if (!isSelectedDateToday) {
-      return rawSlots;
-    }
-
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMin = now.getMinutes();
-
-    return rawSlots.filter(s => {
-      if (s.startHour > currentHour) return true;
-      if (s.startHour === currentHour && s.startMin > currentMin) return true;
-      return false;
-    });
-  }, [isSelectedDateToday]);
 
   // Fallback / default expert
   const expert: Expert = propExpert || bookingDraft?.expert || selectedExpert || {
@@ -128,6 +110,38 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const expertRole = expert?.role || 'Tech Leader';
   const expertCompany = expert?.company || 'Top Tech Firm';
   const expertPrice = expert?.price || 1399;
+
+  // Booking calendar is driven by the mentor's saved availability, minus slots already booked
+  const availableDays = expert?.availability?.days?.length ? expert.availability.days : null;
+  const mentorSlots = expert?.availability?.timeSlots?.length ? expert.availability.timeSlots : DEFAULT_TIME_SLOTS;
+
+  const [bookedSlots, setBookedSlots] = useState<Array<{ date: string; timeSlot: string }>>([]);
+  const refreshBookedSlots = () => {
+    if (!expert?.id) return;
+    peerpathApi.getBookedSlots(expert.id).then(setBookedSlots).catch(err => console.warn('[API getBookedSlots]:', err));
+  };
+  useEffect(() => {
+    if (isOpen) refreshBookedSlots();
+  }, [isOpen, expert?.id]);
+
+  const bookableDays = next7Days.filter(d => !availableDays || availableDays.includes(d.dayOfWeek)).slice(0, 7);
+
+  // Ignore a stale/invalid draft date (e.g. from an earlier visit) and fall back to the first bookable day
+  const activeDateStr = bookableDays.some(d => d.fullDateStr === selectedDate) ? (selectedDate as string) : (bookableDays[0]?.fullDateStr || '');
+  const activeDayObj = bookableDays.find(d => d.fullDateStr === activeDateStr);
+  const isSelectedDateToday = activeDayObj ? activeDayObj.isToday : false;
+
+  const availableSlots = useMemo(() => {
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    return mentorSlots
+      .map(parseSlot)
+      .filter((slot): slot is NonNullable<ReturnType<typeof parseSlot>> => slot !== null)
+      .filter(slot => !bookedSlots.some(b => b.date === activeDateStr && b.timeSlot === slot.time))
+      .filter(slot => !isSelectedDateToday || slot.startHour * 60 + slot.startMin > nowMinutes);
+  }, [mentorSlots.join('|'), bookedSlots, activeDateStr, isSelectedDateToday]);
+
+  const activeTime = availableSlots.some(slot => slot.time === selectedTime) ? (selectedTime as string) : (availableSlots[0]?.time || '');
 
   // 4 Harmonized 1:1 Services
   const sessionOfferings = useMemo(() => {
@@ -218,7 +232,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   // 1-Click direct opening of Razorpay Gateway (No intermediate friction screens)
   const handleOpenRazorpay = () => {
-    const slotTime = selectedTime || availableSlots[0]?.time || '10:00 AM - 11:00 AM';
+    if (!activeDateStr || !activeTime) {
+      showToast('Pick a slot', 'Please choose an available date and time slot.', 'info');
+      return;
+    }
+    const slotTime = activeTime;
     if (setBookingDraft) {
       setBookingDraft({
         expert,
@@ -233,29 +251,31 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setIsRazorpayModalOpen(true);
   };
 
-  const handleCompletePayment = () => {
-    const slotTime = selectedTime || availableSlots[0]?.time || '10:00 AM - 11:00 AM';
+  const handleCompletePayment = async () => {
+    const slotTime = activeTime;
     setIsProcessing(true);
-    setTimeout(() => {
-      setIsProcessing(false);
-      setIsRazorpayModalOpen(false);
-      onClose();
-      setIsBookingModalOpen(false);
-      if (setBookingDraft) {
-        setBookingDraft({
-          expert,
-          date: activeDateStr,
-          timeSlot: slotTime,
-          attachedCvName: currentCvName,
-          sessionType: activeSession.title,
-          amount: payableAmount,
-          duration: activeSession.duration
-        });
-      }
-      bookSession(expert, activeDateStr, slotTime, currentCvName);
-      showToast('🎉 Session Booked Successfully!', `1:1 Session confirmed with ${expertName} for ${activeDateStr}.`, 'success');
-      navigate('confirmed-view');
-    }, 1000);
+    const booked = await bookSession(expert, activeDateStr, slotTime, activeSession.id);
+    setIsProcessing(false);
+    setIsRazorpayModalOpen(false);
+    if (!booked) {
+      // e.g. slot taken meanwhile: keep the modal open with fresh availability so they can pick again
+      refreshBookedSlots();
+      return;
+    }
+    onClose();
+    setIsBookingModalOpen(false);
+    if (setBookingDraft) {
+      setBookingDraft({
+        expert,
+        date: booked.date,
+        timeSlot: booked.timeSlot,
+        attachedCvName: currentCvName,
+        sessionType: booked.sessionType || activeSession.title,
+        amount: booked.amountPaid ?? payableAmount,
+        duration: activeSession.duration
+      });
+    }
+    navigate('confirmed-view');
   };
 
   if (!isOpen) return null;
@@ -345,7 +365,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             </div>
 
             <div className="bfm-dates-strip">
-              {next7Days.map((d) => {
+              {bookableDays.map((d) => {
                 const isSelected = activeDateStr === d.fullDateStr;
                 return (
                   <button
@@ -376,7 +396,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             {availableSlots.length > 0 ? (
               <div className="bfm-slots-grid">
                 {availableSlots.map((slot) => {
-                  const isSelected = (selectedTime || availableSlots[0]?.time) === slot.time;
+                  const isSelected = activeTime === slot.time;
                   return (
                     <button
                       type="button"
@@ -394,8 +414,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               <div className="bk-no-slots-box">
                 <Clock size={16} className="text-amber-600 flex-shrink-0" />
                 <div>
-                  <strong>All slots for today have completed.</strong>
-                  <p>Please select <strong>Tomorrow</strong> or another date from the calendar.</p>
+                  <strong>No open slots on this date.</strong>
+                  <p>Please select another date from the calendar.</p>
                 </div>
               </div>
             )}

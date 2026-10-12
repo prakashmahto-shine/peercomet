@@ -4,13 +4,11 @@ import { useApp } from '../../context/AppContext';
 import { peerpathApi } from '../../services/api';
 
 export const PostSessionView: React.FC = () => {
-  const { activeSession, selectedExpert, navigate, completeSession, showToast } = useApp();
+  const { activeSession, selectedExpert, navigate, submitSessionReview, showToast } = useApp();
   const expert = activeSession?.expert || selectedExpert;
 
   const [rating, setRating] = useState<number>(5);
-  const [reviewText, setReviewText] = useState<string>(
-    `${expert.name} completely transformed my approach to career transitions. The framework shared for handling interview loops and system design was invaluable!`
-  );
+  const [reviewText, setReviewText] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const sessionId = activeSession?.id || `sess-${expert.id}-live`;
@@ -19,19 +17,16 @@ export const PostSessionView: React.FC = () => {
   const handleSubmit = async () => {
     if (isSubmitting) return;
 
-    setIsSubmitting(true);
-    try {
-      if (activeSession) {
-        completeSession(activeSession.id, rating, reviewText, `${expert.domain} Production Ready`);
-      }
-      showToast('Review Submitted', 'Thank you for your feedback! Your review and recording have been saved.', 'success');
+    if (!activeSession) {
+      showToast('No session selected', 'Open the session from My Sessions to leave a review.', 'info');
       navigate('sessions-view');
-    } catch (err: any) {
-      console.error('[PostSessionView Review Error]:', err);
-      showToast('Submission Error', 'Failed to save review. Please try again.', 'warning');
-    } finally {
-      setIsSubmitting(false);
+      return;
     }
+
+    setIsSubmitting(true);
+    const saved = await submitSessionReview(activeSession.id, rating, reviewText);
+    setIsSubmitting(false);
+    if (saved) navigate('sessions-view');
   };
 
   return (

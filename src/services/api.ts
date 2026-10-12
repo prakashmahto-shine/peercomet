@@ -23,6 +23,12 @@ export const API_BASE = ENV_API_URL ? `${ENV_API_URL}/api` : '/api';
  * (which return 502/503/504 or network timeout while the web service spins up after 15m inactivity).
  */
 async function fetchWithRetry(url: string, options?: RequestInit, retries = 2, delayMs = 1200): Promise<Response> {
+  // Never retry writes: a request that timed out may still have succeeded on the server
+  // (e.g. a checkout), and retrying it would create a duplicate.
+  const method = (options?.method || 'GET').toUpperCase();
+  if (method !== 'GET' && method !== 'HEAD') {
+    retries = 0;
+  }
   for (let i = 0; i <= retries; i++) {
     try {
       const res = await fetch(url, options);
@@ -42,6 +48,15 @@ async function fetchWithRetry(url: string, options?: RequestInit, retries = 2, d
     }
   }
   return fetch(url, options);
+}
+
+// Surfaces the server's `detail` message (e.g. "This slot was just booked") instead of a generic error
+async function errorFromResponse(res: Response, fallback: string): Promise<Error> {
+  try {
+    const json = await res.json();
+    if (json?.detail && typeof json.detail === 'string') return new Error(json.detail);
+  } catch {}
+  return new Error(fallback);
 }
 
 export const peerpathApi = {
@@ -71,13 +86,42 @@ export const peerpathApi = {
     return json.data;
   },
 
-  async registerCreator(creatorData: Partial<Expert>): Promise<Expert> {
+  async registerCreator(creatorData: Partial<Expert> & { days?: string[]; timeSlots?: string[] }): Promise<Expert> {
     const res = await fetchWithRetry(`${API_BASE}/creators/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(creatorData)
     });
-    if (!res.ok) throw new Error(`Failed registering creator`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed registering creator');
+    const json = await res.json();
+    return json.data;
+  },
+
+  async updateCreator(id: string, updates: { price?: number; role?: string; company?: string; bio?: string; skills?: string[]; teaserTitle?: string; duration?: string; location?: string }): Promise<Expert> {
+    const res = await fetchWithRetry(`${API_BASE}/creators/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    });
+    if (!res.ok) throw await errorFromResponse(res, 'Failed updating mentor profile');
+    const json = await res.json();
+    return json.data;
+  },
+
+  async updateCreatorAvailability(id: string, days: string[], timeSlots: string[]): Promise<Expert> {
+    const res = await fetchWithRetry(`${API_BASE}/creators/${id}/availability`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ days, timeSlots })
+    });
+    if (!res.ok) throw await errorFromResponse(res, 'Failed updating availability');
+    const json = await res.json();
+    return json.data;
+  },
+
+  async getBookedSlots(creatorId: string): Promise<Array<{ date: string; timeSlot: string }>> {
+    const res = await fetchWithRetry(`${API_BASE}/creators/${creatorId}/booked-slots`);
+    if (!res.ok) throw new Error(`Failed fetching booked slots`);
     const json = await res.json();
     return json.data;
   },
@@ -220,16 +264,17 @@ export const peerpathApi = {
     candidateEmail?: string;
     date: string;
     timeSlot: string;
+    sessionType?: string;
     paymentMethod: 'upi' | 'card' | 'netbanking' | 'wallet';
     upiId?: string;
-    amount: number;
   }): Promise<{ session: MentorshipSession; receipt: any }> {
+    // Price is computed server-side from the mentor's rate and sessionType
     const res = await fetchWithRetry(`${API_BASE}/payments/checkout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    if (!res.ok) throw new Error(`Failed processing checkout`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed processing checkout');
     const json = await res.json();
     return json;
   },
@@ -238,7 +283,7 @@ export const peerpathApi = {
     const res = await fetchWithRetry(`${API_BASE}/bookings/${sessionId}/cancel`, {
       method: 'POST'
     });
-    if (!res.ok) throw new Error(`Failed cancelling session`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed cancelling session');
     const json = await res.json();
     return json.data;
   },
@@ -249,7 +294,27 @@ export const peerpathApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ newDate, newTimeSlot })
     });
-    if (!res.ok) throw new Error(`Failed rescheduling session`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed rescheduling session');
+    const json = await res.json();
+    return json.data;
+  },
+
+  // Marks a session as held (call ended). Does not award badges.
+  async completeSession(sessionId: string): Promise<MentorshipSession> {
+    const res = await fetchWithRetry(`${API_BASE}/bookings/${sessionId}/complete`, { method: 'POST' });
+    if (!res.ok) throw await errorFromResponse(res, 'Failed completing session');
+    const json = await res.json();
+    return json.data;
+  },
+
+  // Candidate's rating & review of the mentor
+  async reviewSession(sessionId: string, rating: number, comment: string): Promise<MentorshipSession> {
+    const res = await fetchWithRetry(`${API_BASE}/bookings/${sessionId}/review`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rating, comment })
+    });
+    if (!res.ok) throw await errorFromResponse(res, 'Failed submitting review');
     const json = await res.json();
     return json.data;
   },
@@ -294,7 +359,7 @@ export const peerpathApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    if (!res.ok) throw new Error(`Failed submitting assessment`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed submitting assessment');
     const json = await res.json();
     return json.data;
   },
