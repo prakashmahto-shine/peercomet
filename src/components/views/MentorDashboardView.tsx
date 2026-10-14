@@ -287,7 +287,7 @@ export const MentorDashboardView: React.FC = () => {
     } catch (error) {
       console.warn('[API getZeroPrepDossier]:', error);
       setIsDossierModalOpen(false);
-      showToast('Could not load dossier', 'Please try again in a moment.', 'warning');
+      showToast('Could not load profile', 'Please try again in a moment.', 'warning');
     } finally {
       setIsLoadingDossier(false);
     }
@@ -934,10 +934,10 @@ export const MentorDashboardView: React.FC = () => {
                         type="button" 
                         className="msc-dossier-pill-btn"
                         onClick={() => handleViewDossier(sess)}
-                        title="View AI Candidate Briefing & Zero-Prep Dossier"
+                        title="View Candidate Profile & AI Briefing"
                       >
                         <BookOpen size={12} className="text-emerald-600" />
-                        <span>AI Zero-Prep Dossier</span>
+                        <span>Candidate Profile</span>
                       </button>
                     </div>
 
@@ -1049,7 +1049,7 @@ export const MentorDashboardView: React.FC = () => {
                         onClick={() => handleViewDossier(sess)}
                       >
                         <BookOpen size={13} className="text-slate-600" />
-                        <span>View Dossier</span>
+                        <span>View Profile</span>
                       </button>
                     </div>
                   </div>
@@ -2079,7 +2079,7 @@ export const MentorDashboardView: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #E2E8F0', paddingBottom: '16px', marginBottom: '20px' }}>
               <div>
                 <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#7C3AED', background: '#F3E8FF', padding: '2px 8px', borderRadius: '4px' }}>
-                  ⚡ Zero-Prep AI Briefing Dossier
+                  ⚡ Candidate Profile &amp; AI Briefing
                 </span>
                 <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A', margin: '6px 0 0 0' }}>
                   Candidate Profile & Transition Roadmap
@@ -2164,7 +2164,7 @@ export const MentorDashboardView: React.FC = () => {
                     className="btn-outline-dark-sm"
                     onClick={() => setIsDossierModalOpen(false)}
                   >
-                    Close Dossier
+                    Close Profile
                   </button>
                   <button 
                     type="button" 

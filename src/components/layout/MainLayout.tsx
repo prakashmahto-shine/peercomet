@@ -55,11 +55,12 @@ export const MainLayout: React.FC = () => {
   };
 
   const currentRouteMeta = getRouteByView(currentView);
-  const showHeader = !currentRouteMeta.hideHeader && currentView !== 'login-view';
-  const showFooter = !currentRouteMeta.hideFooter && currentView !== 'live-call-view' && currentView !== 'login-view';
+  const isAdminView = currentView === 'admin-dashboard-view';
+  const showHeader = !currentRouteMeta.hideHeader && currentView !== 'login-view' && !isAdminView;
+  const showFooter = !currentRouteMeta.hideFooter && currentView !== 'live-call-view' && currentView !== 'login-view' && !isAdminView;
 
   return (
-    <div className="app-root-container">
+    <div className={`app-root-container ${isAdminView ? 'admin-crm-root' : ''}`}>
       {/* Toast Notification Alerts */}
       <ToastContainer />
 
@@ -74,12 +75,12 @@ export const MainLayout: React.FC = () => {
       )}
 
       {/* Profile Incomplete Notification Banner */}
-      <ProfileIncompleteBanner />
+      {!isAdminView && <ProfileIncompleteBanner />}
 
       {/* Dynamic View Router */}
       <main 
-        className="app-main-viewport" 
-        style={{ minHeight: currentView === 'login-view' ? '100vh' : '80vh' }}
+        className={`app-main-viewport ${isAdminView ? 'admin-crm-viewport' : ''}`} 
+        style={{ minHeight: currentView === 'login-view' || isAdminView ? '100vh' : '80vh' }}
       >
         <ViewRouter />
       </main>

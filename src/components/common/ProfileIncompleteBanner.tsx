@@ -17,7 +17,8 @@ export const ProfileIncompleteBanner: React.FC = () => {
     !currentUser ||
     isProfileComplete(userProfile) ||
     currentView === 'registration-view' ||
-    currentView === 'login-view'
+    currentView === 'login-view' ||
+    currentView === 'admin-dashboard-view'
   ) {
     return null;
   }

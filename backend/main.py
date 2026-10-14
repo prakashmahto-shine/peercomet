@@ -33,7 +33,8 @@ from backend.routers import (
     community_router,
     notifications_router,
     sessions_router,
-    auth_router
+    auth_router,
+    admin_router
 )
 
 START_TIME = time.time()
@@ -139,6 +140,7 @@ app.include_router(jobs_router)
 app.include_router(community_router)
 app.include_router(notifications_router)
 app.include_router(sessions_router)
+app.include_router(admin_router)
 
 # Serve static frontend build if dist/ exists
 dist_path = Path(__file__).resolve().parent.parent / "dist"

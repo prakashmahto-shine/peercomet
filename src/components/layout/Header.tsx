@@ -262,6 +262,26 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           )}
 
+          {/* Direct Admin Control Center Button */}
+          {currentUser?.isAdmin && (
+            <button
+              type="button"
+              className={`header-bell-btn ${currentView === 'admin-dashboard-view' ? 'active' : ''}`}
+              onClick={() => onNavigate('admin-dashboard-view')}
+              title="Shine PeerPath Admin Control Center"
+              style={{
+                background: currentView === 'admin-dashboard-view' ? '#f5f3ff' : 'transparent',
+                color: currentView === 'admin-dashboard-view' ? '#7c3aed' : '#64748b',
+                border: currentView === 'admin-dashboard-view' ? '1px solid #c4b5fd' : 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <ShieldCheck size={18} />
+            </button>
+          )}
+
           {/* 🔔 Community Notification Bell */}
           <div className="header-notif-container" ref={notifMenuRef}>
             <button 
@@ -428,7 +448,21 @@ export const Header: React.FC<HeaderProps> = ({
               {isUserMenuOpen && (
                 <div className="myshine-user-flyout-card">
                   <div className="flyout-user-header">
-                    <strong>{currentUser.name}</strong>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                      <strong>{currentUser.name}</strong>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        {isAlreadyMentor && (
+                          <span style={{ background: '#ecfdf5', color: '#059669', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10, border: '1px solid rgba(16,185,129,0.3)' }}>
+                            ⭐ Mentor
+                          </span>
+                        )}
+                        {currentUser?.isAdmin && (
+                          <span style={{ background: '#f5f3ff', color: '#7c3aed', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10, border: '1px solid rgba(124,58,237,0.3)' }}>
+                            🛡️ Admin
+                          </span>
+                        )}
+                      </div>
+                    </div>
                     <span>{currentUser.email || userProfile?.email || ''}</span>
                   </div>
 
@@ -491,6 +525,22 @@ export const Header: React.FC<HeaderProps> = ({
                       <Sparkles size={15} className="text-amber-500" /> 
                       <span style={{ fontWeight: 700, color: '#92400E' }}>Become a Mentor (0% Fee)</span>
                       <span className="flyout-gold-tag">0% Fee</span>
+                    </a>
+                  )}
+
+                  {currentUser?.isAdmin && (
+                    <a 
+                      href="/admin" 
+                      className="flyout-item" 
+                      style={{ background: '#fdf4ff', color: '#7c3aed', fontWeight: 700 }}
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        setIsUserMenuOpen(false); 
+                        onNavigate('admin-dashboard-view'); 
+                      }}
+                    >
+                      <ShieldCheck size={15} className="text-purple-600" /> 
+                      <span>Admin Control Center</span>
                     </a>
                   )}
 

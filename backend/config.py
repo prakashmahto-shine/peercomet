@@ -82,7 +82,7 @@ DEV_OTP_CODE = os.getenv("DEV_OTP_CODE", "123456")
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "smtp" if (SMTP_HOST and EMAIL_FROM) else "console").lower()
 
 # Comma-separated PeerPath user ids with extra permissions
-ADMIN_USER_IDS = set(_env_list("ADMIN_USER_IDS"))
+ADMIN_USER_IDS = set(_env_list("ADMIN_USER_IDS", "admin"))
 RECRUITER_USER_IDS = set(_env_list("RECRUITER_USER_IDS"))
 
 # Browser origins allowed to call the API with cookies

@@ -13,7 +13,15 @@ from datetime import datetime, timedelta
 from typing import Optional, Tuple
 
 from backend.auth.email_sender import EmailNotConfigured, EmailSendError, send_email
-from backend.config import BRAND_NAME, DEV_OTP_CODE, EMAIL_BACKEND, OTP_TTL_MINUTES
+from backend.config import (
+    ADMIN_USER_IDS,
+    BRAND_NAME,
+    DEV_OTP_CODE,
+    EMAIL_BACKEND,
+    IS_PRODUCTION,
+    OTP_TTL_MINUTES,
+    SMTP_HOST,
+)
 from backend.data.store import store
 from backend.db.models import User
 
@@ -152,6 +160,15 @@ def verify_otp(request_id: str, identifier: str, otp: str,
 def describe_user(user: User) -> dict:
     """Payload for /api/auth/me and login responses."""
     creator = store.get_creator_by_owner(user.id)
+    cand = store.get_candidate(user.id)
+    is_mentor_eligible = bool(creator is not None or (cand and cand.isMentorEligible))
+    email_clean = (user.email or "").strip().lower()
+    is_admin = bool(
+        user.id in ADMIN_USER_IDS or
+        email_clean.startswith("admin@") or
+        email_clean in {"admin@shine.com", "admin@peerpath.com"} or
+        "admin" in user.id.lower()
+    )
     return {
         "id": user.id,
         "name": user.name,
@@ -160,4 +177,6 @@ def describe_user(user: User) -> dict:
         "avatar": user.avatar,
         "creatorId": creator.id if creator else None,
         "isMentor": creator is not None,
+        "isMentorEligible": is_mentor_eligible,
+        "isAdmin": is_admin,
     }

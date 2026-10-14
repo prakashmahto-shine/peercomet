@@ -17,6 +17,7 @@ import { RecruiterView } from '../components/views/RecruiterView';
 import { MentorDashboardView } from '../components/views/MentorDashboardView';
 import { LoginView } from '../components/views/LoginView';
 import { RegistrationView } from '../components/views/RegistrationView';
+import { AdminDashboardView } from '../components/views/AdminDashboardView';
 
 interface ViewRouterProps {
   onSelectExpert?: (expertId: string) => void;
@@ -146,6 +147,9 @@ export const ViewRouter: React.FC<ViewRouterProps> = ({
         );
       }
       return <MentorDashboardView />;
+
+    case 'admin-dashboard-view':
+      return <AdminDashboardView />;
 
     // 7. Authentication
     case 'login-view':

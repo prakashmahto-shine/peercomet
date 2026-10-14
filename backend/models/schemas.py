@@ -119,6 +119,7 @@ class CandidateProfile(BaseModel):
     pastCompanyRole: Optional[str] = None
     domain: Optional[str] = None
     isCalibrated: bool = False
+    isMentorEligible: bool = False
 
     badges: List[PeerVerifiedBadge] = Field(default_factory=list)
     recruiterSearchMultiplier: Optional[float] = 1.5

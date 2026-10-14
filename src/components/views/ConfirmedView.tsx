@@ -70,7 +70,7 @@ export const ConfirmedView: React.FC = () => {
             </div>
             <div>
               <div className="conf-cv-title-row">
-                <strong className="conf-cv-title">1:1 Session Dossier: Attached Resume</strong>
+                <strong className="conf-cv-title">1:1 Session Profile: Attached Resume</strong>
                 {isRecentlySynced ? (
                   <span className="conf-cv-synced-badge">
                     <CheckCircle2 size={12} /> Latest CV Synced
@@ -87,7 +87,7 @@ export const ConfirmedView: React.FC = () => {
               </div>
               <p className="conf-cv-desc">
                 {isRecentlySynced 
-                  ? `Your updated resume (${currentCv}) is loaded into ${expert.name}'s Zero-Prep Dossier.`
+                  ? `Your updated resume (${currentCv}) is attached to your session profile for ${expert.name}.`
                   : currentCv
                     ? `Currently attached: "${currentCv}". Want ${expert.name} to see your newest projects before the live call?`
                     : `No resume attached yet. Upload your latest CV so ${expert.name} can review your tech background before the call.`}

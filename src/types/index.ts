@@ -48,7 +48,8 @@ export type ViewType =
   | 'recruiter-view'
   | 'mentor-dashboard-view'
   | 'login-view'
-  | 'registration-view';
+  | 'registration-view'
+  | 'admin-dashboard-view';
 
 export interface BookingDetails {
   expert: Expert;
@@ -255,8 +256,61 @@ export interface UserAccount {
   completedSessionsCount?: number;
   hasExpertBadge?: boolean;
   isMentorEligible?: boolean;
+  isAdmin?: boolean;
   // Creator (mentor profile) id when this user is a mentor; may differ from the user id
   creatorId?: string;
+}
+
+export interface AdminOverviewStats {
+  totalUsers: number;
+  totalCandidates: number;
+  totalMentors: number;
+  eligibleMentors: number;
+  totalBookings: number;
+  totalGmv: number;
+  platformEarnings: number;
+}
+
+export interface AdminUserData {
+  id: string;
+  name: string;
+  email: string;
+  mobile?: string;
+  avatar?: string;
+  currentCompany?: string;
+  designation?: string;
+  experienceYears?: string;
+  totalExperienceYears?: number;
+  skills: string[];
+  resumeFileName?: string;
+  resumeUpdatedAt?: string;
+  resumeUrl?: string;
+  city?: string;
+  careerGoal?: string;
+  targetRole?: string;
+  isMentorEligible: boolean;
+  isMentor: boolean;
+  creatorId?: string;
+  creatorStatus?: string;
+  createdAt?: string;
+  lastLoginAt?: string;
+}
+
+export interface AdminBookingData {
+  id: string;
+  expertId: string;
+  expertName: string;
+  expertCompany: string;
+  candidateId: string;
+  candidateName: string;
+  candidateEmail?: string;
+  status: string;
+  date: string;
+  timeSlot: string;
+  price: number;
+  platformCut: number;
+  mentorEarnings: number;
+  createdAt?: string;
 }
 
 export interface PeerpathJobContext {

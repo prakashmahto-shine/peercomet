@@ -26,7 +26,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     id: 'career-guidance',
     name: 'Career Guidance & Skill Gap Analyzer',
     path: '/peerpath',
-    aliases: ['/', '/guidance', '/career-guidance', '/myshine', '/dashboard'],
+    aliases: ['/', '/guidance', '/career-guidance', '/dashboard'],
     view: 'guidance-view',
     title: `Career Guidance & Upward Trajectory | ${BRAND.name}`,
     description: 'Personalized AI skill-gap analyzer and career trajectory roadmap',
@@ -65,7 +65,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
   },
   {
     id: 'expert-profile',
-    name: 'Mentor Profile & Teaser Dossier',
+    name: 'Mentor Profile & Booking',
     path: '/expert/:id',
     aliases: ['/expert', '/mentor/:id', '/mentor-profile'],
     view: 'expert-profile-view',
@@ -154,7 +154,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     aliases: ['/mentor', '/mentor-portal', '/creator-studio', '/creator', '/creator-dashboard'],
     view: 'mentor-dashboard-view',
     title: `Mentor Studio & Earnings Analytics | ${BRAND.name}`,
-    description: 'Session calendar, zero-prep candidate dossiers, reach analytics, and payout tracker',
+    description: 'Session calendar, candidate profiles & briefings, reach analytics, and payout tracker',
     category: 'mentor',
     requiresAuth: true
   },
@@ -162,7 +162,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     id: 'login-auth',
     name: 'Sign In / Sign Up',
     path: '/login',
-    aliases: ['/signin', '/pages/myshine/login'],
+    aliases: ['/signin'],
     view: 'login-view',
     title: `Sign In | ${BRAND.name}`,
     description: 'Access candidate career dashboard or mentor studio',
@@ -180,6 +180,18 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     description: 'Complete your profile: upload a resume to fill it automatically or enter details',
     category: 'auth',
     requiresAuth: true,
+    hideFooter: true
+  },
+  {
+    id: 'admin-dashboard',
+    name: 'Admin Backoffice CRM',
+    path: '/admin',
+    aliases: ['/admin/home', '/admin-dashboard', '/admin-panel', '/management'],
+    view: 'admin-dashboard-view',
+    title: `Admin CRM & Operations Console | ${BRAND.name}`,
+    description: 'Centralized business CRM for registrations, mentor rights vetting, session bookings, and platform revenue',
+    category: 'shared',
+    hideHeader: true,
     hideFooter: true
   }
 ];

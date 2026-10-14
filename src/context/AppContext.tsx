@@ -31,7 +31,7 @@ interface AppContextType {
   // Email code sign-in / sign-up. requestOtp returns null on error (a toast is shown).
   requestOtp: (email: string) => Promise<{ requestId: string; isRegistered: boolean } | null>;
   verifyOtp: (params: { requestId: string; email: string; otp: string; name?: string; mobile?: string }) => Promise<boolean>;
-  logout: () => void;
+  logout: (redirectToAdmin?: boolean) => void;
 
   // Experts & Mentors
   experts: Expert[];
@@ -815,8 +815,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     experienceYears: profile?.experienceYears,
     location: profile?.location,
     creatorId: me.creatorId || undefined,
-    isMentorEligible: me.isMentor,
-    hasExpertBadge: me.isMentor
+    isMentorEligible: Boolean(me.isMentor || me.isMentorEligible || profile?.isMentorEligible),
+    hasExpertBadge: me.isMentor,
+    isAdmin: Boolean(me.isAdmin)
   });
 
   // Loads the signed-in user's profile and switches the app to them
@@ -842,8 +843,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (!isCurrent) return;
         if (me) {
           await applySession(me);
-        } else if (pathToView(window.location.pathname).route?.requiresAuth) {
-          navigate('login-view', '/pages/myshine/login');
+        } else {
+          const currentPath = window.location.pathname;
+          // If on admin URL, do not redirect to candidate login; admin-dashboard-view renders its own admin login portal
+          if (currentPath === '/admin' || currentPath.startsWith('/admin/')) {
+            // retain admin-dashboard-view
+          } else if (pathToView(currentPath).route?.requiresAuth) {
+            navigate('login-view', '/login');
+          }
         }
       })
       .catch(err => console.warn('[API getMe]:', err))
@@ -879,16 +886,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const redirectParam = urlParams.get('redirect');
     const utmSource = urlParams.get('utm_source');
     const campaign = urlParams.get('campaign') || urlParams.get('utm_campaign');
+    const currentPath = window.location.pathname;
+    const isAdminPath = currentPath === '/admin' || currentPath.startsWith('/admin/');
 
-    if (!isProfileComplete(profile)) {
-      // New users (and anyone with missing required details) finish registration first
-      navigate('registration-view', '/register');
+    if (isAdminPath) {
+      if (me.isAdmin) {
+        navigate('admin-dashboard-view', '/admin');
+      }
     } else if (redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//')) {
       navigate(pathToView(redirectParam).view, redirectParam);
+    } else if (me.isAdmin) {
+      navigate('admin-dashboard-view', '/admin');
+    } else if (!isProfileComplete(profile)) {
+      // New users (and anyone with missing required details) finish registration first
+      navigate('registration-view', '/register');
     } else if (me.isMentor && !utmSource && !campaign) {
       navigate('mentor-dashboard-view', '/creator-studio');
-    } else if (currentView === 'login-view') {
-      // /peerpath asks for the career goal first if it isn't set, then lists matched mentors
+    } else {
+      // Normal candidate login always directs to /peerpath
       navigate('guidance-view', '/peerpath');
     }
 
@@ -896,14 +911,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return true;
   };
 
-  const logout = () => {
+  const logout = (redirectToAdmin = false) => {
     peerpathApi.logout().catch(err => console.warn('[API logout]:', err));
     setCurrentUser(null);
     setUserProfiles({});
     setIsCreatorMode(false);
     setActiveSession(null);
     setIsLoginModalOpen(false);
-    navigate('login-view', '/pages/myshine/login');
+    if (redirectToAdmin || window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/')) {
+      navigate('admin-dashboard-view', '/admin');
+    } else {
+      navigate('login-view', '/login');
+    }
     showToast('Signed Out', 'You have been signed out.', 'info');
   };
 

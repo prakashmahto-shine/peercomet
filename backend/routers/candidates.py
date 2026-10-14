@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api/candidates", tags=["Candidates"])
 # Set by the platform (assessments, badges, sign-in, resume upload), never by the client
 PROTECTED_FIELDS = {
     "id", "badges", "profileScore", "recruiterSearchMultiplier", "email", "phone",
-    "resumeFileName", "resumeUpdatedAt", "resumeFileKey",
+    "resumeFileName", "resumeUpdatedAt", "resumeFileKey", "isMentorEligible",
 }
 
 

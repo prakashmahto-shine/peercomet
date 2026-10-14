@@ -561,6 +561,148 @@ class Store:
             result = db.execute(delete(m.Notification).where(func.lower(m.Notification.recipient_id) == _lower(user_id)))
             return result.rowcount
 
+    # ------------------------------------------------------------------ admin operations
+    def get_admin_overview(self) -> Dict[str, Any]:
+        with db_session() as db:
+            total_users = db.scalar(select(func.count(m.User.id))) or 0
+            total_candidates = db.scalar(select(func.count(m.Candidate.id))) or 0
+            total_creators = db.scalar(select(func.count(m.Creator.id)).where(m.Creator.status == 'approved')) or 0
+            total_bookings = db.scalar(select(func.count(m.Booking.id))) or 0
+
+            bookings = db.scalars(select(m.Booking)).all()
+            total_gmv = 0
+            for b in bookings:
+                p = (b.data or {}).get('expert', {}).get('price') or (b.data or {}).get('price') or 1299
+                total_gmv += int(p)
+
+            eligible_mentors_count = 0
+            candidates = db.scalars(select(m.Candidate)).all()
+            for c in candidates:
+                if (c.data or {}).get('isMentorEligible'):
+                    eligible_mentors_count += 1
+
+            return {
+                "totalUsers": total_users,
+                "totalCandidates": total_candidates,
+                "totalMentors": total_creators,
+                "eligibleMentors": eligible_mentors_count,
+                "totalBookings": total_bookings,
+                "totalGmv": total_gmv,
+                "platformEarnings": round(total_gmv * 0.15),
+            }
+
+    def get_admin_users(self) -> List[Dict[str, Any]]:
+        with db_session() as db:
+            users = db.scalars(select(m.User).order_by(m.User.created_at.desc())).all()
+            candidates_map = {c.id.lower(): c.data for c in db.scalars(select(m.Candidate)).all()}
+            creators_by_owner = {cr.owner_user_id.lower(): cr for cr in db.scalars(select(m.Creator)).all() if cr.owner_user_id}
+
+            results = []
+            for u in users:
+                cdata = candidates_map.get(u.id.lower(), {})
+                creator = creators_by_owner.get(u.id.lower())
+
+                is_mentor = creator is not None
+                is_eligible = bool(is_mentor or cdata.get('isMentorEligible'))
+
+                results.append({
+                    "id": u.id,
+                    "name": u.name or cdata.get('name') or "Unnamed User",
+                    "email": u.email or cdata.get('email') or "",
+                    "mobile": u.mobile or cdata.get('phone') or "",
+                    "avatar": u.avatar or cdata.get('avatar'),
+                    "currentCompany": cdata.get('currentCompany') or cdata.get('pastCompany') or "",
+                    "designation": cdata.get('designation') or cdata.get('pastCompanyRole') or "",
+                    "experienceYears": cdata.get('experienceYears') or (f"{cdata.get('totalExperienceYears')} yrs" if cdata.get('totalExperienceYears') is not None else None),
+                    "totalExperienceYears": cdata.get('totalExperienceYears'),
+                    "skills": cdata.get('skills') or [],
+                    "resumeFileName": cdata.get('resumeFileName'),
+                    "resumeUpdatedAt": cdata.get('resumeUpdatedAt'),
+                    "resumeUrl": cdata.get('resumeUrl'),
+                    "city": cdata.get('city') or "",
+                    "careerGoal": cdata.get('careerGoal') or "",
+                    "targetRole": cdata.get('targetRole') or "",
+                    "isMentorEligible": is_eligible,
+                    "isMentor": is_mentor,
+                    "creatorId": creator.id if creator else None,
+                    "creatorStatus": creator.status if creator else None,
+                    "createdAt": u.created_at.isoformat() if u.created_at else None,
+                    "lastLoginAt": u.last_login_at.isoformat() if u.last_login_at else None,
+                })
+            return results
+
+    def toggle_user_mentor_access(self, user_id: str, is_eligible: bool) -> bool:
+        with db_session() as db:
+            row = db.scalar(select(m.Candidate).where(func.lower(m.Candidate.id) == _lower(user_id)))
+            if row:
+                row.data = {**row.data, 'isMentorEligible': is_eligible}
+
+            creator = db.scalar(select(m.Creator).where(func.lower(m.Creator.owner_user_id) == _lower(user_id)))
+            if creator:
+                creator.status = 'approved' if is_eligible else 'inactive'
+                creator.data = {**creator.data, 'status': 'approved' if is_eligible else 'inactive'}
+            return True
+
+    def get_admin_bookings(self) -> List[Dict[str, Any]]:
+        with db_session() as db:
+            bookings = db.scalars(select(m.Booking).order_by(m.Booking.created_at.desc())).all()
+            results = []
+            for b in bookings:
+                data = b.data or {}
+                expert_info = data.get('expert') or {}
+                price = expert_info.get('price') or data.get('price') or 1299
+                results.append({
+                    "id": b.id,
+                    "expertId": b.expert_id,
+                    "expertName": expert_info.get('name') or "Expert Mentor",
+                    "expertCompany": expert_info.get('company') or "Tech Co",
+                    "candidateId": b.candidate_id,
+                    "candidateName": data.get('candidateName') or "Candidate",
+                    "candidateEmail": data.get('candidateEmail'),
+                    "status": b.status,
+                    "date": b.date,
+                    "timeSlot": b.time_slot,
+                    "price": price,
+                    "platformCut": round(price * 0.15),
+                    "mentorEarnings": round(price * 0.85),
+                    "createdAt": b.created_at.isoformat() if b.created_at else None,
+                })
+            return results
+
+    def get_admin_creators(self) -> List[Dict[str, Any]]:
+        with db_session() as db:
+            creators = db.scalars(select(m.Creator).order_by(m.Creator.created_at.desc())).all()
+            results = []
+            for cr in creators:
+                data = cr.data or {}
+                results.append({
+                    "id": cr.id,
+                    "ownerUserId": cr.owner_user_id,
+                    "name": data.get('name'),
+                    "role": data.get('role'),
+                    "company": data.get('company'),
+                    "domain": data.get('domain'),
+                    "experience": data.get('experience'),
+                    "price": data.get('price'),
+                    "rating": data.get('rating', 5.0),
+                    "reviewsCount": data.get('reviewsCount', 0),
+                    "sessionsCount": data.get('sessionsCount', 0),
+                    "status": cr.status,
+                    "avatar": data.get('avatar'),
+                    "isVerifiedEmployer": data.get('isVerifiedEmployer', True),
+                    "createdAt": cr.created_at.isoformat() if cr.created_at else None,
+                })
+            return results
+
+    def update_creator_status(self, creator_id: str, status: str) -> bool:
+        with db_session() as db:
+            cr = db.scalar(select(m.Creator).where(func.lower(m.Creator.id) == _lower(creator_id)))
+            if not cr:
+                return False
+            cr.status = status
+            cr.data = {**cr.data, 'status': status}
+            return True
+
     # ------------------------------------------------------------------ demo
     def reset_to_default(self) -> None:
         from backend.db.seed import reset_and_seed_demo_data
