@@ -83,7 +83,7 @@ ADMIN_USER_IDS = set(_env_list("ADMIN_USER_IDS"))
 RECRUITER_USER_IDS = set(_env_list("RECRUITER_USER_IDS"))
 
 # Browser origins allowed to call the API with cookies
-CORS_ORIGINS = _env_list("CORS_ORIGINS", "http://localhost:4242,http://127.0.0.1:4242")
+CORS_ORIGINS = _env_list("CORS_ORIGINS", "http://localhost:4242,http://127.0.0.1:4242,http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000")
 
 # No dummy login on any server: the console email backend (fixed code) is local-development only
 if EMAIL_BACKEND == "console" and not IS_DEVELOPMENT:

@@ -85,7 +85,19 @@ class Store:
     def _ensure_candidate_profile(self, db, user: m.User):
         # Every user gets a candidate profile (a mentor is also a candidate)
         if not db.get(m.Candidate, user.id):
-            profile = CandidateProfile(id=user.id, name=user.name, email=user.email or '', phone=user.mobile or '')
+            existing_by_email = None
+            if user.email:
+                existing_by_email = db.scalar(select(m.Candidate).where(func.lower(m.Candidate.email) == _lower(user.email)))
+            if existing_by_email:
+                data = dict(existing_by_email.data)
+                data['id'] = user.id
+                data['name'] = user.name or data.get('name')
+                data['email'] = user.email
+                if user.mobile:
+                    data['phone'] = user.mobile
+                profile = CandidateProfile(**data)
+            else:
+                profile = CandidateProfile(id=user.id, name=user.name, email=user.email or '', phone=user.mobile or '')
             db.add(m.Candidate(id=user.id, email=_lower(user.email) or None, data=profile.model_dump()))
             self._bump_counter(db, 'newRegistrationsThisMonth')
 
@@ -232,7 +244,9 @@ class Store:
 
     def get_creator_by_owner(self, user_id: str) -> Optional[Creator]:
         with db_session() as db:
-            row = db.scalar(select(m.Creator).where(m.Creator.owner_user_id == user_id))
+            row = db.scalar(select(m.Creator).where(func.lower(m.Creator.owner_user_id) == _lower(user_id)))
+            if not row:
+                row = self._creator_row(db, user_id)
             return Creator(**row.data) if row else None
 
     def add_creator(self, new_creator: Creator, owner_user_id: Optional[str] = None) -> Creator:
@@ -284,6 +298,10 @@ class Store:
     def get_session_by_id(self, session_id: str) -> Optional[MentorshipSession]:
         with db_session() as db:
             row = db.get(m.Booking, session_id)
+            if not row and not session_id.startswith("sess-"):
+                row = db.get(m.Booking, f"sess-{session_id}")
+            if not row and session_id.startswith("sess-"):
+                row = db.get(m.Booking, session_id[len("sess-"):])
             return MentorshipSession(**row.data) if row else None
 
     @staticmethod
@@ -310,6 +328,10 @@ class Store:
         try:
             with db_session() as db:
                 row = db.get(m.Booking, session_id)
+                if not row and not session_id.startswith("sess-"):
+                    row = db.get(m.Booking, f"sess-{session_id}")
+                if not row and session_id.startswith("sess-"):
+                    row = db.get(m.Booking, session_id[len("sess-"):])
                 if not row:
                     return None
                 data = {**row.data, **updates}

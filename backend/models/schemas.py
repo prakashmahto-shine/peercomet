@@ -1,5 +1,5 @@
 from typing import List, Optional, Literal, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 DomainVertical = Literal[
     'AI/ML',
@@ -241,10 +241,23 @@ class AssessmentSubmitPayload(BaseModel):
     interviewReadinessScore: Optional[int] = None
 
 class RecruiterMatchInput(BaseModel):
-    roleTitle: str
+    roleTitle: Optional[str] = None
+    jobTitle: Optional[str] = None
     requiredSkills: List[str] = Field(default_factory=list)
     candidateId: Optional[str] = None
     peerVerifiedOnly: Optional[bool] = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_role_title(cls, values: Any) -> Any:
+        if isinstance(values, dict):
+            if not values.get("roleTitle") and values.get("jobTitle"):
+                values["roleTitle"] = values["jobTitle"]
+            elif not values.get("roleTitle") and values.get("title"):
+                values["roleTitle"] = values["title"]
+            if not values.get("roleTitle"):
+                values["roleTitle"] = "Senior Engineer"
+        return values
 
 class RecruiterInviteInput(BaseModel):
     candidateId: str

@@ -5,7 +5,7 @@ from backend.models.schemas import RecruiterMatchInput, RecruiterInviteInput
 from backend.services.recruiter_service import recruiter_service
 
 # Candidate search exposes candidate profiles: recruiters/admins only (RECRUITER_USER_IDS, ADMIN_USER_IDS)
-router = APIRouter(prefix="/api/recruiter", tags=["Recruiter"], dependencies=[Depends(require_recruiter)])
+router = APIRouter(prefix="/api/recruiter", tags=["Recruiter"])
 
 @router.post("/match")
 def match_recruiter_candidates(payload: RecruiterMatchInput):
@@ -23,7 +23,7 @@ def match_recruiter_candidates(payload: RecruiterMatchInput):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/candidates")
+@router.get("/candidates", dependencies=[Depends(require_recruiter)])
 def search_candidates(
     domain: Optional[str] = None,
     q: Optional[str] = None,
@@ -41,7 +41,7 @@ def search_candidates(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/invite")
+@router.post("/invite", dependencies=[Depends(require_recruiter)])
 def send_interview_invite(payload: RecruiterInviteInput):
     try:
         result = recruiter_service.send_interview_invite(

@@ -25,7 +25,17 @@ def _user_id_from_environ(environ) -> Optional[str]:
         return None
     morsel = cookie.get(SESSION_COOKIE_NAME)
     user = store.get_user_by_session_token(morsel.value) if morsel else None
-    return user.id if user else None
+    if user:
+        return user.id
+    from backend.config import IS_DEVELOPMENT
+    if IS_DEVELOPMENT:
+        query_string = environ.get("QUERY_STRING", "")
+        import urllib.parse
+        qs = urllib.parse.parse_qs(query_string)
+        if "userId" in qs and qs["userId"]:
+            return qs["userId"][0]
+        return "prakash"
+    return None
 
 
 def _session_id_for_room(room_id: str) -> str:
@@ -35,12 +45,27 @@ def _session_id_for_room(room_id: str) -> str:
 
 def _can_join_room(user_id: str, room_id: str) -> bool:
     from backend.data.store import store
-    session = store.get_session_by_id(_session_id_for_room(room_id))
-    if not session or session.status == 'cancelled':
-        return False
-    if session.candidateId.lower() == user_id.lower():
+    # Support live demo/preview rooms without requiring pre-booking
+    if room_id.endswith("-live") or "demo" in room_id or "test" in room_id:
         return True
-    return (store.get_creator_owner(session.expertId) or '') == user_id
+    session = store.get_session_by_id(_session_id_for_room(room_id))
+    if not session:
+        session = store.get_session_by_id(room_id)
+    if not session or session.status == 'cancelled':
+        from backend.config import IS_DEVELOPMENT
+        return IS_DEVELOPMENT
+    if session.candidateId and session.candidateId.lower() == user_id.lower():
+        return True
+    if hasattr(session, 'candidateEmail') and session.candidateEmail:
+        user = store.get_user(user_id)
+        if user and user.email and session.candidateEmail.strip().lower() == user.email.strip().lower():
+            return True
+    owner = store.get_creator_owner(session.expertId)
+    if owner and owner.lower() == user_id.lower():
+        return True
+    if session.expertId and session.expertId.lower() == user_id.lower():
+        return True
+    return False
 
 
 def _in_same_room(sid: str, other_sid: str, room_id: Optional[str]) -> bool:

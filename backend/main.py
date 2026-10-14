@@ -14,7 +14,7 @@ from backend.config import (
 )
 from sqlalchemy import text
 from fastapi import Depends
-from backend.auth.deps import require_user
+from backend.auth.deps import require_user, get_optional_user
 from backend.db import engine as db_engine
 from backend.db.seed import init_database
 from backend.data.store import store
@@ -119,9 +119,9 @@ def readiness_check():
 
 # ICE servers for WebRTC calls (TURN credentials stay server-side config, delivered to signed-in users)
 @app.get("/api/webrtc/ice-servers")
-def ice_servers(user=Depends(require_user)):
+def ice_servers(user=Depends(get_optional_user)):
     servers = [{"urls": STUN_URLS}] if STUN_URLS else []
-    if TURN_URLS:
+    if TURN_URLS and (user or IS_DEVELOPMENT):
         servers.append({"urls": TURN_URLS, "username": TURN_USERNAME, "credential": TURN_CREDENTIAL})
     return {"success": True, "data": {"iceServers": servers}}
 

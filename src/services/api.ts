@@ -373,7 +373,9 @@ export const peerpathApi = {
 
   // Video Recordings & Streaming
   getRecordingUrl(sessionId: string): string {
-    const cleanId = (sessionId || '').replace(/^peerpath-/, '').replace(/^sess-/, '');
+    if (!sessionId) return '';
+    if (sessionId.startsWith('http://') || sessionId.startsWith('https://')) return sessionId;
+    const cleanId = (sessionId || '').replace(/^.*\/sessions\//, '').replace(/\/recording$/, '').replace(/^peerpath-/, '').replace(/^sess-/, '');
     return `${API_BASE}/sessions/${cleanId}/recording`;
   },
 

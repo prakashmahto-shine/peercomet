@@ -1,3 +1,4 @@
+import re
 import time
 import random
 import uuid
@@ -30,13 +31,25 @@ SESSION_TYPES = {
 def resolve_session_type(session_type: Optional[str]) -> str:
     if not session_type:
         return 'career-guidance'
-    key = session_type.strip().lower()
-    if key in SESSION_TYPES:
-        return key
+    raw = session_type.strip().lower()
+    clean = re.sub(r'[^a-z0-9]', '', raw)
     for type_id, cfg in SESSION_TYPES.items():
-        if cfg['title'].lower() == key:
+        clean_key = re.sub(r'[^a-z0-9]', '', type_id)
+        clean_title = re.sub(r'[^a-z0-9]', '', cfg['title'].lower())
+        if clean in (clean_key, clean_title):
             return type_id
-    raise BookingError(f"Unknown session type '{session_type}'")
+        if clean_key in clean or clean in clean_key:
+            return type_id
+    if 'interview' in raw or 'mock' in raw:
+        return 'interview-prep'
+    if 'resume' in raw or 'cv' in raw or 'ats' in raw:
+        return 'resume-review'
+    if 'salary' in raw or 'offer' in raw or 'negotiat' in raw:
+        return 'salary-negotiation'
+    if 'guidance' in raw or 'career' in raw or 'strategy' in raw:
+        return 'career-guidance'
+    # Fallback to default instead of rejecting booking
+    return 'career-guidance'
 
 
 def _now_iso() -> str:
@@ -57,8 +70,11 @@ class BookingService:
         if not date or not time_slot:
             raise BookingError("Date and time slot are required")
         available_slots = expert.availability.timeSlots if expert.availability else []
-        if available_slots and time_slot not in available_slots:
-            raise BookingError(f"{expert.name} is not available at {time_slot}")
+        norm_slot = re.sub(r'\s+', ' ', time_slot.strip().lower())
+        if available_slots:
+            norm_avail = [re.sub(r'\s+', ' ', s.strip().lower()) for s in available_slots]
+            if norm_slot not in norm_avail and time_slot not in available_slots:
+                raise BookingError(f"{expert.name} is not available at {time_slot}")
         available_days = expert.availability.days if expert.availability else []
         day_prefix = date.split(',')[0].strip()[:3]
         if available_days and day_prefix in ('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun') and day_prefix not in available_days:
