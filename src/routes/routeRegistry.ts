@@ -186,7 +186,20 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     id: 'admin-dashboard',
     name: 'Admin Backoffice CRM',
     path: '/admin',
-    aliases: ['/admin/home', '/admin-dashboard', '/admin-panel', '/management'],
+    aliases: [
+      '/admin/home',
+      '/admin-dashboard',
+      '/admin-panel',
+      '/management',
+      '/admin/overview',
+      '/admin/candidates',
+      '/admin/candidate',
+      '/admin/mentors',
+      '/admin/mentor',
+      '/admin/payments',
+      '/admin/payment',
+      '/admin/escrow'
+    ],
     view: 'admin-dashboard-view',
     title: `Admin CRM & Operations Console | ${BRAND.name}`,
     description: 'Centralized business CRM for registrations, mentor rights vetting, session bookings, and platform revenue',
@@ -201,6 +214,12 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
  */
 export function pathToView(pathname: string): { view: ViewType; expertId?: string; route?: RouteDefinition } {
   const clean = pathname.replace(/\/$/, '') || '/';
+
+  // Admin sub-routes (/admin, /admin/candidates, /admin/mentors, etc.)
+  if (clean === '/admin' || clean.startsWith('/admin/')) {
+    const route = PEERPATH_ROUTES.find(r => r.view === 'admin-dashboard-view');
+    return { view: 'admin-dashboard-view', route };
+  }
 
   // Parameterized dynamic routes (e.g. /expert/saheli)
   if (clean.startsWith('/expert/') || clean.startsWith('/mentor/')) {

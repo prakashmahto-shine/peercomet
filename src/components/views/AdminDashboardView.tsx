@@ -11,6 +11,22 @@ import { AdminOverviewSection } from '../admin/AdminOverviewSection';
 import { CandidateDossierModal } from '../admin/CandidateDossierModal';
 import { AdminLoginView } from './AdminLoginView';
 
+const SECTION_PATH_MAP: Record<AdminSection, string> = {
+  overview: '/admin/overview',
+  candidates: '/admin/candidates',
+  mentors: '/admin/mentors',
+  payments: '/admin/payments',
+};
+
+export const getAdminSectionFromPath = (pathname: string): AdminSection => {
+  const clean = pathname.replace(/\/$/, '').toLowerCase();
+  if (clean.includes('/mentor')) return 'mentors';
+  if (clean.includes('/candidate')) return 'candidates';
+  if (clean.includes('/payment') || clean.includes('/escrow')) return 'payments';
+  if (clean.includes('/overview')) return 'overview';
+  return 'candidates';
+};
+
 export const AdminDashboardView: React.FC = () => {
   const { 
     currentUser, 
@@ -20,7 +36,28 @@ export const AdminDashboardView: React.FC = () => {
     showToast 
   } = useApp();
 
-  const [activeSection, setActiveSection] = useState<AdminSection>('candidates');
+  const [activeSection, setActiveSection] = useState<AdminSection>(() =>
+    getAdminSectionFromPath(window.location.pathname)
+  );
+
+  const handleSelectSection = (section: AdminSection) => {
+    setActiveSection(section);
+    const targetPath = SECTION_PATH_MAP[section];
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({}, '', targetPath);
+    }
+  };
+
+  // Sync active section when browser back/forward buttons are pressed
+  useEffect(() => {
+    const handlePopState = () => {
+      const section = getAdminSectionFromPath(window.location.pathname);
+      setActiveSection(section);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   const [overview, setOverview] = useState<AdminOverviewStats | null>(null);
   const [users, setUsers] = useState<AdminUserData[]>([]);
   const [bookings, setBookings] = useState<AdminBookingData[]>([]);
@@ -135,7 +172,7 @@ export const AdminDashboardView: React.FC = () => {
       {/* 1. Left Enterprise CRM Sidebar */}
       <AdminSidebar
         activeSection={activeSection}
-        onSelectSection={setActiveSection}
+        onSelectSection={handleSelectSection}
         candidateCount={users.length}
         mentorCount={mentorCount}
         paymentCount={bookings.length}
@@ -149,7 +186,14 @@ export const AdminDashboardView: React.FC = () => {
         {/* Top Header Bar */}
         <header className="crm-top-action-bar">
           <div className="crm-top-breadcrumbs">
-            <span className="crm-crumb-parent">PeerPath Admin</span>
+            <span 
+              className="crm-crumb-parent"
+              onClick={() => handleSelectSection('overview')}
+              style={{ cursor: 'pointer' }}
+              title="Go to Dashboard Overview"
+            >
+              PeerPath Admin
+            </span>
             <span className="crm-crumb-divider">/</span>
             <span className="crm-crumb-current">
               {activeSection === 'overview' && 'Dashboard Overview'}
@@ -190,7 +234,7 @@ export const AdminDashboardView: React.FC = () => {
               overview={overview}
               users={users}
               bookings={bookings}
-              onSelectSection={setActiveSection}
+              onSelectSection={handleSelectSection}
               onInspectCandidate={setInspectCandidate}
               onToggleMentorAccess={handleToggleMentorAccess}
               togglingUserId={togglingUserId}
