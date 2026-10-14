@@ -47,7 +47,8 @@ export type ViewType =
   | 'post-session-view'
   | 'recruiter-view'
   | 'mentor-dashboard-view'
-  | 'login-view';
+  | 'login-view'
+  | 'registration-view';
 
 export interface BookingDetails {
   expert: Expert;
@@ -120,8 +121,10 @@ export interface UserProfileData {
   targetCtc?: string;
   targetRole?: string;
   targetCompany?: string;
+  domain?: string;
   resumeFileName?: string;
-  resumeLastUpdated?: string;
+  // ISO 8601 time of the last resume upload
+  resumeUpdatedAt?: string;
   educationDegree?: string;
   educationCollege?: string;
   pastCompany?: string;
@@ -154,6 +157,48 @@ export interface UserProfileData {
   startDate?: string;
   avatar?: string;
   lastUpdatedDate?: string;
+  // Structured profile fields (see CandidateProfile in backend/models/schemas.py)
+  firstName?: string;
+  lastName?: string;
+  dateOfBirth?: string | null;   // YYYY-MM-DD
+  totalExperienceYears?: number | null;
+  totalExperienceMonths?: number | null;
+  currentCtcLpa?: number | null;
+  expectedCtcLpa?: number | null;
+  graduationYear?: number | null;
+  linkedinUrl?: string;
+  githubUrl?: string;
+  portfolioUrl?: string;
+}
+
+// Fields the resume parser found (all optional; nothing is guessed)
+export interface ResumeExtract {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  dateOfBirth?: string;
+  location?: string;
+  totalExperienceYears?: number;
+  totalExperienceMonths?: number;
+  currentDesignation?: string;
+  currentCompany?: string;
+  noticePeriod?: string;
+  currentCtcLpa?: number;
+  expectedCtcLpa?: number;
+  summary?: string;
+  skills?: string[];
+  highestQualification?: string;
+  educationCollege?: string;
+  graduationYear?: number;
+  linkedinUrl?: string;
+  githubUrl?: string;
+}
+
+export interface ResumeUploadResult {
+  resume: { fileName: string; updatedAt: string };
+  textFound: boolean;
+  extracted: ResumeExtract;
 }
 
 export interface BootcampMasterclass {
@@ -256,12 +301,20 @@ export interface ZeroPrepDossier {
   candidate: {
     name: string;
     headline: string;
-    experienceYears: string;
-    currentCtc?: string;
-    targetCtc?: string;
-    targetRole?: string;
+    experienceYears?: string | null;
+    designation?: string | null;
+    currentCompany?: string | null;
+    currentCtc?: string | null;
+    targetCtc?: string | null;
+    targetRole?: string | null;
+    noticePeriod?: string | null;
+    educationDegree?: string | null;
+    educationCollege?: string | null;
+    linkedinUrl?: string | null;
     skills: string[];
     summary: string;
+    // Set when the candidate uploaded a resume
+    resumeFileName?: string | null;
   };
   gapReport: {
     missingSkills: string[];

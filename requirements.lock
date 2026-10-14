@@ -18,9 +18,9 @@ anyio==4.15.1
     #   starlette
 bidict==0.24.1
     # via python-socketio
-boto3==1.43.111
+boto3==1.43.113
     # via -r requirements.txt
-botocore==1.43.111
+botocore==1.43.113
     # via
     #   boto3
     #   s3transfer
@@ -82,6 +82,8 @@ jmespath==1.1.0
     #   botocore
 joblib==1.6.0
     # via scikit-learn
+lxml==6.1.3
+    # via python-docx
 mako==1.4.3
     # via alembic
 markdown-it-py==4.2.0
@@ -134,16 +136,22 @@ pygments==2.21.0
     # via rich
 pymilvus==2.5.18
     # via -r requirements.txt
+pypdf==5.9.0
+    # via -r requirements.txt
 python-dateutil==2.9.0.post0
     # via
     #   botocore
     #   pandas
+python-docx==1.2.0
+    # via -r requirements.txt
 python-dotenv==1.2.4
     # via
     #   -r requirements.txt
     #   pymilvus
 python-engineio==4.14.0
     # via python-socketio
+python-multipart==0.0.32
+    # via -r requirements.txt
 python-socketio==5.17.0
     # via -r requirements.txt
 pyyaml==6.0.3
@@ -183,7 +191,7 @@ sqlalchemy==2.0.54
     # via
     #   -r requirements.txt
     #   alembic
-starlette==1.7.0
+starlette==1.8.0
     # via fastapi
 sympy==1.14.0
     # via torch
@@ -219,6 +227,7 @@ typing-extensions==4.16.0
     #   psycopg
     #   pydantic
     #   pydantic-core
+    #   python-docx
     #   sentence-transformers
     #   sqlalchemy
     #   starlette

@@ -32,3 +32,4 @@ docker-compose.yml
 *.log
 deploy
 backups
+backend/data/resumes

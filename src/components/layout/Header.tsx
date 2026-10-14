@@ -8,6 +8,7 @@ import { ViewType } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { PeerpathLogo } from '../common/PeerpathLogo';
 import { BRAND } from '../../config/brand';
+import { isProfileComplete } from '../../utils/profile';
 
 interface HeaderProps {
   currentView: ViewType;
@@ -271,8 +272,10 @@ export const Header: React.FC<HeaderProps> = ({
               aria-label="Community Notifications"
             >
               <Bell size={18} />
-              {unreadNotificationsCount > 0 && (
-                <span className="bell-badge-pill">{unreadNotificationsCount}</span>
+              {(unreadNotificationsCount > 0 || (currentUser && !isProfileComplete(userProfile))) && (
+                <span className="bell-badge-pill" style={!isProfileComplete(userProfile) && unreadNotificationsCount === 0 ? { background: '#F59E0B' } : undefined}>
+                  {unreadNotificationsCount > 0 ? unreadNotificationsCount : '!'}
+                </span>
               )}
             </button>
 
@@ -281,7 +284,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="notif-dropdown-header">
                   <div className="ndh-title-row">
                     <Bell size={15} className="text-purple" />
-                    <span className="ndh-title">Mentor Alerts</span>
+                    <span className="ndh-title">Notifications</span>
                     {unreadNotificationsCount > 0 && (
                       <span className="ndh-count">{unreadNotificationsCount} unread</span>
                     )}
@@ -319,43 +322,66 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
 
                 <div className="notif-dropdown-list">
-                  {notifications.length === 0 ? (
+                  {currentUser && !isProfileComplete(userProfile) && (
+                    <div
+                      className="notif-item unread notif-registration-item"
+                      style={{ background: '#FFFBEB', borderBottom: '1px solid #FDE68A', cursor: 'pointer', padding: '12px 16px', display: 'flex', gap: '12px', alignItems: 'center' }}
+                      onClick={() => {
+                        setIsNotifOpen(false);
+                        onNavigate('registration-view');
+                      }}
+                    >
+                      <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Sparkles size={16} className="text-amber-600" />
+                      </div>
+                      <div className="notif-details" style={{ flex: 1, minWidth: 0 }}>
+                        <div className="notif-top" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+                          <span className="notif-type-tag" style={{ background: '#FEF3C7', color: '#92400E', fontSize: '11px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px' }}>Action Required</span>
+                          <span className="notif-time" style={{ fontSize: '11px', color: '#92400E', fontWeight: 600 }}>Incomplete</span>
+                        </div>
+                        <p className="notif-msg" style={{ fontSize: '12.5px', fontWeight: 600, color: '#78350F', margin: 0, lineHeight: 1.3 }}>
+                          Complete Registration: Add skills &amp; upload resume
+                        </p>
+                      </div>
+                      <span className="notif-unread-dot" style={{ background: '#F59E0B' }} />
+                    </div>
+                  )}
+                  {notifications.length === 0 && (!currentUser || isProfileComplete(userProfile)) && (
                     <div className="notif-empty">
                       <Bell size={24} className="text-muted" />
                       <p>No new notifications</p>
                       <span>Follow mentors to get notified when they post!</span>
                     </div>
-                  ) : (
-                    notifications.map(n => (
-                      <div 
-                        key={n.id} 
-                        className={`notif-item ${!n.isRead ? 'unread' : ''}`}
-                        onClick={() => {
-                          markNotificationAsRead(n.id);
-                          setIsNotifOpen(false);
-                          onNavigate('community-view');
-                          setTimeout(() => {
-                            const el = document.getElementById(n.postId);
-                            if (el) {
-                              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                              el.classList.add('highlight-post');
-                              setTimeout(() => el.classList.remove('highlight-post'), 2500);
-                            }
-                          }, 250);
-                        }}
-                      >
-                        <img src={n.mentorAvatar} alt={n.mentorName} className="notif-avatar" />
-                        <div className="notif-details">
-                          <div className="notif-top">
-                            <span className="notif-type-tag">{n.title}</span>
-                            <span className="notif-time">{n.createdAt}</span>
-                          </div>
-                          <p className="notif-msg">{n.message}</p>
-                        </div>
-                        {!n.isRead && <span className="notif-unread-dot" />}
-                      </div>
-                    ))
                   )}
+                  {notifications.map(n => (
+                    <div 
+                      key={n.id} 
+                      className={`notif-item ${!n.isRead ? 'unread' : ''}`}
+                      onClick={() => {
+                        markNotificationAsRead(n.id);
+                        setIsNotifOpen(false);
+                        onNavigate('community-view');
+                        setTimeout(() => {
+                          const el = document.getElementById(n.postId);
+                          if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            el.classList.add('highlight-post');
+                            setTimeout(() => el.classList.remove('highlight-post'), 2500);
+                          }
+                        }, 250);
+                      }}
+                    >
+                      <img src={n.mentorAvatar} alt={n.mentorName} className="notif-avatar" />
+                      <div className="notif-details">
+                        <div className="notif-top">
+                          <span className="notif-type-tag">{n.title}</span>
+                          <span className="notif-time">{n.createdAt}</span>
+                        </div>
+                        <p className="notif-msg">{n.message}</p>
+                      </div>
+                      {!n.isRead && <span className="notif-unread-dot" />}
+                    </div>
+                  ))}
                 </div>
 
                 <div className="notif-dropdown-footer">

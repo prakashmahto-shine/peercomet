@@ -169,6 +169,18 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     category: 'auth',
     hideHeader: true,
     hideFooter: true
+  },
+  {
+    id: 'registration',
+    name: 'Create Your Profile',
+    path: '/register',
+    aliases: ['/signup', '/complete-profile'],
+    view: 'registration-view',
+    title: `Create Your Profile | ${BRAND.name}`,
+    description: 'Complete your profile: upload a resume to fill it automatically or enter details',
+    category: 'auth',
+    requiresAuth: true,
+    hideFooter: true
   }
 ];
 

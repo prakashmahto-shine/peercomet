@@ -7,6 +7,7 @@ import {
   GapAnalysisResult, 
   ShineJob, 
   UserProfileData,
+  ResumeUploadResult,
   CommunityPost,
   CommunityComment,
   CommunityNotification
@@ -192,7 +193,7 @@ export const peerpathApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates)
     });
-    if (!res.ok) throw new Error(`Failed updating candidate ${id}`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed saving profile');
     const json = await res.json();
     return json.data;
   },
@@ -217,6 +218,31 @@ export const peerpathApi = {
     if (!res.ok) throw new Error(`Failed matching trajectories`);
     const json = await res.json();
     return { matches: json.data, supportedDomain: json.supportedDomain !== false, message: json.message };
+  },
+
+  // Resume: upload (stores the file and returns the fields found in it), download, delete
+  async uploadResume(file: File): Promise<ResumeUploadResult> {
+    const form = new FormData();
+    form.append('file', file);
+    // No retry: a timed-out upload may already have been stored
+    const res = await apiFetch(`${API_BASE}/cv/upload`, { method: 'POST', body: form });
+    if (!res.ok) throw await errorFromResponse(res, 'Could not upload the resume');
+    const json = await res.json();
+    return json.data;
+  },
+
+  async deleteResume(): Promise<void> {
+    const res = await apiFetch(`${API_BASE}/cv/resume`, { method: 'DELETE' });
+    if (!res.ok) throw await errorFromResponse(res, 'Could not remove the resume');
+  },
+
+  ownResumeUrl(): string {
+    return `${API_BASE}/cv/resume`;
+  },
+
+  // For the mentor of a booked session
+  candidateResumeUrl(sessionId: string): string {
+    return `${API_BASE}/cv/sessions/${encodeURIComponent(sessionId)}/candidate-resume`;
   },
 
   // CV Parsing

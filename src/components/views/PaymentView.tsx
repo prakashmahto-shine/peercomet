@@ -8,20 +8,13 @@ import { BRAND } from '../../config/brand';
 
 export const PaymentView: React.FC = () => {
   const { bookingDraft, navigate, bookSession, selectedExpert, userProfile, setIsBookingModalOpen, currentUser } = useApp();
-  const expert = bookingDraft.expert || selectedExpert || {
-    id: 'deepika-pm',
-    name: 'Deepika Sen',
-    role: 'Senior Technical Product Manager',
-    company: 'Google',
-    price: 1399,
-    avatar: '/avatars/deepika.jpg'
-  };
+  const expert = bookingDraft.expert?.id ? bookingDraft.expert : selectedExpert;
 
   const date = bookingDraft.date;
   const timeSlot = bookingDraft.timeSlot;
   const sessionType = bookingDraft.sessionType || 'Career Guidance & Strategy';
   const sessionDuration = bookingDraft.duration || '30 Mins';
-  const payableAmount = bookingDraft.amount || expert.price || 1399;
+  const payableAmount = bookingDraft.amount || expert.price || 0;
 
   // Razorpay Modal simulation state
   const [isRazorpayModalOpen, setIsRazorpayModalOpen] = useState<boolean>(false);
@@ -48,6 +41,17 @@ export const PaymentView: React.FC = () => {
       setIsBookingModalOpen(true);
     }
   };
+
+  if (!expert?.id) {
+    return (
+      <div className="content-wrapper payment-layout-grid">
+        <div className="payment-left-card">
+          <h2 className="pay-sec-heading">No session selected</h2>
+          <button className="btn-back-link" onClick={() => navigate('experts-view')}>Browse mentors</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="content-wrapper payment-layout-grid">

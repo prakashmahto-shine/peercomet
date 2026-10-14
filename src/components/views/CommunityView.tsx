@@ -21,7 +21,8 @@ export const CommunityView: React.FC = () => {
     addPostComment, 
     togglePostLike, 
     toggleCommentLike,
-    followedMentorIds, 
+    followedMentorIds,
+    sessions, 
     toggleFollowMentor, 
     isFollowingMentor,
     navigate,
@@ -230,7 +231,7 @@ export const CommunityView: React.FC = () => {
               >
                 <Bookmark size={14} className="lpc-bookmark-icon" />
                 <span>My {BRAND.name} Bookings</span>
-                <span className="lpc-bookings-badge">3</span>
+                <span className="lpc-bookings-badge">{sessions.filter(s => s.status === 'upcoming').length}</span>
               </div>
             </div>
 
@@ -241,26 +242,28 @@ export const CommunityView: React.FC = () => {
                   <Briefcase size={14} className="text-purple" />
                   <span className="lcc-title">Career & Target Sync</span>
                 </div>
-                <span className="lcc-status-pill">
-                  <span className="lcc-green-dot" /> Actively Looking
-                </span>
+                {userProfile.jobSearchStatus && (
+                  <span className="lcc-status-pill">
+                    <span className="lcc-green-dot" /> {userProfile.jobSearchStatus}
+                  </span>
+                )}
               </div>
 
               <div className="lcc-metric-box">
                 <span className="lcc-m-label">Total Experience</span>
-                <span className="lcc-m-val">{userProfile.experienceYears || '4+ Years'}</span>
+                <span className="lcc-m-val">{userProfile.experienceYears || 'Not added'}</span>
               </div>
 
               {/* Verified Skills */}
               <div className="lcc-skills-section">
                 <span className="lcc-skills-label">Key Verified Skills</span>
                 <div className="lcc-skills-chips">
-                  {(userProfile.skills && userProfile.skills.length > 0 
-                    ? userProfile.skills.slice(0, 5) 
-                    : ['React.js', 'TypeScript', 'Next.js', 'REST APIs', 'Redux']
-                  ).map(s => (
+                  {(userProfile.skills || []).slice(0, 5).map(s => (
                     <span key={s} className="lcc-skill-chip">{s}</span>
                   ))}
+                  {(!userProfile.skills || userProfile.skills.length === 0) && (
+                    <span className="lcc-skills-label">No skills added yet</span>
+                  )}
                 </div>
               </div>
 
@@ -269,7 +272,7 @@ export const CommunityView: React.FC = () => {
                 className="btn-lcc-view-full"
                 onClick={() => navigate('profile-view')}
               >
-                <span>View Full Shine Profile</span>
+                <span>View Full Profile</span>
                 <ArrowRight size={13} />
               </button>
             </div>

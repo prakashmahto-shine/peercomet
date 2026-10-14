@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { Header } from './Header';
 import { Footer } from './Footer';
 import { ToastContainer } from '../common/ToastContainer';
+import { ProfileIncompleteBanner } from '../common/ProfileIncompleteBanner';
 import { GlobalModals } from '../modals/GlobalModals';
 import { ViewRouter, pathToView, getRouteByView } from '../../routes';
 
@@ -71,6 +72,9 @@ export const MainLayout: React.FC = () => {
           onSearch={handleGlobalSearch}
         />
       )}
+
+      {/* Profile Incomplete Notification Banner */}
+      <ProfileIncompleteBanner />
 
       {/* Dynamic View Router */}
       <main 

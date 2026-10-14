@@ -9,6 +9,18 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { BRAND } from '../../config/brand';
+import { formatResumeAge, hasResume, resumeAgeDays } from '../../utils/resume';
+import { peerpathApi } from '../../services/api';
+
+// Age in whole years from a YYYY-MM-DD date of birth
+const ageFromDob = (dob?: string | null): number | null => {
+  if (!dob || !/^\d{4}-\d{2}-\d{2}$/.test(dob)) return null;
+  const d = new Date(dob);
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  if (now.getMonth() < d.getMonth() || (now.getMonth() === d.getMonth() && now.getDate() < d.getDate())) age--;
+  return age;
+};
 
 export const ProfileView: React.FC = () => {
   const { 
@@ -29,8 +41,10 @@ export const ProfileView: React.FC = () => {
     isUpdateProfileModalOpen,
     setIsUpdateProfileModalOpen,
     removeCandidateResume,
-    showToast
+    showToast,
+    sessions
   } = useApp();
+  const completedSessionCount = sessions.filter(sess => sess.status === 'completed').length;
 
   const isMentor = Boolean(
     userProfile.isMentor || 
@@ -72,8 +86,20 @@ export const ProfileView: React.FC = () => {
     showToast('Profile Link Copied!', `Share your verified ${BRAND.name} profile with recruiters or hiring managers.`, 'info');
   };
 
-  // Readiness Gauge (e.g. 85%)
-  const readinessPercent = userProfile.profileScore || 85;
+  // Profile completeness: share of key profile items the user has actually filled in
+  const completenessChecks = [
+    Boolean(userProfile.name),
+    Boolean(userProfile.location),
+    userProfile.totalExperienceYears !== null && userProfile.totalExperienceYears !== undefined,
+    Boolean(userProfile.designation || userProfile.currentlyNotWorking),
+    userProfile.currentCtcLpa !== null && userProfile.currentCtcLpa !== undefined,
+    Boolean(userProfile.summary),
+    (userProfile.skills?.length || 0) >= 3,
+    Boolean(userProfile.educationDegree),
+    Boolean(userProfile.resumeFileName),
+    Boolean(userProfile.linkedinUrl || userProfile.githubUrl || userProfile.portfolioUrl),
+  ];
+  const readinessPercent = Math.round((completenessChecks.filter(Boolean).length / completenessChecks.length) * 100);
   const strokeDashoffset = 314.15 - (314.15 * (readinessPercent / 100));
 
   return (
@@ -102,8 +128,8 @@ export const ProfileView: React.FC = () => {
           </div>
         )}
 
-        {/* Single High-Conversion Resume Upload Booster Banner */}
-        {userProfile.resumeLastUpdated !== 'Updated just now' && (
+        {/* Resume nudge: no resume yet, or one older than 6 months */}
+        {(!hasResume(userProfile) || (resumeAgeDays(userProfile) ?? 0) > 180) && (
           <div className="shine-single-upload-banner">
             <div className="ssub-left">
               <div className="ssub-icon-wrap">
@@ -111,11 +137,16 @@ export const ProfileView: React.FC = () => {
               </div>
               <div className="ssub-content">
                 <div className="ssub-title-row">
-                  <strong className="ssub-headline">Your profile was last updated almost a year ago!</strong>
-                  <span className="ssub-pill-tag">3.8x More Recruiter Shortlists</span>
+                  <strong className="ssub-headline">
+                    {hasResume(userProfile)
+                      ? `Your resume was last uploaded ${formatResumeAge(userProfile) || 'a while ago'}`
+                      : 'Upload your resume to complete your profile'}
+                  </strong>
                 </div>
                 <p className="ssub-subtext">
-                  Recruiters prioritize active candidates. Upload your latest CV — our AI auto-fills and updates your profile in 10s.
+                  {hasResume(userProfile)
+                    ? 'Update your resume and skills so mentors see your current experience before a session.'
+                    : 'Add your resume and skills so mentors understand your background before a session.'}
                 </p>
               </div>
             </div>
@@ -126,7 +157,7 @@ export const ProfileView: React.FC = () => {
                 className="btn-ssub-upload"
                 onClick={() => setIsUpdateProfileModalOpen(true)}
               >
-                <span>Update Profile</span>
+                <span>{hasResume(userProfile) ? 'Update Resume' : 'Upload Resume'}</span>
                 <ArrowRight size={14} />
               </button>
             </div>
@@ -156,7 +187,7 @@ export const ProfileView: React.FC = () => {
                 <div className="phc-name-row">
                   <h1 className="phc-name">{userProfile.name}</h1>
                   <span className="phc-candidate-pill">
-                    <CheckCircle2 size={12} /> Shine Verified Candidate
+                    <CheckCircle2 size={12} /> Email verified
                   </span>
                 </div>
 
@@ -256,7 +287,7 @@ export const ProfileView: React.FC = () => {
                       {userProfile.resumeFileName}
                     </strong>
                     <div className="rpr-meta">
-                      <span>Uploaded: {userProfile.resumeLastUpdated || 'Synced recently'}</span>
+                      {formatResumeAge(userProfile) && <span>Uploaded {formatResumeAge(userProfile)}</span>}
                       {userProfile.targetCtc && (
                         <span className="rpr-ats-pill">✨ ATS Match for {userProfile.targetCtc}</span>
                       )}
@@ -264,16 +295,18 @@ export const ProfileView: React.FC = () => {
                   </div>
 
                   <div className="rpr-actions">
-                    <button 
-                      className="rpr-btn-icon" 
-                      title="Download Resume"
-                      onClick={() => alert('Downloading resume...')}
+                    <a
+                      className="rpr-btn-icon"
+                      title="Download resume"
+                      href={peerpathApi.ownResumeUrl()}
+                      target="_blank"
+                      rel="noreferrer"
                     >
                       <Download size={15} />
-                    </button>
+                    </a>
                     <button 
                       className="rpr-btn-icon text-purple" 
-                      title="AI Sync with Shine Profile"
+                      title="Upload a new resume"
                       onClick={() => setIsCvSyncModalOpen(true)}
                     >
                       <Sparkles size={15} />
@@ -282,7 +315,7 @@ export const ProfileView: React.FC = () => {
                       className="rpr-btn-icon text-red" 
                       title="Delete Resume"
                       onClick={() => {
-                        if (window.confirm('Delete this resume from your Shine profile?')) {
+                        if (window.confirm('Delete this resume from your profile?')) {
                           removeCandidateResume();
                         }
                       }}
@@ -375,7 +408,7 @@ export const ProfileView: React.FC = () => {
               <div className="wp-details-grid">
                 <div className="wp-info-cell">
                   <span className="wp-cell-label">Current Role</span>
-                  <strong>{userProfile.headline?.split('|')[0]?.trim() || userProfile.headline || 'Not specified'}</strong>
+                  <strong>{userProfile.designation || userProfile.headline?.split('|')[0]?.trim() || 'Not specified'}</strong>
                 </div>
                 <div className="wp-info-cell">
                   <span className="wp-cell-label">Current Company</span>
@@ -389,12 +422,42 @@ export const ProfileView: React.FC = () => {
                   <span className="wp-cell-label">Current Compensation</span>
                   <strong className={userProfile.currentCtc ? "text-emerald" : ""}>{userProfile.currentCtc || 'Not specified'}</strong>
                 </div>
+                <div className="wp-info-cell">
+                  <span className="wp-cell-label">Expected Compensation</span>
+                  <strong>{userProfile.expectedCtc || 'Not specified'}</strong>
+                </div>
+                <div className="wp-info-cell">
+                  <span className="wp-cell-label">Notice Period</span>
+                  <strong>{userProfile.noticePeriod || 'Not specified'}</strong>
+                </div>
+                {ageFromDob(userProfile.dateOfBirth) !== null && (
+                  <div className="wp-info-cell">
+                    <span className="wp-cell-label">Age</span>
+                    <strong>{ageFromDob(userProfile.dateOfBirth)}</strong>
+                  </div>
+                )}
               </div>
 
               {userProfile.summary && (
                 <div className="wp-summary-box">
                   <span className="wp-summary-label">Executive Summary</span>
                   <p className="wp-summary-text">{userProfile.summary}</p>
+                </div>
+              )}
+
+              {(userProfile.linkedinUrl || userProfile.githubUrl || userProfile.portfolioUrl) && (
+                <div className="wp-summary-box">
+                  <span className="wp-summary-label">Links</span>
+                  <p className="wp-summary-text">
+                    {[['LinkedIn', userProfile.linkedinUrl], ['GitHub', userProfile.githubUrl], ['Portfolio', userProfile.portfolioUrl]]
+                      .filter(([, url]) => url)
+                      .map(([label, url], i) => (
+                        <React.Fragment key={label}>
+                          {i > 0 && ' • '}
+                          <a href={url as string} target="_blank" rel="noreferrer">{label}</a>
+                        </React.Fragment>
+                      ))}
+                  </p>
                 </div>
               )}
             </div>
@@ -419,6 +482,7 @@ export const ProfileView: React.FC = () => {
                     </strong>
                     <span className="edu-institution">
                       {userProfile.educationCollege || 'Institution not specified'}
+                      {userProfile.graduationYear ? ` • ${userProfile.graduationYear}` : ''}
                     </span>
                   </div>
                 </div>
@@ -451,7 +515,7 @@ export const ProfileView: React.FC = () => {
               <div className="current-status-display-box">
                 <span className="csd-label">Current Status:</span>
                 <div className="csd-val-row">
-                  <strong className="csd-value">{userProfile.jobSearchStatus || 'Actively Looking'}</strong>
+                  <strong className="csd-value">{userProfile.jobSearchStatus || 'Not set'}</strong>
                 </div>
               </div>
 
@@ -471,7 +535,7 @@ export const ProfileView: React.FC = () => {
               <div className="spc-header">
                 <div className="spc-title-row">
                   <Sparkles size={16} className="text-amber" />
-                  <h4>Transition Readiness</h4>
+                  <h4>Profile Completeness</h4>
                 </div>
                 <span className="spc-score-badge">{readinessPercent}%</span>
               </div>
@@ -491,7 +555,7 @@ export const ProfileView: React.FC = () => {
                 </svg>
                 <div className="gauge-center-content">
                   <strong>{readinessPercent}%</strong>
-                  <span>Ready for {userProfile.targetCtc || '₹18L+'}</span>
+                  <span>{readinessPercent === 100 ? 'Profile complete' : 'Complete your profile'}</span>
                 </div>
               </div>
 
@@ -502,7 +566,7 @@ export const ProfileView: React.FC = () => {
                   ) : (
                     <span className="rc-pending-dot" />
                   )}
-                  <span>{userProfile.resumeFileName ? 'Resume Synced with Shine ATS' : 'Upload Resume for ATS Sync'}</span>
+                  <span>{userProfile.resumeFileName ? 'Resume uploaded' : 'Upload your resume'}</span>
                 </div>
                 <div className={`rc-item ${(userProfile.badges?.length || 0) > 0 ? 'done' : 'pending'}`}>
                   {(userProfile.badges?.length || 0) > 0 ? (
@@ -512,9 +576,9 @@ export const ProfileView: React.FC = () => {
                   )}
                   <span>{(userProfile.badges?.length || 0)} Peer-Verified Skill Badges Earned</span>
                 </div>
-                <div className="rc-item pending">
-                  <span className="rc-pending-dot" />
-                  <span>1 Mock Interview with Staff Engineer</span>
+                <div className={`rc-item ${completedSessionCount > 0 ? 'done' : 'pending'}`}>
+                  {completedSessionCount > 0 ? <CheckCircle2 size={14} className="text-emerald" /> : <span className="rc-pending-dot" />}
+                  <span>{completedSessionCount > 0 ? `${completedSessionCount} mentor session${completedSessionCount === 1 ? '' : 's'} completed` : 'Complete a 1:1 mentor session'}</span>
                 </div>
               </div>
 

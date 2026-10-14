@@ -11,6 +11,7 @@ import { useApp } from '../../context/AppContext';
 import { peerpathApi } from '../../services/api';
 import { formatBookingDate } from '../../utils/bookingDates';
 import { BRAND } from '../../config/brand';
+import { isResumeRecent } from '../../utils/resume';
 
 // Used only when a mentor has no saved availability
 const DEFAULT_TIME_SLOTS = ['10:00 AM - 11:00 AM', '02:00 PM - 03:00 PM', '06:30 PM - 07:30 PM', '08:00 PM - 09:00 PM'];
@@ -55,7 +56,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     bookSession,
     navigate,
     showToast,
-    updateCandidateResume
+    uploadResume
   } = useApp();
 
   // Next 14 days starting from today; filtered below to the mentor's available weekdays
@@ -83,28 +84,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     return days;
   }, []);
 
-  // Fallback / default expert
-  const expert: Expert = propExpert || bookingDraft?.expert || selectedExpert || {
-    id: 'deepika-pm',
-    name: 'Deepika Sen',
-    role: 'Senior Technical Product Manager',
-    company: 'Google',
-    domain: 'Product Management',
-    experience: '8+ Yrs',
-    location: 'Bengaluru, India',
-    duration: '30 Mins',
-    avatar: '/avatars/deepika.jpg',
-    videoPoster: '/thumbnails/deepika-video.jpg',
-    teaserTitle: 'How I Transitioned from Engineering to Google PM',
-    rating: 4.93,
-    reviewsCount: 154,
-    sessionsCount: 310,
-    price: 1399,
-    bio: 'Helping tech professionals make seamless career transitions into Tier-1 product management and tech leadership roles.',
-    skills: ['Product Strategy', 'System Design', 'Interview Prep'],
-    verifiedEmail: 'deepika.sen@google.com',
-    isVerifiedEmployer: true
-  };
+  // The mentor being booked (an empty placeholder has no id)
+  const pickExpert = (e?: Expert) => (e && e.id ? e : undefined);
+  const expert: Expert = pickExpert(propExpert) || pickExpert(bookingDraft?.expert) || selectedExpert;
 
   const expertName = expert?.name || 'Mentor';
   const expertAvatar = expert?.avatar || '/avatars/deepika.jpg';
@@ -218,16 +200,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   const currentCvName = userProfile?.resumeFileName || bookingDraft?.attachedCvName || '';
 
-  // 1-Click CV sync / update from modal
-  const handleCvFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Uploads the resume so the mentor can download it before the session
+  const handleCvFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setIsUploadingCv(true);
-      setTimeout(() => {
-        setIsUploadingCv(false);
-        updateCandidateResume(file.name, ['React', 'TypeScript', 'System Design', 'Frontend Architecture']);
-        showToast('📄 Latest CV Attached!', `${file.name} attached for ${expertName}'s pre-call dossier.`, 'success');
-      }, 600);
+    e.target.value = '';
+    if (!file) return;
+    setIsUploadingCv(true);
+    const result = await uploadResume(file);
+    setIsUploadingCv(false);
+    if (result) {
+      showToast('📄 Resume Attached', `${expertName} can download it before the session.`, 'success');
     }
   };
 
@@ -279,7 +261,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     navigate('confirmed-view');
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !expert?.id) return null;
 
   return (
     <div className="app-modal-backdrop open" onClick={onClose}>
@@ -425,9 +407,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           {/* Step 3: Attached Candidate CV / Mentor Dossier */}
           {(() => {
             const hasCv = Boolean(currentCvName);
-            const isSynced = hasCv && ((userProfile?.resumeLastUpdated || '').includes('Just now') || 
-              (userProfile?.resumeLastUpdated || '').includes('Synced') ||
-              (currentCvName !== 'resume (1).pdf' && currentCvName !== 'resume.pdf' && (userProfile?.profileScore || 0) > 85));
+            // "Ready" only if the resume was actually uploaded in the last 30 days
+            const isSynced = hasCv && isResumeRecent(userProfile);
             const mentorFirstName = expertName.split(' ')[0];
 
             return (

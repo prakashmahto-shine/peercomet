@@ -28,17 +28,14 @@ export const CreatorWizardModal: React.FC = () => {
   const [calcRate, setCalcRate] = useState<number>(1299);
 
   // Step 2: Expert Profile State
-  const [fullName, setFullName] = useState<string>(currentUser?.name || userProfile.name || 'Nisha Kumari');
-  const [headline, setHeadline] = useState<string>(currentUser?.headline || userProfile.headline || 'Staff Frontend Architect & UI Lead @ Flipkart');
-  const [company, setCompany] = useState<string>(currentUser?.company || userProfile.pastCompany || 'Flipkart');
+  const [fullName, setFullName] = useState<string>(currentUser?.name || userProfile.name || '');
+  const [headline, setHeadline] = useState<string>(currentUser?.headline || userProfile.headline || '');
+  const [company, setCompany] = useState<string>(currentUser?.company || userProfile.pastCompany || '');
   const [domain, setDomain] = useState<string>('Full-Stack');
   const [bio, setBio] = useState<string>(
-    userProfile.summary || 
-    'Staff Frontend Architect with 6.8+ years of experience leading UI infrastructure and micro-frontends at Flipkart and Swiggy. Passionate about web performance, React 19 architecture, and mentoring engineers.'
+    userProfile.summary || ''
   );
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([
-    'React.js', 'System Design', 'TypeScript', 'Next.js', 'Micro-Frontends'
-  ]);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>(userProfile.skills?.slice(0, 6) || []);
   const [newSkillInput, setNewSkillInput] = useState<string>('');
 
   // Step 3: Session Packages & Pricing
@@ -53,14 +50,14 @@ export const CreatorWizardModal: React.FC = () => {
     '08:30 PM - 09:30 PM', 
     '11:00 AM - 12:00 PM'
   ]);
-  const [isVideoUploaded, setIsVideoUploaded] = useState<boolean>(true);
+  const [isVideoUploaded, setIsVideoUploaded] = useState<boolean>(false);
 
   React.useEffect(() => {
     if (isCreatorWizardOpen) {
-      setFullName(currentUser?.name || userProfile.name || 'Nisha Kumari');
-      setHeadline(currentUser?.headline || userProfile.headline || 'Staff Frontend Architect & UI Lead @ Flipkart');
-      setCompany(currentUser?.company || userProfile.pastCompany || 'Flipkart');
-      setBio(userProfile.summary || 'Staff Frontend Architect with 6.8+ years of experience leading UI infrastructure and micro-frontends at Flipkart. Passionate about web performance and mentoring.');
+      setFullName(currentUser?.name || userProfile.name || '');
+      setHeadline(currentUser?.headline || userProfile.headline || '');
+      setCompany(currentUser?.company || userProfile.pastCompany || '');
+      setBio(userProfile.summary || '');
       if (userProfile.skills && userProfile.skills.length > 0) {
         setSelectedSkills(userProfile.skills.slice(0, 6));
       }

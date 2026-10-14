@@ -10,6 +10,7 @@ import { useApp } from '../../context/AppContext';
 import { peerpathApi } from '../../services/api';
 import { upcomingBookableDates } from '../../utils/bookingDates';
 import { BRAND } from '../../config/brand';
+import { isResumeRecent } from '../../utils/resume';
 
 export const MySessionsView: React.FC = () => {
   const { 
@@ -24,7 +25,6 @@ export const MySessionsView: React.FC = () => {
     setAssessmentDraftSession,
     setIsAssessmentModalOpen,
     isCreatorMode,
-    updateCandidateResume,
     removeCandidateResume,
     setIsCvSyncModalOpen
   } = useApp();
@@ -76,11 +76,8 @@ export const MySessionsView: React.FC = () => {
   const [preJoinCheckSession, setPreJoinCheckSession] = useState<typeof sessions[0] | null>(null);
   const [selectedRecordingSession, setSelectedRecordingSession] = useState<typeof sessions[0] | null>(null);
 
-  const isCandidateCvSynced = Boolean(
-    userProfile?.resumeLastUpdated && 
-    (userProfile.resumeLastUpdated.includes('Just now') || userProfile.resumeLastUpdated.includes('Synced')) &&
-    userProfile?.resumeFileName
-  );
+  // A resume uploaded in the last 30 days counts as up to date for the mentor
+  const isCandidateCvSynced = isResumeRecent(userProfile);
 
   const handleJoinCall = (session: typeof sessions[0]) => {
     if (!isMentor && !isCandidateCvSynced) {
@@ -484,7 +481,7 @@ export const MySessionsView: React.FC = () => {
                     {isCandidateCvSynced ? (
                       <div className="scc-cv-synced-pill">
                         <CheckCircle2 size={12} className="text-emerald-600 flex-shrink-0" />
-                        <span><strong>CV Attached:</strong> {userProfile.resumeFileName || 'Resume.pdf'} (Synced for {sess.expert.name})</span>
+                        <span><strong>CV Attached:</strong> {userProfile.resumeFileName} (shared with {sess.expert.name})</span>
                         <button type="button" className="btn-scc-cv-link" onClick={() => setIsCvSyncModalOpen(true)}>Change</button>
                       </div>
                     ) : (
@@ -706,13 +703,9 @@ export const MySessionsView: React.FC = () => {
                   type="button" 
                   className="btn-shine-gold-lg btn-prejoin-sync"
                   onClick={() => {
-                    if (updateCandidateResume && userProfile?.resumeFileName) {
-                      updateCandidateResume(userProfile.resumeFileName, userProfile.skills, userProfile.targetCtc);
-                    }
-                    const target = preJoinCheckSession;
+                    // Upload a real, current resume first; the user joins again afterwards
                     setPreJoinCheckSession(null);
-                    setActiveSession(target);
-                    navigate('live-call-view');
+                    setIsCvSyncModalOpen(true);
                   }}
                 >
                   <Sparkles size={16} />

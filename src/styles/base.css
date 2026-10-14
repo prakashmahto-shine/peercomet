@@ -6063,3 +6063,117 @@ button {
   background: #F1F5F9;
   border-color: #94A3B8;
 }
+
+/* ==========================================================================
+   PROFILE INCOMPLETE NOTIFICATION BANNER
+   ========================================================================== */
+.profile-incomplete-banner {
+  background: linear-gradient(90deg, #F5F3FF 0%, #FFFBEB 100%);
+  border-bottom: 1px solid #E9D5FF;
+  position: relative;
+  z-index: 40;
+  box-shadow: 0 1px 3px rgba(109, 40, 217, 0.05);
+}
+
+.pib-container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 9px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.pib-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.pib-icon-box {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #FEF3C7;
+  border: 1px solid #FDE68A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pib-text-box {
+  font-size: 13.5px;
+  color: #4C1D95;
+  line-height: 1.4;
+}
+
+.pib-message strong {
+  color: #311068;
+  font-weight: 700;
+  margin-right: 4px;
+}
+
+.pib-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.pib-btn-cta {
+  background: #7C3AED;
+  color: #ffffff;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(124, 58, 237, 0.2);
+}
+
+.pib-btn-cta:hover {
+  background: #6D28D9;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(124, 58, 237, 0.25);
+}
+
+.pib-btn-close {
+  background: transparent;
+  border: none;
+  color: #7C3AED;
+  opacity: 0.65;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.pib-btn-close:hover {
+  opacity: 1;
+  background: rgba(124, 58, 237, 0.08);
+}
+
+@media (max-width: 768px) {
+  .pib-container {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px 16px;
+    gap: 10px;
+  }
+  .pib-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

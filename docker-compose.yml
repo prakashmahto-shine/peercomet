@@ -39,8 +39,9 @@ services:
       # Only reachable from the server itself (Caddy or the host's nginx forwards to it)
       - "127.0.0.1:5001:5001"
     volumes:
-      # Session recordings when RECORDINGS_STORAGE=local
+      # Session recordings and resumes when RECORDINGS_STORAGE=local
       - recordings:/app/backend/data/recordings
+      - resumes:/app/backend/data/resumes
     depends_on:
       postgres:
         condition: service_healthy
@@ -129,5 +130,6 @@ services:
 volumes:
   pgdata:
   recordings:
+  resumes:
   caddy_data:
   caddy_config:

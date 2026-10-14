@@ -130,27 +130,25 @@ export const MentorDashboardView: React.FC = () => {
   const [minNoticeHours, setMinNoticeHours] = useState<number>(2);
 
   // Teaser Video & Profile Listing Form State
-  const initialTeaserUrl = userProfile.mentorTeaserVideo?.url || 'https://assets.mixkit.co/videos/preview/mixkit-man-working-on-his-laptop-308-large.mp4';
+  const initialTeaserUrl = userProfile.mentorTeaserVideo?.url || '';
   const [hasTeaserVideo, setHasTeaserVideo] = useState<boolean>(Boolean(userProfile.mentorTeaserVideo !== null && initialTeaserUrl));
   const [teaserVideoUrl, setTeaserVideoUrl] = useState<string>(initialTeaserUrl);
-  const [uploadedVideoName, setUploadedVideoName] = useState<string>('akash_teaser_pitch_60s.mp4');
+  const [uploadedVideoName, setUploadedVideoName] = useState<string>('');
   const [isUploadingVideo, setIsUploadingVideo] = useState<boolean>(false);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
   const videoFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [teaserTitle, setTeaserTitle] = useState<string>(
-    userProfile.mentorTeaserVideo?.title || 'How I Help Candidates Transition to Top Product & Architecture Roles (₹30L+ Target)'
+    userProfile.mentorTeaserVideo?.title || ''
   );
   const [headlineInput, setHeadlineInput] = useState<string>(
-    userProfile.headline || currentUser?.headline || 'Lead Product Manager @ Shine (HT Media) • Ex-Paytm, Flipkart'
+    userProfile.headline || currentUser?.headline || ''
   );
   const [bioInput, setBioInput] = useState<string>(
-    userProfile.summary || `Lead Product Manager at Shine (HT Media) heading Career Multiplier and ${BRAND.name} mentorship initiatives. Previously senior PM at Paytm and Flipkart. I mentor high-potential engineers and product thinkers targeting 3x compensation jumps and leadership transitions.`
+    userProfile.summary || ''
   );
   const [skillsList, setSkillsList] = useState<string[]>(
-    userProfile.skills && userProfile.skills.length > 0 
-      ? userProfile.skills 
-      : ['Product Strategy', 'System Architecture', 'Career Fast-Track', 'Mock Interviews', 'PRD Discovery']
+    userProfile.skills || []
   );
   const [newSkillInput, setNewSkillInput] = useState<string>('');
 
@@ -550,10 +548,10 @@ export const MentorDashboardView: React.FC = () => {
   const handleCancelProfile = () => {
     setHasTeaserVideo(Boolean(userProfile.mentorTeaserVideo?.url || initialTeaserUrl));
     setTeaserVideoUrl(userProfile.mentorTeaserVideo?.url || initialTeaserUrl);
-    setTeaserTitle(userProfile.mentorTeaserVideo?.title || 'How I Help Candidates Transition to Top Product & Architecture Roles (₹30L+ Target)');
-    setHeadlineInput(userProfile.headline || currentUser?.headline || 'Lead Product Manager @ Shine (HT Media) • Ex-Paytm, Flipkart');
-    setBioInput(userProfile.summary || 'Lead Product Manager at Shine (HT Media)...');
-    setSkillsList(userProfile.skills && userProfile.skills.length > 0 ? userProfile.skills : ['Product Strategy', 'System Architecture', 'Career Fast-Track', 'Mock Interviews', 'PRD Discovery']);
+    setTeaserTitle(userProfile.mentorTeaserVideo?.title || '');
+    setHeadlineInput(userProfile.headline || currentUser?.headline || '');
+    setBioInput(userProfile.summary || '');
+    setSkillsList(userProfile.skills || []);
     setSessionOfferings(defaultInitialOfferings);
     setSessionRate1(userProfile.mentorRate || 999);
     setIsEditingProfile(false);
@@ -2108,7 +2106,19 @@ export const MentorDashboardView: React.FC = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                       <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>{selectedDossier.candidate.name}</h3>
-                      <p style={{ margin: '2px 0 8px 0', fontSize: '13px', color: '#64748B' }}>{selectedDossier.candidate.headline} ({selectedDossier.candidate.experienceYears})</p>
+                      <p style={{ margin: '2px 0 8px 0', fontSize: '13px', color: '#64748B' }}>
+                        {[selectedDossier.candidate.designation || selectedDossier.candidate.headline,
+                          selectedDossier.candidate.currentCompany,
+                          selectedDossier.candidate.experienceYears].filter(Boolean).join(' • ') || 'Profile details not added yet'}
+                      </p>
+                      {selectedDossier.candidate.resumeFileName ? (
+                        <a href={peerpathApi.candidateResumeUrl(selectedDossier.sessionId)} target="_blank" rel="noreferrer"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12.5px', fontWeight: 600, color: '#6D28D9' }}>
+                          <Download size={13} /> Download resume ({selectedDossier.candidate.resumeFileName})
+                        </a>
+                      ) : (
+                        <span style={{ fontSize: '12px', color: '#94A3B8' }}>No resume uploaded</span>
+                      )}
                     </div>
                     <span style={{ background: '#ECFDF5', color: '#059669', fontSize: '12px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px' }}>
                       Target: {selectedDossier.gapReport.targetJump}

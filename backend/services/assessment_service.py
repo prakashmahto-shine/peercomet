@@ -24,26 +24,29 @@ class AssessmentService:
 
         candidate = store.get_candidate(session.candidateId)
         if not candidate:
+            # Only what the booking itself says; no made-up profile details
             cand_dict = {
                 'name': session.candidateName,
-                'headline': session.candidateRole,
-                'experienceYears': '4+ Years',
-                'currentCtc': '₹7.5 LPA',
-                'targetCtc': '₹22 - 30 LPA',
-                'targetRole': f"Staff Engineer @ {session.expert.company}",
-                'skills': ['React.js', 'TypeScript', 'Next.js', 'System Design'],
-                'summary': 'Candidate actively seeking 1:1 guidance to make the jump from mid-tier to Tier-1 product tech.'
+                'headline': session.candidateRole or '',
+                'targetRole': f"Role at {session.expert.company}",
             }
         else:
             cand_dict = {
                 'name': candidate.name,
-                'headline': candidate.headline,
+                'headline': candidate.headline or '',
                 'experienceYears': candidate.experienceYears,
+                'designation': candidate.designation,
+                'currentCompany': candidate.currentCompany,
                 'currentCtc': candidate.currentCtc,
                 'targetCtc': candidate.targetCtc,
                 'targetRole': candidate.targetRole or f"Role at {session.expert.company}",
+                'noticePeriod': candidate.noticePeriod,
+                'educationDegree': candidate.educationDegree,
+                'educationCollege': candidate.educationCollege,
+                'linkedinUrl': candidate.linkedinUrl,
                 'skills': candidate.skills,
-                'summary': candidate.summary
+                'summary': candidate.summary or '',
+                'resumeFileName': candidate.resumeFileName if candidate.resumeFileKey else None,
             }
 
         expert_skills = session.expert.skills or ["System Architecture", "High-Performance Systems"]
@@ -55,7 +58,7 @@ class AssessmentService:
             candidate=ZeroPrepCandidate(**cand_dict),
             gapReport=ZeroPrepGapReport(
                 missingSkills=session.expert.trajectory.keyJumpSkills,
-                targetJump=f"Jump to {cand_dict.get('targetCtc') or '₹22L+'}",
+                targetJump=f"Jump to {cand_dict['targetCtc']}" if cand_dict.get('targetCtc') else f"Target: {cand_dict.get('targetRole')}",
                 suggestedFocusAreas=[
                     f"Review candidate's architectural grasp of {s0} and {s1}",
                     f"Simulate Tier-1 interview loop for {session.expert.role}",

@@ -136,6 +136,12 @@ class Store:
                 self._ensure_candidate_profile(db, user)
             return user
 
+    def update_user_name(self, user_id: str, name: str):
+        with db_session() as db:
+            user = db.get(m.User, user_id)
+            if user and name:
+                user.name = name[:200]
+
     def record_login(self, user_id: str):
         with db_session() as db:
             user = db.get(m.User, user_id)

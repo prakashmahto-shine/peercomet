@@ -53,7 +53,8 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 No `.env` is needed locally: without one the app runs in development mode
-(`APP_ENV=development`, SQLite, no real emails, demo data). `.env.example` is the server template.
+(`APP_ENV=development`, SQLite, no real emails) and starts with an empty database.
+Set `SEED_DEMO_DATA=true` to load sample mentors/candidates for UI work. `.env.example` is the server template.
 
 ### 2. Start Python Backend (FastAPI + Milvus)
 ```bash
@@ -68,7 +69,8 @@ Set `DATABASE_URL` to use Postgres instead.
 npm run dev
 ```
 The frontend starts on `http://localhost:4242` and proxies `/api` and `/socket.io` to the backend.
-Sign in with any email (or a demo user id such as `akash`) and the code `123456`. No email is sent locally.
+Sign in with any email and the code `123456`. No email is sent locally.
+To delete previously loaded sample data from a database: `python -m backend.db.seed --remove-demo` (shows counts), then add `--yes`.
 
 ### 4. Run Tests
 ```bash

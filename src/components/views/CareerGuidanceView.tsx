@@ -11,6 +11,7 @@ import { useApp } from '../../context/AppContext';
 import { calculateSalaryBenchmark } from '../../utils/salaryBenchmark';
 import { peerpathApi } from '../../services/api';
 import { BRAND } from '../../config/brand';
+import { isGoalSet } from '../../utils/profile';
 
 export type MentorCategoryTab = 'top' | 'all' | 'ai' | 'semi' | 'cyber' | 'fullstack' | 'others';
 
@@ -99,8 +100,13 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
     setBookingDraft,
     setIsBookingModalOpen,
     toggleFollowMentor,
-    isFollowingMentor
+    isFollowingMentor,
+    currentView,
+    isAuthLoading
   } = useApp();
+  // Registration step 2: the career goal must be set before showing matched mentors
+  const goalSet = isGoalSet(userProfile);
+  const isGoalLocked = !isAuthLoading && !goalSet && !isCreatorMode;
 
   const [activeTab, setActiveTab] = useState<MentorCategoryTab>('top');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -109,12 +115,25 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
   const [isTrackDropdownOpen, setIsTrackDropdownOpen] = useState<boolean>(false);
   const isMentor = currentUser?.role === 'mentor';
 
-  // Automatically trigger Unlock/Calibration modal if candidate is not calibrated
+  // Automatically trigger Unlock/Calibration modal ONLY ONCE if candidate has no career goal set.
+  // Once the user fills their goal, NEVER ask again automatically (the user can edit anytime via "Edit Goal").
   useEffect(() => {
-    if (!userProfile.isCalibrated && !isCreatorMode) {
+    // 1. Never prompt while authentication or candidate profile is still loading
+    if (isAuthLoading) return;
+
+    // 2. If the career goal is already set, never auto-prompt.
+    if (goalSet || isCreatorMode || currentView === 'registration-view') {
+      return;
+    }
+
+    // 3. For users without a goal, prompt only once per session so they aren't repeatedly badgered
+    const sessionKey = `shine_goal_prompted_${currentUser?.id || 'guest'}`;
+    const alreadyPrompted = sessionStorage.getItem(sessionKey);
+    if (!alreadyPrompted) {
+      sessionStorage.setItem(sessionKey, '1');
       setIsCalibrationModalOpen(true);
     }
-  }, [userProfile.isCalibrated, isCreatorMode]);
+  }, [goalSet, isAuthLoading, isCreatorMode, currentView, currentUser?.id]);
 
   // Dynamic salary benchmark
   const benchmark = calculateSalaryBenchmark(userProfile.currentCtc, userProfile.targetCtc);
@@ -373,7 +392,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
     <div className="content-wrapper peerpath-guidance-page">
 
       {/* Sticky Campaign Unlock Banner when Peerpath is Locked */}
-      {!userProfile.isCalibrated && !isCreatorMode && (
+      {isGoalLocked && (
         <div 
           className="peerpath-locked-unlock-banner"
           onClick={() => setIsCalibrationModalOpen(true)}
@@ -410,12 +429,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
 
       {/* Main Peerpath Content Flow */}
       <div 
-        className={`peerpath-main-content-flow ${!userProfile.isCalibrated && !isCreatorMode ? 'peerpath-locked-blur' : ''}`}
-        onClick={() => {
-          if (!userProfile.isCalibrated && !isCreatorMode) {
-            setIsCalibrationModalOpen(true);
-          }
-        }}
+        className={`peerpath-main-content-flow ${isGoalLocked ? 'peerpath-locked-blur' : ''}`}
       >
 
         {/* Peerpath Top Sub-Nav View Switcher (Candidate Mode Only) */}
@@ -478,10 +492,10 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                 Targeted Mentors for {userProfile.name || currentUser?.name || 'Your Career Goal'}
               </h1>
               <div className="phb-role-subtitle">
-                <span>Targeting: <strong>{userTargetRole}</strong> @ <strong>{userDreamCompany}</strong></span>
+                <span>Targeting: <strong>{userTargetRole || 'Your Target Role'}</strong> @ <strong>{userDreamCompany || 'Dream Company'}</strong></span>
                 <span className="phb-subtitle-dot">•</span>
                 <span className="phb-current-role-inline">
-                  {(userProfile.headline ? userProfile.headline.split('|')[0].split('•')[0].split('@')[0].trim() : 'Tech Professional')} @ {userCurrentCompany}
+                  {(userProfile.headline ? userProfile.headline.split('|')[0].split('•')[0].split('@')[0].trim() : 'Tech Professional')} @ {userCurrentCompany || 'Current Company'}
                 </span>
               </div>
 
@@ -510,7 +524,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                 title="Edit Target Role & Compensation Benchmark"
               >
                 <SlidersHorizontal size={11} />
-                <span>Edit Goal</span>
+                <span>{goalSet ? 'Edit Goal' : 'Set Goal'}</span>
               </button>
             </div>
 

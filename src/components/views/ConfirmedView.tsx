@@ -5,23 +5,17 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '../../context/AppContext';
+import { isResumeRecent } from '../../utils/resume';
 
 export const ConfirmedView: React.FC = () => {
   const { bookingDraft, navigate, userProfile, setIsCvSyncModalOpen, selectedExpert, currentUser } = useApp();
   
-  const expert = bookingDraft.expert || selectedExpert || {
-    id: 'akash',
-    name: 'Akash Jain',
-    role: 'Lead Product Manager',
-    company: 'Shine (HT Media)',
-    price: 999,
-    avatar: '/avatars/akash.jpg'
-  };
+  const expert = bookingDraft.expert?.id ? bookingDraft.expert : selectedExpert;
 
-  const date = bookingDraft.date || 'Tomorrow, 5 Sep';
-  const timeSlot = bookingDraft.timeSlot || '10:00 AM - 11:00 AM';
+  const date = bookingDraft.date;
+  const timeSlot = bookingDraft.timeSlot;
   const sessionType = bookingDraft.sessionType || 'Career guidance';
-  const paidAmount = bookingDraft.amount || expert.price || 999;
+  const paidAmount = bookingDraft.amount || expert.price || 0;
 
   useEffect(() => {
     try {
@@ -34,7 +28,16 @@ export const ConfirmedView: React.FC = () => {
   }, []);
 
   const currentCv = bookingDraft.attachedCvName || userProfile?.resumeFileName || '';
-  const isRecentlySynced = (userProfile?.resumeLastUpdated || '').includes('Just now') || (userProfile?.resumeLastUpdated || '').includes('Synced');
+  const isRecentlySynced = isResumeRecent(userProfile);
+
+  if (!expert?.id || !date) {
+    return (
+      <div className="content-wrapper confirmation-card-wrapper">
+        <h2>No recent booking</h2>
+        <button className="btn-back-link" onClick={() => navigate('sessions-view')}>Go to My Sessions</button>
+      </div>
+    );
+  }
 
   return (
     <div className="content-wrapper confirmation-card-wrapper">

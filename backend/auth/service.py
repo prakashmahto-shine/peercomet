@@ -2,8 +2,8 @@
 Sign-in and sign-up with a one-time code sent by email (no passwords).
 
   1. send_otp(email)    -> emails a 6-digit code, returns a request id
-  2. verify_otp(...)    -> checks the code; new emails also give their name (sign-up)
-                           -> creates the user if needed and opens a login session
+  2. verify_otp(...)    -> checks the code, creates the account for a new email (sign-up)
+                           and opens a login session; the client then shows registration
 """
 import hashlib
 import hmac
@@ -134,10 +134,9 @@ def verify_otp(request_id: str, identifier: str, otp: str,
     else:
         user = store.get_user_by_email(email)
         if user is None:
-            # Sign-up: validate before using up the code, so the user can fix the form
+            # Sign-up: the account is created now; name and the rest of the profile are
+            # collected by the registration form (/register). Validate before using up the code.
             clean_name = (name or "").strip()
-            if len(clean_name) < 2:
-                raise AuthError("Please enter your name to create your account", 422)
             clean_mobile = normalize_mobile(mobile)
             if not store.consume_email_otp(request_id):
                 raise AuthError("This code has already been used. Please request a new one.", 410)

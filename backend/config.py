@@ -52,7 +52,8 @@ def _env_list(name: str, default: str = "") -> list:
 # ------------------------------------------------------------------------------
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'backend' / 'data' / 'peerpath.sqlite3'}")
 # Seed demo creators/candidates from db.json into an empty database (local development only)
-SEED_DEMO_DATA = _env_bool("SEED_DEMO_DATA", True) and IS_DEVELOPMENT
+# Off by default: development works with real data too. Set SEED_DEMO_DATA=true to load samples.
+SEED_DEMO_DATA = _env_bool("SEED_DEMO_DATA", False) and IS_DEVELOPMENT
 # Enables /api/demo/reset (local development only)
 DEMO_MODE = _env_bool("DEMO_MODE", False) and IS_DEVELOPMENT
 
@@ -95,6 +96,8 @@ if EMAIL_BACKEND == "console" and not IS_DEVELOPMENT:
 # ------------------------------------------------------------------------------
 RECORDINGS_STORAGE = os.getenv("RECORDINGS_STORAGE", "local").lower()
 RECORDINGS_DIR = Path(os.getenv("RECORDINGS_DIR", str(DATA_DIR / "recordings")))
+RESUMES_DIR = Path(os.getenv("RESUMES_DIR", str(DATA_DIR / "resumes")))
+MAX_RESUME_MB = int(os.getenv("MAX_RESUME_MB", "5"))
 S3_BUCKET = os.getenv("S3_BUCKET", "")
 S3_PREFIX = os.getenv("S3_PREFIX", "recordings")
 S3_REGION = os.getenv("S3_REGION", os.getenv("AWS_REGION", ""))

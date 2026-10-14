@@ -16,6 +16,7 @@ import { PostSessionView } from '../components/views/PostSessionView';
 import { RecruiterView } from '../components/views/RecruiterView';
 import { MentorDashboardView } from '../components/views/MentorDashboardView';
 import { LoginView } from '../components/views/LoginView';
+import { RegistrationView } from '../components/views/RegistrationView';
 
 interface ViewRouterProps {
   onSelectExpert?: (expertId: string) => void;
@@ -39,6 +40,7 @@ export const ViewRouter: React.FC<ViewRouterProps> = ({
     setIsBookingModalOpen,
     currentUser,
     isAuthLoading,
+    userProfile,
     setIsCreatorWizardOpen
   } = useApp();
 
@@ -148,6 +150,20 @@ export const ViewRouter: React.FC<ViewRouterProps> = ({
     // 7. Authentication
     case 'login-view':
       return <LoginView />;
+
+    case 'registration-view':
+      if (isAuthLoading) return null;
+      if (!currentUser) return <LoginView />;
+      return (
+        <>
+          <CareerGuidanceView
+            onNavigate={navigate}
+            onSelectExpert={handleSelectExpert}
+            experts={experts}
+          />
+          <RegistrationView />
+        </>
+      );
 
     default:
       return (

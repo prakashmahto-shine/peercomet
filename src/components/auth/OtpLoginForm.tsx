@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { ArrowRight, Mail, Phone, User } from 'lucide-react';
+import { ArrowRight, Mail } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 /**
  * Passwordless sign-in / sign-up: email -> 6-digit code.
- * A new email also enters a name (and optionally a mobile number), which creates the account.
+ * A new email gets an account on verification and then goes to registration (/register).
  * Mentors sign up the same way, then use "Become a Mentor".
  * Reuses the login page's `fgb-*` styles.
  */
@@ -15,8 +15,6 @@ export const OtpLoginForm: React.FC = () => {
   const [requestId, setRequestId] = useState<string | null>(null);
   const [isRegistered, setIsRegistered] = useState<boolean>(true);
   const [otp, setOtp] = useState<string>('');
-  const [name, setName] = useState<string>('');
-  const [mobile, setMobile] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -45,17 +43,8 @@ export const OtpLoginForm: React.FC = () => {
       setErrorMessage('Please enter the 6-digit code from your email');
       return;
     }
-    if (!isRegistered && name.trim().length < 2) {
-      setErrorMessage('Please enter your name to create your account');
-      return;
-    }
     setIsLoading(true);
-    await verifyOtp({
-      requestId,
-      email,
-      otp,
-      ...(isRegistered ? {} : { name: name.trim(), mobile: mobile.trim() || undefined })
-    });
+    await verifyOtp({ requestId, email, otp });
     setIsLoading(false);
   };
 
@@ -122,42 +111,11 @@ export const OtpLoginForm: React.FC = () => {
           </div>
 
           {!isRegistered && (
-            <>
-              <p className="fgb-subtitle">New here? Tell us your name to create your account.</p>
-              <div className="fgb-input-group">
-                <label className="fgb-input-label">Full Name</label>
-                <div className="fgb-input-container">
-                  <User size={16} className="fgb-input-icon" />
-                  <input
-                    type="text"
-                    autoComplete="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Your full name"
-                    className="fgb-text-input"
-                  />
-                </div>
-              </div>
-              <div className="fgb-input-group">
-                <label className="fgb-input-label">Mobile Number (optional)</label>
-                <div className="fgb-input-container">
-                  <Phone size={16} className="fgb-input-icon" />
-                  <input
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel"
-                    value={mobile}
-                    onChange={(e) => setMobile(e.target.value)}
-                    placeholder="10-digit mobile number"
-                    className="fgb-text-input"
-                  />
-                </div>
-              </div>
-            </>
+            <p className="fgb-subtitle">New here? After this step you'll create your profile.</p>
           )}
 
           <button type="submit" className="btn-fgb-primary" disabled={isLoading}>
-            <span>{isLoading ? 'Verifying...' : isRegistered ? 'Verify & Sign In' : 'Create Account'}</span>
+            <span>{isLoading ? 'Verifying...' : isRegistered ? 'Verify & Sign In' : 'Verify & Continue'}</span>
             <ArrowRight size={16} />
           </button>
 
