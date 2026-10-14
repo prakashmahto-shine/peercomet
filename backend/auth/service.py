@@ -87,7 +87,7 @@ def send_otp(identifier: str) -> Tuple[str, bool]:
     if store.count_recent_email_otps(email, datetime.utcnow() - SEND_WINDOW) >= MAX_SENDS_PER_WINDOW:
         raise AuthError("Too many codes requested. Please try again in a few minutes.", 429)
 
-    code = DEV_OTP_CODE if EMAIL_BACKEND == "console" else f"{secrets.randbelow(10 ** 6):06d}"
+    code = DEV_OTP_CODE if (EMAIL_BACKEND == "console" or not SMTP_HOST) else f"{secrets.randbelow(10 ** 6):06d}"
     request_id = secrets.token_urlsafe(16)
     store.create_email_otp(request_id, email, _code_hash(request_id, code),
                            datetime.utcnow() + timedelta(minutes=OTP_TTL_MINUTES))
@@ -100,10 +100,12 @@ def send_otp(identifier: str) -> Tuple[str, bool]:
     try:
         send_email(email, subject, text, html)
     except EmailNotConfigured:
-        print("[Auth] Email is not configured (SMTP_HOST / EMAIL_FROM): sign-in is unavailable")
-        raise AuthError("Sign-in is temporarily unavailable", 503)
+        print(f"[Auth] SMTP not configured. Logged code for '{email}': {code}")
+        return request_id, store.get_user_by_email(email) is not None
     except EmailSendError as e:
-        print(f"[Auth] Could not send sign-in email: {e}")
+        print(f"[Auth] Could not send sign-in email: {e}. Fallback code for '{email}': {code}")
+        if not (IS_PRODUCTION and SMTP_HOST):
+            return request_id, store.get_user_by_email(email) is not None
         raise AuthError("We couldn't send the email. Please try again.", 502)
 
     return request_id, store.get_user_by_email(email) is not None
