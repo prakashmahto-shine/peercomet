@@ -66,8 +66,8 @@ class CandidateProfile(BaseModel):
     email: str = ""
     phone: str = ""
     headline: str = ""
-    experienceYears: str = "4+ Years"
-    location: str = "Bengaluru, India"
+    experienceYears: Optional[str] = None
+    location: Optional[str] = None
     profileScore: int = 75
     jobSearchStatus: str = "Actively Looking"
     summary: str = ""

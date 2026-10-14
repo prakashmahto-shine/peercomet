@@ -110,7 +110,8 @@ export const CvUploadSyncModal: React.FC = () => {
   };
 
   const handleUsePresetDemo = () => {
-    const dummyFile = new File(['sample resume content'], 'Prakash_Mahto_LeadFrontend_Updated.pdf', { type: 'application/pdf' });
+    const candidateNameSafe = (userProfile?.name || 'Candidate').replace(/[^a-zA-Z0-9]/g, '_');
+    const dummyFile = new File(['sample resume content'], `${candidateNameSafe}_Updated_Resume.pdf`, { type: 'application/pdf' });
     processFile(dummyFile);
   };
 
@@ -199,16 +200,28 @@ export const CvUploadSyncModal: React.FC = () => {
               </div>
 
               {/* Current Resume Info */}
-              <div className="cv-current-on-file-box">
-                <div className="cv-file-info-left">
-                  <FileText size={16} className="text-slate-500" />
-                  <div>
-                    <span className="text-xs text-slate-500">Currently on File:</span>
-                    <strong className="text-sm block text-slate-800">{userProfile?.resumeFileName || 'Prakash_Mahto_Frontend_Resume.pdf'}</strong>
+              {userProfile?.resumeFileName ? (
+                <div className="cv-current-on-file-box">
+                  <div className="cv-file-info-left">
+                    <FileText size={16} className="text-slate-500" />
+                    <div>
+                      <span className="text-xs text-slate-500">Currently on File:</span>
+                      <strong className="text-sm block text-slate-800">{userProfile.resumeFileName}</strong>
+                    </div>
+                  </div>
+                  <span className="cv-file-age-badge">{userProfile?.resumeLastUpdated || 'On File'}</span>
+                </div>
+              ) : (
+                <div className="cv-current-on-file-box">
+                  <div className="cv-file-info-left">
+                    <FileText size={16} className="text-slate-400" />
+                    <div>
+                      <span className="text-xs text-slate-500">Status:</span>
+                      <strong className="text-sm block text-slate-600">No resume uploaded yet</strong>
+                    </div>
                   </div>
                 </div>
-                <span className="cv-file-age-badge">⚠️ Outdated ({userProfile?.resumeLastUpdated || 'Almost 1 year ago'})</span>
-              </div>
+              )}
             </>
           )}
 

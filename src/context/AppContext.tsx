@@ -790,7 +790,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     expert: DEFAULT_FALLBACK_EXPERT,
     date: '',
     timeSlot: '',
-    attachedCvName: 'Prakash_Mahto_Frontend_Resume.pdf',
+    attachedCvName: '',
     sessionType: 'Career guidance',
     amount: DEFAULT_FALLBACK_EXPERT.price,
     duration: '30 Mins'
@@ -1120,7 +1120,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       authorId: currentUser.id,
       authorName: currentUser.name,
       authorRole: currentUser.headline || (isMentor ? 'Verified Mentor' : 'Candidate'),
-      authorAvatar: currentUser.avatar || (isMentor ? '/avatars/akash.jpg' : '/avatars/prakash.jpg'),
+      authorAvatar: currentUser.avatar || (isMentor ? '/avatars/akash.jpg' : '/brand/android-chrome-192x192.png'),
       authorIsMentor: isMentor,
       content: content.trim(),
       createdAt: 'Just now',
@@ -1170,12 +1170,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return p;
     }));
 
-    // Async backend sync
-    apiFetch(`${API_BASE}/community/posts/${postId}/like`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUser?.id || 'prakash' })
-    }).catch(() => {});
+    if (currentUser?.id) {
+      apiFetch(`${API_BASE}/community/posts/${postId}/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id })
+      }).catch(() => {});
+    }
   };
 
   const toggleCommentLike = (postId: string, commentId: string) => {
@@ -1199,12 +1200,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return p;
     }));
 
-    // Async backend sync
-    apiFetch(`${API_BASE}/community/posts/${postId}/comments/${commentId}/like`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUser?.id || 'prakash' })
-    }).catch(() => {});
+    if (currentUser?.id) {
+      apiFetch(`${API_BASE}/community/posts/${postId}/comments/${commentId}/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id })
+      }).catch(() => {});
+    }
   };
 
   const unreadNotificationsCount = notifications.filter(n => !n.isRead).length;
@@ -1216,11 +1218,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const markAllNotificationsAsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-    apiFetch(`${API_BASE}/notifications/mark-all-read`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUser?.id || 'prakash' })
-    }).catch(() => {});
+    if (currentUser?.id) {
+      apiFetch(`${API_BASE}/notifications/mark-all-read`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id })
+      }).catch(() => {});
+    }
     showToast('All caught up!', 'All notifications marked as read.', 'info');
   };
 
@@ -1231,11 +1235,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const clearAllNotifications = () => {
     setNotifications([]);
-    apiFetch(`${API_BASE}/notifications/clear-all`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUser?.id || 'prakash' })
-    }).catch(() => {});
+    if (currentUser?.id) {
+      apiFetch(`${API_BASE}/notifications/clear-all`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id })
+      }).catch(() => {});
+    }
     showToast('Notifications Cleared', 'All community & mentor alerts have been removed.', 'info');
   };
 

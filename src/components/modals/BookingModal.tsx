@@ -216,7 +216,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [isUploadingCv, setIsUploadingCv] = useState<boolean>(false);
 
-  const currentCvName = userProfile?.resumeFileName || bookingDraft?.attachedCvName || 'Prakash_Mahto_Frontend_Resume.pdf';
+  const currentCvName = userProfile?.resumeFileName || bookingDraft?.attachedCvName || '';
 
   // 1-Click CV sync / update from modal
   const handleCvFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -424,9 +424,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
           {/* Step 3: Attached Candidate CV / Mentor Dossier */}
           {(() => {
-            const isSynced = (userProfile?.resumeLastUpdated || '').includes('Just now') || 
+            const hasCv = Boolean(currentCvName);
+            const isSynced = hasCv && ((userProfile?.resumeLastUpdated || '').includes('Just now') || 
               (userProfile?.resumeLastUpdated || '').includes('Synced') ||
-              (currentCvName !== 'resume (1).pdf' && currentCvName !== 'resume.pdf' && (userProfile?.profileScore || 0) > 85);
+              (currentCvName !== 'resume (1).pdf' && currentCvName !== 'resume.pdf' && (userProfile?.profileScore || 0) > 85));
             const mentorFirstName = expertName.split(' ')[0];
 
             return (
@@ -440,9 +441,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     <span className="bfm-cv-badge-ready">
                       <CheckCircle2 size={11} /> 100% Ready for {mentorFirstName}
                     </span>
-                  ) : (
+                  ) : hasCv ? (
                     <span className="bfm-cv-badge-warn">
                       <AlertCircle size={11} /> Outdated CV (~1 yr old)
+                    </span>
+                  ) : (
+                    <span className="bfm-cv-badge-warn">
+                      <AlertCircle size={11} /> Optional • No CV Attached
                     </span>
                   )}
                 </div>
@@ -453,20 +458,24 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       {isSynced ? (
                         <CheckCircle2 size={16} className="text-emerald-600" />
                       ) : (
-                        <FileText size={16} className="text-amber-600" />
+                        <FileText size={16} className={hasCv ? "text-amber-600" : "text-slate-400"} />
                       )}
                     </div>
                     <div className="bfm-cv-details">
                       <div className="bfm-cv-name-row">
-                        <span className="bfm-cv-name">{currentCvName}</span>
+                        <span className="bfm-cv-name">{hasCv ? currentCvName : 'No CV attached yet'}</span>
                       </div>
                       {isSynced ? (
                         <div className="bfm-cv-subtext ready">
                           ✨ Synced • {mentorFirstName} will review your updated projects before the call
                         </div>
-                      ) : (
+                      ) : hasCv ? (
                         <div className="bfm-cv-subtext warn">
                           ⚠️ Mentor reviews this before call • Upload latest CV for tailored interview prep & referrals
+                        </div>
+                      ) : (
+                        <div className="bfm-cv-subtext" style={{ color: '#64748b' }}>
+                          Upload your latest CV so {mentorFirstName} can review your experience before the live session
                         </div>
                       )}
                     </div>

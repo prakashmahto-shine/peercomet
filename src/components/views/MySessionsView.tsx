@@ -292,7 +292,7 @@ export const MySessionsView: React.FC = () => {
                 <div className="scc-main-row">
                   <div className="scc-mentor-profile">
                     <div className="scc-avatar-wrap">
-                      <img src={sess.candidateAvatar || '/avatars/prakash.jpg'} alt={sess.candidateName} className="scc-avatar" />
+                      <img src={sess.candidateAvatar || '/brand/android-chrome-192x192.png'} alt={sess.candidateName} className="scc-avatar" />
                       <span className="scc-verified-check" style={{ background: '#3B82F6' }}><User size={10} color="#fff" /></span>
                     </div>
 
@@ -600,7 +600,7 @@ export const MySessionsView: React.FC = () => {
                   <div className="scc-mentor-profile">
                     <div className="scc-avatar-wrap">
                       <img 
-                        src={isMentor ? (sess.candidateAvatar || '/avatars/prakash.jpg') : sess.expert.avatar} 
+                        src={isMentor ? (sess.candidateAvatar || '/brand/android-chrome-192x192.png') : sess.expert.avatar} 
                         alt={isMentor ? sess.candidateName : sess.expert.name} 
                         className="scc-avatar" 
                       />
@@ -706,8 +706,8 @@ export const MySessionsView: React.FC = () => {
                   type="button" 
                   className="btn-shine-gold-lg btn-prejoin-sync"
                   onClick={() => {
-                    if (updateCandidateResume) {
-                      updateCandidateResume('Prakash_Mahto_LeadFrontend_Updated.pdf', ['Next.js 15', 'React 19', 'Micro-Frontends', 'UI Architecture'], '₹24L - ₹30 LPA');
+                    if (updateCandidateResume && userProfile?.resumeFileName) {
+                      updateCandidateResume(userProfile.resumeFileName, userProfile.skills, userProfile.targetCtc);
                     }
                     const target = preJoinCheckSession;
                     setPreJoinCheckSession(null);

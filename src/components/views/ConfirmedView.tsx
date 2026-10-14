@@ -7,7 +7,7 @@ import confetti from 'canvas-confetti';
 import { useApp } from '../../context/AppContext';
 
 export const ConfirmedView: React.FC = () => {
-  const { bookingDraft, navigate, userProfile, setIsCvSyncModalOpen, selectedExpert } = useApp();
+  const { bookingDraft, navigate, userProfile, setIsCvSyncModalOpen, selectedExpert, currentUser } = useApp();
   
   const expert = bookingDraft.expert || selectedExpert || {
     id: 'akash',
@@ -33,7 +33,7 @@ export const ConfirmedView: React.FC = () => {
     } catch (e) {}
   }, []);
 
-  const currentCv = bookingDraft.attachedCvName || userProfile?.resumeFileName || 'Prakash_Mahto_Frontend_Resume.pdf';
+  const currentCv = bookingDraft.attachedCvName || userProfile?.resumeFileName || '';
   const isRecentlySynced = (userProfile?.resumeLastUpdated || '').includes('Just now') || (userProfile?.resumeLastUpdated || '').includes('Synced');
 
   return (
@@ -45,7 +45,7 @@ export const ConfirmedView: React.FC = () => {
         </div>
 
         <h1 className="conf-title">Session Booked Successfully!</h1>
-        <p className="conf-subtitle">We've sent a calendar invite and video room link to <strong>{userProfile?.email || 'prakash.mahto@gmail.com'}</strong>.</p>
+        <p className="conf-subtitle">We've sent a calendar invite and video room link to <strong>{currentUser?.email || userProfile?.email || 'your registered email'}</strong>.</p>
 
         <div className="conf-session-info-card">
           <img src={expert.avatar || '/avatars/akash.jpg'} alt={expert.name || 'Mentor'} className="conf-avatar" />
@@ -72,16 +72,22 @@ export const ConfirmedView: React.FC = () => {
                   <span className="conf-cv-synced-badge">
                     <CheckCircle2 size={12} /> Latest CV Synced
                   </span>
-                ) : (
+                ) : currentCv ? (
                   <span className="conf-cv-old-badge">
                     ⚠️ Last updated ~1 yr ago
+                  </span>
+                ) : (
+                  <span className="conf-cv-old-badge">
+                    No Resume Attached
                   </span>
                 )}
               </div>
               <p className="conf-cv-desc">
                 {isRecentlySynced 
                   ? `Your updated resume (${currentCv}) is loaded into ${expert.name}'s Zero-Prep Dossier.`
-                  : `Currently attached: "${currentCv}". Want ${expert.name} to see your newest projects before the live call?`}
+                  : currentCv
+                    ? `Currently attached: "${currentCv}". Want ${expert.name} to see your newest projects before the live call?`
+                    : `No resume attached yet. Upload your latest CV so ${expert.name} can review your tech background before the call.`}
               </p>
             </div>
           </div>

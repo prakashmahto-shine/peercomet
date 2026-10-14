@@ -7,7 +7,7 @@ import { useApp } from '../../context/AppContext';
 import { BRAND } from '../../config/brand';
 
 export const PaymentView: React.FC = () => {
-  const { bookingDraft, navigate, bookSession, selectedExpert, userProfile, setIsBookingModalOpen } = useApp();
+  const { bookingDraft, navigate, bookSession, selectedExpert, userProfile, setIsBookingModalOpen, currentUser } = useApp();
   const expert = bookingDraft.expert || selectedExpert || {
     id: 'deepika-pm',
     name: 'Deepika Sen',
@@ -119,11 +119,11 @@ export const PaymentView: React.FC = () => {
           </div>
           <div className="rzp-brief-row">
             <span className="rzp-brief-lbl">Candidate</span>
-            <span className="rzp-brief-val">{userProfile?.name || 'Prakash Kumar'}</span>
+            <span className="rzp-brief-val">{currentUser?.name || userProfile?.name || 'Candidate'}</span>
           </div>
           <div className="rzp-brief-row">
             <span className="rzp-brief-lbl">Invite Sent To</span>
-            <span className="rzp-brief-val font-mono">{userProfile?.email || 'prakash.mahto@gmail.com'}</span>
+            <span className="rzp-brief-val font-mono">{currentUser?.email || userProfile?.email || 'your registered email'}</span>
           </div>
         </div>
 

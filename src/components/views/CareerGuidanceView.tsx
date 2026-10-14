@@ -475,13 +475,13 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
 
               {/* Main Heading & Candidate Subtitle */}
               <h1 className="phb-title">
-                Targeted Mentors for {userProfile.name || 'Prakash Mahto'}
+                Targeted Mentors for {userProfile.name || currentUser?.name || 'Your Career Goal'}
               </h1>
               <div className="phb-role-subtitle">
                 <span>Targeting: <strong>{userTargetRole}</strong> @ <strong>{userDreamCompany}</strong></span>
                 <span className="phb-subtitle-dot">•</span>
                 <span className="phb-current-role-inline">
-                  {(userProfile.headline ? userProfile.headline.split('|')[0].split('•')[0].split('@')[0].trim() : 'Senior Software Engineer')} @ {userCurrentCompany}
+                  {(userProfile.headline ? userProfile.headline.split('|')[0].split('•')[0].split('@')[0].trim() : 'Tech Professional')} @ {userCurrentCompany}
                 </span>
               </div>
 
@@ -495,8 +495,8 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
             <div className="phb-right-avatar-showcase">
               <div className="phb-avatar-showcase-ring">
                 <img
-                  src={currentUser?.avatar || '/avatars/prakash.jpg'}
-                  alt={userProfile.name || 'Prakash Mahto'}
+                  src={currentUser?.avatar || userProfile.avatar || '/brand/android-chrome-192x192.png'}
+                  alt={userProfile.name || currentUser?.name || 'Candidate'}
                   className="phb-avatar-showcase-img"
                 />
                 <span className="phb-verified-avatar-badge-large" title="Verified Candidate Profile">

@@ -143,7 +143,7 @@ export const ProfileView: React.FC = () => {
             <div className="phc-top-row">
               <div className="phc-avatar-wrap">
                 <img 
-                  src={currentUser?.avatar || (userProfile.isMentor ? '/avatars/akash.jpg' : '/avatars/prakash.jpg')} 
+                  src={currentUser?.avatar || userProfile?.avatar || (userProfile.isMentor ? '/avatars/akash.jpg' : '/brand/android-chrome-192x192.png')} 
                   alt={userProfile.name} 
                   className="phc-avatar-img"
                 />
@@ -164,31 +164,45 @@ export const ProfileView: React.FC = () => {
 
                 {/* Quick Meta Pills */}
                 <div className="phc-meta-pills-row">
-                  <span className="phc-meta-pill">
-                    <Building2 size={13} /> {userProfile.currentCompany || 'TCS'}
-                  </span>
-                  <span className="phc-meta-pill">
-                    <Briefcase size={13} /> {userProfile.experienceYears || '4.2 Years Exp'}
-                  </span>
-                  <span className="phc-meta-pill">
-                    <MapPin size={13} /> {userProfile.location || 'Bengaluru, India'}
-                  </span>
-                  <span className="phc-meta-pill">
-                    <GraduationCap size={13} /> {userProfile.educationDegree?.split('-')[0]?.trim() || 'B.Tech CSE'}
-                  </span>
+                  {userProfile.currentCompany && (
+                    <span className="phc-meta-pill">
+                      <Building2 size={13} /> {userProfile.currentCompany}
+                    </span>
+                  )}
+                  {userProfile.experienceYears && (
+                    <span className="phc-meta-pill">
+                      <Briefcase size={13} /> {userProfile.experienceYears}
+                    </span>
+                  )}
+                  {userProfile.location && (
+                    <span className="phc-meta-pill">
+                      <MapPin size={13} /> {userProfile.location}
+                    </span>
+                  )}
+                  {userProfile.educationDegree && (
+                    <span className="phc-meta-pill">
+                      <GraduationCap size={13} /> {userProfile.educationDegree.split('-')[0]?.trim()}
+                    </span>
+                  )}
                 </div>
 
                 {/* Contact Verification Row */}
                 <div className="phc-contact-row">
-                  <span className="phc-contact-item">
-                    <Phone size={13} className="text-emerald" /> {userProfile.phone || '+91 98765 43210'}
-                    <Check size={12} className="text-emerald" />
-                  </span>
-                  <span className="phc-contact-sep">•</span>
-                  <span className="phc-contact-item">
-                    <Mail size={13} className="text-emerald" /> {userProfile.email || 'prakash.mahto@gmail.com'}
-                    <Check size={12} className="text-emerald" />
-                  </span>
+                  {userProfile.phone && (
+                    <span className="phc-contact-item">
+                      <Phone size={13} className="text-emerald" /> {userProfile.phone}
+                      <Check size={12} className="text-emerald" />
+                    </span>
+                  )}
+                  {userProfile.phone && (userProfile.email || currentUser?.email) && (
+                    <span className="phc-contact-sep">•</span>
+                  )}
+                  {(userProfile.email || currentUser?.email) && (
+                    <span className="phc-contact-item">
+                      <Mail size={13} className="text-emerald" /> {userProfile.email || currentUser?.email}
+                      <Check size={12} className="text-emerald" />
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -232,36 +246,38 @@ export const ProfileView: React.FC = () => {
                 </button>
               </div>
 
-              <div className="resume-preview-row">
-                <div className="rpr-icon-box">
-                  <FileText size={28} className="text-red" />
-                </div>
-                <div className="rpr-details">
-                  <strong className="rpr-filename">
-                    {userProfile.resumeFileName || 'Prakash_Mahto_Frontend_Resume.pdf'}
-                  </strong>
-                  <div className="rpr-meta">
-                    <span>Uploaded: {userProfile.resumeLastUpdated || 'Synced recently'}</span>
-                    <span className="rpr-ats-pill">✨ 85% ATS Match for {userProfile.targetCtc || '₹18L+'}</span>
+              {userProfile.resumeFileName ? (
+                <div className="resume-preview-row">
+                  <div className="rpr-icon-box">
+                    <FileText size={28} className="text-red" />
                   </div>
-                </div>
+                  <div className="rpr-details">
+                    <strong className="rpr-filename">
+                      {userProfile.resumeFileName}
+                    </strong>
+                    <div className="rpr-meta">
+                      <span>Uploaded: {userProfile.resumeLastUpdated || 'Synced recently'}</span>
+                      {userProfile.targetCtc && (
+                        <span className="rpr-ats-pill">✨ ATS Match for {userProfile.targetCtc}</span>
+                      )}
+                    </div>
+                  </div>
 
-                <div className="rpr-actions">
-                  <button 
-                    className="rpr-btn-icon" 
-                    title="Download Resume"
-                    onClick={() => alert('Downloading resume...')}
-                  >
-                    <Download size={15} />
-                  </button>
-                  <button 
-                    className="rpr-btn-icon text-purple" 
-                    title="AI Sync with Shine Profile"
-                    onClick={() => setIsCvSyncModalOpen(true)}
-                  >
-                    <Sparkles size={15} />
-                  </button>
-                  {userProfile.resumeFileName && (
+                  <div className="rpr-actions">
+                    <button 
+                      className="rpr-btn-icon" 
+                      title="Download Resume"
+                      onClick={() => alert('Downloading resume...')}
+                    >
+                      <Download size={15} />
+                    </button>
+                    <button 
+                      className="rpr-btn-icon text-purple" 
+                      title="AI Sync with Shine Profile"
+                      onClick={() => setIsCvSyncModalOpen(true)}
+                    >
+                      <Sparkles size={15} />
+                    </button>
                     <button 
                       className="rpr-btn-icon text-red" 
                       title="Delete Resume"
@@ -273,9 +289,18 @@ export const ProfileView: React.FC = () => {
                     >
                       <Trash2 size={15} />
                     </button>
-                  )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div style={{ padding: '24px 20px', textAlign: 'center', background: '#f8fafc', borderRadius: '10px', border: '1px dashed #cbd5e1' }}>
+                  <FileText size={30} style={{ color: '#94a3b8', margin: '0 auto 8px', display: 'block' }} />
+                  <p style={{ margin: '0 0 6px', color: '#334155', fontWeight: 600, fontSize: '14px' }}>No resume uploaded yet</p>
+                  <p style={{ margin: '0 0 14px', color: '#64748b', fontSize: '13px' }}>Upload your latest CV to calibrate AI match with top recruiters & mentors.</p>
+                  <button className="btn-card-action" onClick={() => setIsCvSyncModalOpen(true)} style={{ margin: '0 auto', display: 'inline-flex', padding: '6px 14px' }}>
+                    <Upload size={13} /> Upload Resume
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Key Skills Inventory Card */}
@@ -350,19 +375,19 @@ export const ProfileView: React.FC = () => {
               <div className="wp-details-grid">
                 <div className="wp-info-cell">
                   <span className="wp-cell-label">Current Role</span>
-                  <strong>{userProfile.headline?.split('|')[0] || 'Senior Frontend Engineer'}</strong>
+                  <strong>{userProfile.headline?.split('|')[0]?.trim() || userProfile.headline || 'Not specified'}</strong>
                 </div>
                 <div className="wp-info-cell">
                   <span className="wp-cell-label">Current Company</span>
-                  <strong>{userProfile.currentCompany || 'TCS (Tech Services)'}</strong>
+                  <strong>{userProfile.currentCompany || 'Not specified'}</strong>
                 </div>
                 <div className="wp-info-cell">
                   <span className="wp-cell-label">Experience</span>
-                  <strong>{userProfile.experienceYears || '4 Years, 2 Months'}</strong>
+                  <strong>{userProfile.experienceYears || 'Not specified'}</strong>
                 </div>
                 <div className="wp-info-cell">
                   <span className="wp-cell-label">Current Compensation</span>
-                  <strong className="text-emerald">{userProfile.currentCtc || '₹5.5 LPA'}</strong>
+                  <strong className={userProfile.currentCtc ? "text-emerald" : ""}>{userProfile.currentCtc || 'Not specified'}</strong>
                 </div>
               </div>
 
@@ -383,19 +408,25 @@ export const ProfileView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="edu-item-row">
-                <div className="edu-icon-box">
-                  🎓
+              {userProfile.educationDegree || userProfile.educationCollege ? (
+                <div className="edu-item-row">
+                  <div className="edu-icon-box">
+                    🎓
+                  </div>
+                  <div className="edu-details">
+                    <strong className="edu-title">
+                      {userProfile.educationDegree || 'Degree not specified'}
+                    </strong>
+                    <span className="edu-institution">
+                      {userProfile.educationCollege || 'Institution not specified'}
+                    </span>
+                  </div>
                 </div>
-                <div className="edu-details">
-                  <strong className="edu-title">
-                    {userProfile.educationDegree || 'B.Tech / B.E - Computer Science & Engineering'}
-                  </strong>
-                  <span className="edu-institution">
-                    {userProfile.educationCollege || 'Jaipur Engineering College And Research Centre (RTU)'}
-                  </span>
+              ) : (
+                <div style={{ padding: '18px 16px', color: '#64748b', fontSize: '13px' }}>
+                  No education details added yet. Click <strong>Edit Profile</strong> to add your degree and college.
                 </div>
-              </div>
+              )}
             </div>
 
           </div>
@@ -420,14 +451,14 @@ export const ProfileView: React.FC = () => {
               <div className="current-status-display-box">
                 <span className="csd-label">Current Status:</span>
                 <div className="csd-val-row">
-                  <strong className="csd-value">{userProfile.jobSearchStatus || 'Serving Notice Period (30 Days)'}</strong>
+                  <strong className="csd-value">{userProfile.jobSearchStatus || 'Actively Looking'}</strong>
                 </div>
               </div>
 
               <button 
                 className="btn-spc-change-status"
                 onClick={() => {
-                  setSelectedStatus(userProfile.jobSearchStatus || 'Serving Notice Period (30 Days)');
+                  setSelectedStatus(userProfile.jobSearchStatus || 'Actively Looking');
                   setShowJobStatusModal(true);
                 }}
               >
@@ -465,13 +496,21 @@ export const ProfileView: React.FC = () => {
               </div>
 
               <div className="readiness-checklist">
-                <div className="rc-item done">
-                  <CheckCircle2 size={14} className="text-emerald" />
-                  <span>Resume Synced with Shine ATS</span>
+                <div className={`rc-item ${userProfile.resumeFileName ? 'done' : 'pending'}`}>
+                  {userProfile.resumeFileName ? (
+                    <CheckCircle2 size={14} className="text-emerald" />
+                  ) : (
+                    <span className="rc-pending-dot" />
+                  )}
+                  <span>{userProfile.resumeFileName ? 'Resume Synced with Shine ATS' : 'Upload Resume for ATS Sync'}</span>
                 </div>
-                <div className="rc-item done">
-                  <CheckCircle2 size={14} className="text-emerald" />
-                  <span>2 Peer-Verified Skill Badges Earned</span>
+                <div className={`rc-item ${(userProfile.badges?.length || 0) > 0 ? 'done' : 'pending'}`}>
+                  {(userProfile.badges?.length || 0) > 0 ? (
+                    <CheckCircle2 size={14} className="text-emerald" />
+                  ) : (
+                    <span className="rc-pending-dot" />
+                  )}
+                  <span>{(userProfile.badges?.length || 0)} Peer-Verified Skill Badges Earned</span>
                 </div>
                 <div className="rc-item pending">
                   <span className="rc-pending-dot" />

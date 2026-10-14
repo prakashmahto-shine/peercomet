@@ -18,7 +18,7 @@ export const TrajectoryCalibrationModal: React.FC = () => {
   const [dreamCompany, setDreamCompany] = useState<string>('');
   const [targetTrack, setTargetTrack] = useState<string>('Full-stack');
   const [customTargetRole, setCustomTargetRole] = useState<string>('');
-  const [currentCtc, setCurrentCtc] = useState<string>('₹5.5 LPA');
+  const [currentCtc, setCurrentCtc] = useState<string>(userProfile?.currentCtc || '');
 
   // Reset form fields to clean state whenever modal opens (no prefilled last data)
   React.useEffect(() => {
@@ -28,7 +28,7 @@ export const TrajectoryCalibrationModal: React.FC = () => {
       setDreamCompany('');
       setCustomTargetRole('');
       setTargetTrack('Full-stack');
-      setCurrentCtc(userProfile?.currentCtc || '₹5.5 LPA');
+      setCurrentCtc(userProfile?.currentCtc || '');
     }
   }, [isCalibrationModalOpen]);
 

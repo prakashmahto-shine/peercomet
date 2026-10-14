@@ -149,21 +149,21 @@ export const CommunityView: React.FC = () => {
               <div className="lpc-banner" />
               <div className="lpc-avatar-container">
                 <img 
-                  src={currentUser?.avatar || userProfile.avatar || '/avatars/prakash.jpg'} 
+                  src={currentUser?.avatar || userProfile.avatar || '/brand/android-chrome-192x192.png'} 
                   alt={currentUser?.name || userProfile.name || 'User'} 
                   className="lpc-avatar" 
                 />
               </div>
 
               <div className="lpc-body">
-                <h4 className="lpc-name">{currentUser?.name || userProfile.name || 'Prakash Mahto'}</h4>
+                <h4 className="lpc-name">{currentUser?.name || userProfile.name || 'Community Member'}</h4>
                 <p className="lpc-headline">
-                  {userProfile.headline || currentUser?.headline || 'Senior Frontend Engineer | React.js, TypeScript, Next.js UI Architect'}
+                  {userProfile.headline || currentUser?.headline || 'Tech Professional'}
                 </p>
                 <div className="lpc-company-loc">
-                  <span>🏢 {userProfile.currentCompany || 'TCS'}</span>
-                  <span>•</span>
-                  <span>📍 {userProfile.location || 'Bengaluru'}</span>
+                  {userProfile.currentCompany && <span>🏢 {userProfile.currentCompany}</span>}
+                  {userProfile.currentCompany && userProfile.location && <span>•</span>}
+                  {userProfile.location && <span>📍 {userProfile.location}</span>}
                 </div>
               </div>
 
@@ -708,7 +708,7 @@ export const CommunityView: React.FC = () => {
                           {/* New Comment Input */}
                           <div className="comment-composer-row">
                             <img 
-                              src={currentUser?.avatar || '/avatars/prakash.jpg'} 
+                              src={currentUser?.avatar || userProfile.avatar || '/brand/android-chrome-192x192.png'} 
                               alt={currentUser?.name || 'User'} 
                               className="comment-user-avatar" 
                             />

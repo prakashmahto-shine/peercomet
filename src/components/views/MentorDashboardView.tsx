@@ -261,7 +261,7 @@ export const MentorDashboardView: React.FC = () => {
     id: `rev-${s.id}`,
     candidateName: s.candidateName,
     candidateRole: s.candidateRole || 'Candidate',
-    candidateAvatar: s.candidateAvatar || '/avatars/prakash.jpg',
+    candidateAvatar: s.candidateAvatar || '/brand/android-chrome-192x192.png',
     rating: s.candidateRating || 0,
     date: s.date,
     sessionType: s.sessionType || '1:1 Mentorship Session',
@@ -887,7 +887,7 @@ export const MentorDashboardView: React.FC = () => {
                     <div className="msc-candidate-meta">
                       <div className="msc-avatar-wrap">
                         <img 
-                          src={sess.candidateAvatar || '/avatars/prakash.jpg'} 
+                          src={sess.candidateAvatar || '/brand/android-chrome-192x192.png'} 
                           alt={sess.candidateName} 
                           className="msc-candidate-avatar"
                         />
@@ -987,7 +987,7 @@ export const MentorDashboardView: React.FC = () => {
                   <div className="msc-card-top-row">
                     <div className="msc-candidate-meta">
                       <div className="msc-avatar-wrap">
-                        <img src={sess.candidateAvatar || '/avatars/prakash.jpg'} alt={sess.candidateName} className="msc-candidate-avatar" />
+                        <img src={sess.candidateAvatar || '/brand/android-chrome-192x192.png'} alt={sess.candidateName} className="msc-candidate-avatar" />
                         <span className="msc-avatar-badge-done">✓</span>
                       </div>
                       <div className="msc-candidate-info">

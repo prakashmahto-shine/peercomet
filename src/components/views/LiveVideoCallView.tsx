@@ -24,7 +24,7 @@ export const LiveVideoCallView: React.FC = () => {
 
   const isMentor = isCreatorMode || currentUser?.role === 'mentor';
   const expert = activeSession?.expert || selectedExpert;
-  const candidateName = activeSession?.candidateName || userProfile?.name || 'Prakash Mahto';
+  const candidateName = activeSession?.candidateName || userProfile?.name || currentUser?.name || 'Candidate';
   const candidateRole = activeSession?.candidateRole || 'Senior Frontend Engineer';
 
   const sessionId = activeSession?.id || `sess-${expert.id || 'mentor'}-live`;
@@ -157,10 +157,10 @@ export const LiveVideoCallView: React.FC = () => {
         // 3. Connect to room
         await service.joinRoom({
           roomId,
-          userId: currentUser?.id || (isMentor ? expert.id : 'prakash'),
-          userName: isMentor ? expert.name : (userProfile?.name || 'Prakash Mahto'),
+          userId: currentUser?.id || (isMentor ? expert.id : 'candidate'),
+          userName: isMentor ? expert.name : (currentUser?.name || userProfile?.name || 'Candidate'),
           userRole: isMentor ? 'mentor' : 'candidate',
-          avatar: isMentor ? expert.avatar : (currentUser?.avatar || '/avatars/prakash.jpg'),
+          avatar: isMentor ? expert.avatar : (currentUser?.avatar || '/brand/android-chrome-192x192.png'),
           localStream: stream || undefined
         });
 
@@ -421,7 +421,7 @@ export const LiveVideoCallView: React.FC = () => {
 
   const otherParticipantName = isMentor ? candidateName : expert.name;
   const otherParticipantRole = isMentor ? candidateRole : `${expert.role} • ${expert.company}`;
-  const otherParticipantAvatar = isMentor ? (activeSession?.candidateAvatar || '/avatars/prakash.jpg') : expert.avatar;
+  const otherParticipantAvatar = isMentor ? (activeSession?.candidateAvatar || '/brand/android-chrome-192x192.png') : expert.avatar;
 
   return (
     <div className="video-call-fullscreen-wrapper">
@@ -535,7 +535,7 @@ export const LiveVideoCallView: React.FC = () => {
           ) : cameraError ? (
             <>
               <img 
-                src={currentUser?.avatar || '/avatars/prakash.jpg'} 
+                src={currentUser?.avatar || '/brand/android-chrome-192x192.png'} 
                 alt="Candidate Feed" 
                 className="feed-bg-img" 
               />

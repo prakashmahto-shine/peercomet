@@ -27,27 +27,28 @@ export const UpdateProfileModal: React.FC = () => {
     pendingBookingCheckout,
     setPendingBookingCheckout,
     bookingDraft,
+    currentUser,
     navigate,
     showToast 
   } = useApp();
 
   // Form states
-  const [avatarPreview, setAvatarPreview] = useState<string>(userProfile.avatar || '/avatars/prakash.jpg');
-  const [totalExperience, setTotalExperience] = useState<string>(userProfile.experienceYears || '4 yrs');
-  const [noticePeriod, setNoticePeriod] = useState<string>(userProfile.noticePeriod || '2+ Months');
-  const [currentCtc, setCurrentCtc] = useState<string>(userProfile.currentCtc || '5.5 Lacs');
-  const [expectedCtc, setExpectedCtc] = useState<string>(userProfile.expectedCtc || '66-70 Lacs');
+  const [avatarPreview, setAvatarPreview] = useState<string>(userProfile.avatar || currentUser?.avatar || '/brand/android-chrome-192x192.png');
+  const [totalExperience, setTotalExperience] = useState<string>(userProfile.experienceYears || '');
+  const [noticePeriod, setNoticePeriod] = useState<string>(userProfile.noticePeriod || '');
+  const [currentCtc, setCurrentCtc] = useState<string>(userProfile.currentCtc || '');
+  const [expectedCtc, setExpectedCtc] = useState<string>(userProfile.expectedCtc || '');
   const [currentlyNotWorking, setCurrentlyNotWorking] = useState<boolean>(Boolean(userProfile.currentlyNotWorking));
-  const [location, setLocation] = useState<string>(userProfile.location || 'Gurgaon');
-  const [currentCompany, setCurrentCompany] = useState<string>(userProfile.currentCompany || 'TCS');
-  const [designation, setDesignation] = useState<string>(userProfile.designation || userProfile.headline || 'Senior frontend developer');
-  const [startDate, setStartDate] = useState<string>(userProfile.startDate || 'Aug 2022');
+  const [location, setLocation] = useState<string>(userProfile.location || '');
+  const [currentCompany, setCurrentCompany] = useState<string>(userProfile.currentCompany || '');
+  const [designation, setDesignation] = useState<string>(userProfile.designation || userProfile.headline || '');
+  const [startDate, setStartDate] = useState<string>(userProfile.startDate || '');
   const [jobSearchStatus, setJobSearchStatus] = useState<'Actively Looking' | 'Casually Exploring'>(
     userProfile.jobSearchStatus === 'Casually Exploring Jobs' ? 'Casually Exploring' : 'Actively Looking'
   );
 
   // Resume & Loader states
-  const [resumeFileName, setResumeFileName] = useState<string>(userProfile.resumeFileName || 'resume (1).pdf');
+  const [resumeFileName, setResumeFileName] = useState<string>(userProfile.resumeFileName || '');
   const [isUploadingResume, setIsUploadingResume] = useState<boolean>(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [uploadStageIndex, setUploadStageIndex] = useState<number>(0);
@@ -57,11 +58,7 @@ export const UpdateProfileModal: React.FC = () => {
   const [parseBannerMessage, setParseBannerMessage] = useState<string | null>(null);
 
   // Skills states
-  const [skillsList, setSkillsList] = useState<string[]>(
-    userProfile.skills && userProfile.skills.length > 0 
-      ? userProfile.skills 
-      : ['Node.Js', 'Css', 'React.Js', 'Javascript']
-  );
+  const [skillsList, setSkillsList] = useState<string[]>(userProfile.skills || []);
   const [recommendedSkills, setRecommendedSkills] = useState<string[]>(
     DEFAULT_RECOMMENDED_SKILLS.filter(s => !(userProfile.skills || []).includes(s))
   );
@@ -90,30 +87,26 @@ export const UpdateProfileModal: React.FC = () => {
   useEffect(() => {
     if (isUpdateProfileModalOpen) {
       clearUploadTimers();
-      setAvatarPreview(userProfile.avatar || '/avatars/prakash.jpg');
-      setTotalExperience(userProfile.experienceYears || '4 yrs');
-      setNoticePeriod(userProfile.noticePeriod || '2+ Months');
-      setCurrentCtc(userProfile.currentCtc || '5.5 Lacs');
-      setExpectedCtc(userProfile.expectedCtc || '66-70 Lacs');
+      setAvatarPreview(userProfile.avatar || currentUser?.avatar || '/brand/android-chrome-192x192.png');
+      setTotalExperience(userProfile.experienceYears || '');
+      setNoticePeriod(userProfile.noticePeriod || '');
+      setCurrentCtc(userProfile.currentCtc || '');
+      setExpectedCtc(userProfile.expectedCtc || '');
       setCurrentlyNotWorking(Boolean(userProfile.currentlyNotWorking));
-      setLocation(userProfile.location || 'Gurgaon');
-      setCurrentCompany(userProfile.currentCompany || 'TCS');
-      setDesignation(userProfile.designation || userProfile.headline || 'Senior frontend developer');
-      setStartDate(userProfile.startDate || 'Aug 2022');
+      setLocation(userProfile.location || '');
+      setCurrentCompany(userProfile.currentCompany || '');
+      setDesignation(userProfile.designation || userProfile.headline || '');
+      setStartDate(userProfile.startDate || '');
       setJobSearchStatus(
         userProfile.jobSearchStatus === 'Casually Exploring Jobs' ? 'Casually Exploring' : 'Actively Looking'
       );
-      setResumeFileName(userProfile.resumeFileName || 'resume (1).pdf');
+      setResumeFileName(userProfile.resumeFileName || '');
       setIsUploadingResume(false);
       setUploadProgress(0);
       setUploadStageIndex(0);
       setUploadStatusText('');
       setUploadedFileSize('');
-      setSkillsList(
-        userProfile.skills && userProfile.skills.length > 0 
-          ? userProfile.skills 
-          : ['Node.Js', 'Css', 'React.Js', 'Javascript']
-      );
+      setSkillsList(userProfile.skills || []);
       setHighlightedMissingFields([]);
       setParseBannerMessage(null);
     }
@@ -181,7 +174,7 @@ export const UpdateProfileModal: React.FC = () => {
       setUploadStatusText(`Validating extracted profile data & auto-filling form (92%)...`);
 
       try {
-        const textSample = `${file.name.replace(/[^a-zA-Z0-9]/g, ' ')} React.js TypeScript Next.js Node.js CSS JavaScript Senior Frontend Developer 4 years Gurgaon TCS 5.5 Lacs`;
+        const textSample = `${file.name.replace(/[^a-zA-Z0-9]/g, ' ')} ${(userProfile.skills || []).join(' ')} ${userProfile.headline || ''}`;
         const parsed = await peerpathApi.parseCv(textSample, { fileName: file.name, fileSize: file.size });
 
         const t4 = setTimeout(() => {
@@ -193,7 +186,7 @@ export const UpdateProfileModal: React.FC = () => {
 
             // Pre-fill extracted fields
             if (parsed.estimatedExperience) {
-              setTotalExperience(parsed.estimatedExperience.replace('Exp.', '').trim() || '4 yrs');
+              setTotalExperience(parsed.estimatedExperience.replace('Exp.', '').trim() || '');
             }
             if (parsed.parsedSkills && parsed.parsedSkills.length > 0) {
               const formattedSkills = parsed.parsedSkills.map(s => 

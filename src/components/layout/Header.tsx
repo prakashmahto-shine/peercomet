@@ -403,7 +403,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="myshine-user-flyout-card">
                   <div className="flyout-user-header">
                     <strong>{currentUser.name}</strong>
-                    <span>{currentUser.email || (userProfile?.email || 'prakash.mahto@gmail.com')}</span>
+                    <span>{currentUser.email || userProfile?.email || ''}</span>
                   </div>
 
                   <div className="flyout-divider"></div>
