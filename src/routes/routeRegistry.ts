@@ -159,6 +159,16 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     requiresAuth: true
   },
   {
+    id: 'become-mentor',
+    name: 'Become a Verified Mentor',
+    path: '/become-a-mentor',
+    aliases: ['/become-mentor', '/join-as-mentor', '/creator-signup'],
+    view: 'become-mentor-view',
+    title: `Become a Mentor: 0% Platform Commission | ${BRAND.name}`,
+    description: 'Host 1:1 career guidance calls, monetize your experience, and guide ambitious engineers',
+    category: 'mentor'
+  },
+  {
     id: 'login-auth',
     name: 'Sign In / Sign Up',
     path: '/login',

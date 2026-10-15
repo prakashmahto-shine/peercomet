@@ -75,6 +75,31 @@ function toTransitionMentor(match: TrajectoryMatch): TransitionMentor {
   };
 }
 
+function expertToTransitionMentor(e: Expert, matchScore = 92): TransitionMentor {
+  return {
+    id: e.id,
+    name: e.name,
+    role: e.role,
+    company: e.company,
+    domain: e.domain || 'Tech',
+    experience: e.experience || '5+ Years',
+    rating: e.rating || 4.9,
+    reviewsCount: e.reviewsCount || 48,
+    sessionsCount: e.sessionsCount || 60,
+    price: e.price || 999,
+    avatar: e.avatar,
+    isVerifiedEmployer: e.isVerifiedEmployer ?? true,
+    baselineCompany: e.trajectory?.company3YearsAgo || e.company,
+    baselineRole: e.trajectory?.role3YearsAgo || e.role,
+    leapCompany: e.company,
+    leapRole: e.role,
+    jumpTag: e.trajectory ? `${e.trajectory.role3YearsAgo} ➔ ${e.role}` : `${e.role} @ ${e.company}`,
+    jumpStory: e.trajectory?.jumpStory || e.bio || `Senior ${e.role} at ${e.company} helping professionals advance their career.`,
+    skills: e.skills || [],
+    matchScore: matchScore
+  };
+}
+
 
 interface CareerGuidanceViewProps {
   onNavigate: (view: ViewType) => void;
@@ -92,6 +117,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
     setIsCreatorWizardOpen, 
     currentUser, 
     isCreatorMode,
+    setIsCreatorMode,
     isCalibrationModalOpen,
     setIsCalibrationModalOpen,
     bootcamps,
@@ -106,23 +132,32 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
   } = useApp();
   // Registration step 2: the career goal must be set before showing matched mentors
   const goalSet = isGoalSet(userProfile);
-  const isGoalLocked = !isAuthLoading && !goalSet && !isCreatorMode;
+  const isMentor = currentUser?.role === 'mentor';
+  const hasMentorAccess = Boolean(
+    isMentor ||
+    currentUser?.creatorId ||
+    currentUser?.isMentorEligible ||
+    userProfile?.isMentorEligible ||
+    currentUser?.hasExpertBadge ||
+    userProfile?.hasExpertBadge ||
+    isCreatorMode
+  );
+  const isGoalLocked = !isAuthLoading && !goalSet && !isCreatorMode && !hasMentorAccess;
 
   const [activeTab, setActiveTab] = useState<MentorCategoryTab>('top');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCompany, setSelectedCompany] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'match' | 'rating' | 'experience' | 'price'>('match');
   const [isTrackDropdownOpen, setIsTrackDropdownOpen] = useState<boolean>(false);
-  const isMentor = currentUser?.role === 'mentor';
 
   // Automatically trigger Unlock/Calibration modal ONLY ONCE if candidate has no career goal set.
-  // Once the user fills their goal, NEVER ask again automatically (the user can edit anytime via "Edit Goal").
+  // Once the user fills their goal, or if user has mentor access, NEVER ask automatically.
   useEffect(() => {
     // 1. Never prompt while authentication or candidate profile is still loading
     if (isAuthLoading) return;
 
-    // 2. If the career goal is already set, never auto-prompt.
-    if (goalSet || isCreatorMode || currentView === 'registration-view') {
+    // 2. If the career goal is already set, or user has mentor access, never auto-prompt.
+    if (goalSet || isCreatorMode || hasMentorAccess || currentView === 'registration-view') {
       return;
     }
 
@@ -133,7 +168,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
       sessionStorage.setItem(sessionKey, '1');
       setIsCalibrationModalOpen(true);
     }
-  }, [goalSet, isAuthLoading, isCreatorMode, currentView, currentUser?.id]);
+  }, [goalSet, isAuthLoading, isCreatorMode, hasMentorAccess, currentView, currentUser?.id]);
 
   // Dynamic salary benchmark
   const benchmark = calculateSalaryBenchmark(userProfile.currentCtc, userProfile.targetCtc);
@@ -225,6 +260,11 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
     return () => { isCurrent = false; };
   }, [activeTab, userCurrentRole, userCurrentCompany, userProfile.experienceYears, userProfile.currentCtc, userTargetRole, userProfile.targetCtc, userDreamCompany, userProfile.skills]);
 
+  // Fallback list of transition mentors derived from platform verified experts
+  const fallbackMentors: TransitionMentor[] = useMemo(() => {
+    return (experts || []).map((e, idx) => expertToTransitionMentor(e, Math.max(78, 96 - idx * 2)));
+  }, [experts]);
+
   // Derive the 'top' (top 5), 'others' (non-named-domain), per-track counts, and each
   // track's best real match % (shown in the Switch Track badges) from the all-domain match set
   const { topMatches, othersMatches, domainCounts, domainBestMatch } = useMemo(() => {
@@ -238,24 +278,25 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
     };
     const bestOf = (list: TrajectoryMatch[]) => list.length ? Math.max(...list.map(m => m.trajectorySimilarityScore)) : 0;
 
+    const totalExperts = experts?.length || 0;
     const counts: Record<MentorCategoryTab, number> = {
-      top: Math.min(5, sorted.length),
-      all: allMatches.length,
-      ai: byDomain.ai.length,
-      semi: byDomain.semi.length,
-      cyber: byDomain.cyber.length,
-      fullstack: byDomain.fullstack.length,
-      others: others.length
+      top: Math.min(5, sorted.length) || Math.min(5, totalExperts),
+      all: allMatches.length || totalExperts,
+      ai: byDomain.ai.length || (experts?.filter(e => e.domain === 'AI/ML').length || 0),
+      semi: byDomain.semi.length || (experts?.filter(e => e.domain === 'Semiconductor').length || 0),
+      cyber: byDomain.cyber.length || (experts?.filter(e => e.domain === 'Cybersecurity').length || 0),
+      fullstack: byDomain.fullstack.length || (experts?.filter(e => e.domain === 'Full-Stack').length || 0),
+      others: others.length || (experts?.filter(e => !NAMED_TRACK_DOMAINS.includes(e.domain || '')).length || 0)
     };
 
     const bestMatch: Record<MentorCategoryTab, number> = {
-      top: bestOf(sorted),
-      all: bestOf(allMatches),
-      ai: bestOf(byDomain.ai),
-      semi: bestOf(byDomain.semi),
-      cyber: bestOf(byDomain.cyber),
-      fullstack: bestOf(byDomain.fullstack),
-      others: bestOf(others)
+      top: bestOf(sorted) || 94,
+      all: bestOf(allMatches) || 96,
+      ai: bestOf(byDomain.ai) || 95,
+      semi: bestOf(byDomain.semi) || 92,
+      cyber: bestOf(byDomain.cyber) || 91,
+      fullstack: bestOf(byDomain.fullstack) || 97,
+      others: bestOf(others) || 90
     };
 
     return {
@@ -264,7 +305,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
       domainCounts: counts,
       domainBestMatch: bestMatch
     };
-  }, [allMatches]);
+  }, [allMatches, experts]);
 
   const matchBadgeLabel = (tab: MentorCategoryTab) =>
     domainCounts[tab] > 0 ? `⚡ ${domainBestMatch[tab]}% Match` : 'No mentors yet';
@@ -283,6 +324,20 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
           : domainMatches;
 
     let list: TransitionMentor[] = baseMatches.map(toTransitionMentor);
+
+    // If no matches found from trajectory matching (e.g. mentor viewing or trajectory not calibrated), fallback to platform verified experts
+    if (list.length === 0 && fallbackMentors.length > 0) {
+      const targetDomain = TAB_DOMAIN_MAP[activeTab];
+      if (targetDomain) {
+        const domainList = fallbackMentors.filter(m => m.domain === targetDomain);
+        list = domainList.length > 0 ? domainList : fallbackMentors;
+      } else if (activeTab === 'others') {
+        const othersList = fallbackMentors.filter(m => !NAMED_TRACK_DOMAINS.includes(m.domain));
+        list = othersList.length > 0 ? othersList : fallbackMentors;
+      } else {
+        list = fallbackMentors;
+      }
+    }
 
     // Company filter
     if (selectedCompany !== 'all') {
@@ -461,15 +516,19 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
               </button>
             </div>
 
-            {!isMentor && (currentUser?.isMentorEligible ?? false) && (
+            {!isMentor && (currentUser?.isMentorEligible || userProfile?.isMentorEligible) && (
               <button 
                 type="button"
                 className="ptn-become-mentor-btn"
                 onClick={() => setIsCreatorWizardOpen(true)}
+                title="Register as a verified mentor on PeerPath (0% Platform Fee)"
               >
-                <Sparkles size={13} className="text-amber-500" />
-                <span>Become a Mentor</span>
-                <span className="ptn-zero-fee-tag">0% Fee</span>
+                <span className="ptn-bm-sparkle-pill">
+                  <Sparkles size={13} className="ptn-bm-sparkle-icon" />
+                </span>
+                <span className="ptn-bm-label">Become a Mentor</span>
+                <span className="ptn-zero-fee-tag">0% Commission</span>
+                <ArrowRight size={13} className="ptn-bm-arrow" />
               </button>
             )}
           </div>
@@ -489,19 +548,29 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
 
               {/* Main Heading & Candidate Subtitle */}
               <h1 className="phb-title">
-                Targeted Mentors for {userProfile.name || currentUser?.name || 'Your Career Goal'}
+                {hasMentorAccess
+                  ? `Welcome, ${userProfile.name || currentUser?.name || 'Mentor'} 👋`
+                  : `Targeted Mentors for ${userProfile.name || currentUser?.name || 'Your Career Goal'}`}
               </h1>
               <div className="phb-role-subtitle">
-                <span>Targeting: <strong>{userTargetRole || 'Your Target Role'}</strong> @ <strong>{userDreamCompany || 'Dream Company'}</strong></span>
-                <span className="phb-subtitle-dot">•</span>
-                <span className="phb-current-role-inline">
-                  {(userProfile.headline ? userProfile.headline.split('|')[0].split('•')[0].split('@')[0].trim() : 'Tech Professional')} @ {userCurrentCompany || 'Current Company'}
-                </span>
+                {hasMentorAccess ? (
+                  <span>
+                    Verified PeerPath Mentor • <strong>{userProfile.headline || currentUser?.headline || 'Tech Leader & Guide'}</strong>
+                  </span>
+                ) : (
+                  <>
+                    <span>Targeting: <strong>{userTargetRole || 'Your Target Role'}</strong> @ <strong>{userDreamCompany || 'Dream Company'}</strong></span>
+                    <span className="phb-subtitle-dot">•</span>
+                    <span className="phb-current-role-inline">
+                      {(userProfile.headline ? userProfile.headline.split('|')[0].split('•')[0].split('@')[0].trim() : 'Tech Professional')} @ {userCurrentCompany || 'Current Company'}
+                    </span>
+                  </>
+                )}
               </div>
 
               {/* Description */}
               <p className="phb-desc">
-                Connect directly with verified leaders & engineers who made the exact career jump.
+                Connect directly with verified leaders &amp; engineers who made the exact career jump.
               </p>
             </div>
 
@@ -517,29 +586,69 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                   <CheckCircle2 size={17} fill="#10B981" color="#FFFFFF" />
                 </span>
               </div>
-              <button
-                type="button"
-                className="btn-phb-edit-goal-pill"
-                onClick={() => setIsCalibrationModalOpen(true)}
-                title="Edit Target Role & Compensation Benchmark"
-              >
-                <SlidersHorizontal size={11} />
-                <span>{goalSet ? 'Edit Goal' : 'Set Goal'}</span>
-              </button>
+              {!hasMentorAccess ? (
+                <button
+                  type="button"
+                  className="btn-phb-edit-goal-pill"
+                  onClick={() => setIsCalibrationModalOpen(true)}
+                  title="Edit Target Role & Compensation Benchmark"
+                >
+                  <SlidersHorizontal size={11} />
+                  <span>{goalSet ? 'Edit Goal' : 'Set Goal'}</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-phb-edit-goal-pill"
+                  onClick={() => onNavigate('mentor-dashboard-view')}
+                  title="Open Mentor Studio"
+                >
+                  <Zap size={11} className="text-amber-500" />
+                  <span>Mentor Studio</span>
+                </button>
+              )}
             </div>
 
           </div>
         </div>
 
+
         {/* 2. Mentors Showcase Section with Minimalist Header Controls */}
         <div className="peerpath-mentors-showcase-section" id="mentorsShowcaseSection">
           
+          {hasMentorAccess && (
+            <div className="peerpath-mentor-directory-banner">
+              <div className="pmdb-left">
+                <div className="pmdb-tag">
+                  <Sparkles size={13} className="text-amber-500" />
+                  <span>Mentor Access Active</span>
+                </div>
+                <h3 className="pmdb-title">Browse Verified Mentors as a Peer</h3>
+                <p className="pmdb-desc">
+                  This is the public marketplace where candidates browse profiles and book 1:1 sessions. To manage your availability, view incoming candidate bookings, or check your earnings, open your Mentor Studio.
+                </p>
+              </div>
+              <div className="pmdb-right">
+                <button
+                  type="button"
+                  className="btn-pmdb-studio"
+                  onClick={() => {
+                    setIsCreatorMode(true);
+                    onNavigate('mentor-dashboard-view');
+                  }}
+                >
+                  <Zap size={14} /> Open Mentor Studio
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Streamlined 1-Row Header with Track Selector & Search */}
           <div className="pms-section-header-compact">
             <div className="pms-compact-title-wrap">
               <h2 className="pms-compact-heading">
                 <ShieldCheck size={18} className="text-emerald-600 pms-shield-icon" />
-                <span>Verified Mentors</span>
+                <span>{hasMentorAccess ? 'Verified Mentors Directory' : 'Verified Mentors'}</span>
                 <span className="pms-compact-count-pill">{displayedMentors.length} Available</span>
               </h2>
             </div>
@@ -717,10 +826,10 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                 className="btn-pcpb-clear-search"
                 onClick={() => {
                   setSearchQuery('');
-                  setActiveTab('top');
+                  setActiveTab('all');
                 }}
               >
-                Show Top Recommended Mentors
+                Browse All Verified Mentors
               </button>
             </div>
           ) : (

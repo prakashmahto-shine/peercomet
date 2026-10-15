@@ -831,7 +831,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     const account = toAccount(me, profile);
     setCurrentUser(account);
-    setIsCreatorMode(me.isMentor);
+    const isMentor = Boolean(
+      me.isMentor ||
+      me.isMentorEligible ||
+      profile?.isMentorEligible ||
+      me.creatorId ||
+      account.hasExpertBadge
+    );
+    setIsCreatorMode(isMentor);
     return { account, profile };
   };
 
@@ -842,7 +849,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       .then(async me => {
         if (!isCurrent) return;
         if (me) {
-          await applySession(me);
+          const { profile } = await applySession(me);
+          const currentPath = window.location.pathname;
+          const isMentorUser = Boolean(
+            me.isMentor ||
+            me.isMentorEligible ||
+            profile?.isMentorEligible ||
+            me.creatorId
+          );
+          // If on root or default /peerpath, direct mentor users to their studio dashboard
+          if (isMentorUser && (currentPath === '/' || currentPath === '/peerpath') && !window.location.search.includes('redirect')) {
+            navigate('mentor-dashboard-view', '/creator-studio');
+          }
         } else {
           const currentPath = window.location.pathname;
           // If on admin URL, do not redirect to candidate login; admin-dashboard-view renders its own admin login portal
@@ -888,6 +906,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const campaign = urlParams.get('campaign') || urlParams.get('utm_campaign');
     const currentPath = window.location.pathname;
     const isAdminPath = currentPath === '/admin' || currentPath.startsWith('/admin/');
+    const isMentorUser = Boolean(
+      me.isMentor ||
+      me.isMentorEligible ||
+      profile?.isMentorEligible ||
+      me.creatorId
+    );
 
     if (isAdminPath) {
       if (me.isAdmin) {
@@ -900,7 +924,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } else if (!isProfileComplete(profile)) {
       // New users (and anyone with missing required details) finish registration first
       navigate('registration-view', '/register');
-    } else if (me.isMentor && !utmSource && !campaign) {
+    } else if (isMentorUser && !utmSource && !campaign) {
       navigate('mentor-dashboard-view', '/creator-studio');
     } else {
       // Normal candidate login always directs to /peerpath

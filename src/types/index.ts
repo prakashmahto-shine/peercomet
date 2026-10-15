@@ -49,7 +49,8 @@ export type ViewType =
   | 'mentor-dashboard-view'
   | 'login-view'
   | 'registration-view'
-  | 'admin-dashboard-view';
+  | 'admin-dashboard-view'
+  | 'become-mentor-view';
 
 export interface BookingDetails {
   expert: Expert;

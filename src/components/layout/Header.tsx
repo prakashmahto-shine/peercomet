@@ -48,6 +48,11 @@ export const Header: React.FC<HeaderProps> = ({
   const isAlreadyMentor = Boolean(
     currentUser?.role === 'mentor' || 
     userProfile?.isMentor || 
+    currentUser?.creatorId ||
+    currentUser?.isMentorEligible ||
+    userProfile?.isMentorEligible ||
+    currentUser?.hasExpertBadge ||
+    userProfile?.hasExpertBadge ||
     currentUser?.id === 'akash' ||
     (currentUser?.username && currentUser.username.toLowerCase() === 'akash')
   );
@@ -143,13 +148,13 @@ export const Header: React.FC<HeaderProps> = ({
                     {upcomingCount > 0 && <span className="flyout-count-pill" style={{ marginLeft: '4px' }}>{upcomingCount}</span>}
                   </button>
 
-                  {/* <button 
+                  <button 
                     className={`myshine-link ${currentView === 'experts-view' ? 'active' : ''}`} 
                     onClick={() => onNavigate('experts-view')}
-                    title="Browse All Mentors"
+                    title="Browse All Mentors & Peers"
                   >
-                    <Award size={15} /> Mentors Directory
-                  </button> */}
+                    <Award size={15} /> Peer Mentors
+                  </button>
 
                   <button 
                     className={`myshine-link ${currentView === 'community-view' ? 'active' : ''}`} 
@@ -230,37 +235,45 @@ export const Header: React.FC<HeaderProps> = ({
             </form>
           )}
 
-          {/* ⚡ DIRECT NAVBAR MENTOR STUDIO TOGGLE SWITCH (For users with Mentor Access, e.g. Akash & Nisha) */}
+          {/* ⚡ DIRECT NAVBAR MENTOR / SEEK GUIDANCE ROLE SWITCHER */}
           {currentUser && isAlreadyMentor && isPeerpathView && (
-            <div
-              className={`navbar-creator-toggle-control ${isCreatorMode ? 'is-on' : 'is-off'}`}
-              onClick={() => {
-                const nextMode = !isCreatorMode;
-                setIsCreatorMode(nextMode);
-                showToast(
-                  nextMode ? '⚡ Mentor Studio Mode Activated' : '👤 Switched to Candidate View',
-                  nextMode ? 'Opening Mentor Studio dashboard & bookings.' : 'Switched to candidate profile & career roadmap.',
-                  'info'
-                );
-                if (nextMode) {
-                  onNavigate('mentor-dashboard-view');
-                } else {
-                  onNavigate('guidance-view');
-                }
-              }}
-              role="switch"
-              aria-checked={isCreatorMode}
-              title={isCreatorMode ? "Mentor Studio is ON (Click to turn OFF)" : "Mentor Studio is OFF (Click to turn ON)"}
-            >
-              <div className="nct-text-wrap">
-                <span className="nct-icon">⚡</span>
-                <span className="nct-label">Mentor Studio</span>
-              </div>
-              <div className={`nct-toggle-track ${isCreatorMode ? 'track-on' : 'track-off'}`}>
-                <div className="nct-toggle-knob" />
-              </div>
+            <div className="navbar-role-mode-segmented" role="group" aria-label="Active Platform Mode">
+              <button
+                type="button"
+                className={`nrms-tab ${isCreatorMode ? 'is-active-mentor' : 'is-inactive'}`}
+                onClick={() => {
+                  if (!isCreatorMode) {
+                    setIsCreatorMode(true);
+                    showToast('⚡ Mentor Studio Active', 'Switched to your mentor dashboard & candidate calls.', 'info');
+                    onNavigate('mentor-dashboard-view');
+                  }
+                }}
+                title="Mentor Mode: You are actively hosting sessions and guiding candidates"
+              >
+                <Sparkles size={13} className="nrms-icon" />
+                <span>Mentor</span>
+                {isCreatorMode && <span className="nrms-live-dot" title="Active Mentor" />}
+              </button>
+
+              <button
+                type="button"
+                className={`nrms-tab ${!isCreatorMode ? 'is-active-mentee' : 'is-inactive'}`}
+                onClick={() => {
+                  if (isCreatorMode) {
+                    setIsCreatorMode(false);
+                    showToast('👤 Mentee Mode Active', 'Need guidance for yourself? Browse & book 1:1 sessions with other mentors.', 'info');
+                    onNavigate('guidance-view');
+                  }
+                }}
+                title="Need 1:1 guidance for yourself? Switch to Mentee Mode to book sessions"
+              >
+                <Compass size={13} className="nrms-icon" />
+                <span>Seek Guidance</span>
+              </button>
             </div>
           )}
+
+
 
           {/* Direct Admin Control Center Button */}
           {currentUser?.isAdmin && (
