@@ -45,16 +45,20 @@ def _with_display_fields(updates: Dict[str, Any], merged: Dict[str, Any]) -> Dic
     return out
 
 
+@router.get("")
+@router.get("/")
 @router.get("/{candidate_id}")
-def get_candidate_profile(candidate_id: str, user: User = Depends(require_user)):
+def get_candidate_profile(candidate_id: str = "me", user: User = Depends(require_user)):
     candidate = store.get_candidate(_own_id(candidate_id, user))
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
     return {"success": True, "data": candidate}
 
 
+@router.put("")
+@router.put("/")
 @router.put("/{candidate_id}")
-def update_candidate_profile(candidate_id: str, updates: Dict[str, Any], user: User = Depends(require_user)):
+def update_candidate_profile(updates: Dict[str, Any], candidate_id: str = "me", user: User = Depends(require_user)):
     allowed = {k: v for k, v in updates.items() if k not in PROTECTED_FIELDS}
     if not allowed:
         raise HTTPException(status_code=400, detail="No updatable fields provided")

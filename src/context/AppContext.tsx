@@ -430,8 +430,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isCalibrated: true
     };
     try {
-      const saved = await peerpathApi.updateCandidateProfile(activeUsername, updates);
-      setUserProfiles(prev => ({ ...prev, [activeUsername]: { ...(prev[activeUsername] || userProfile), ...profileFromServer(saved) } }));
+      const saved = await peerpathApi.updateCandidateProfile(activeUsername || 'me', updates);
+      const profileKey = activeUsername || (saved as any)?.id || 'me';
+      setUserProfiles(prev => ({ ...prev, [profileKey]: { ...(prev[profileKey] || userProfile), ...profileFromServer(saved) } }));
     } catch (err) {
       showToast('Could not save your goal', err instanceof Error ? err.message : 'Please try again.', 'warning');
       return false;
@@ -1101,7 +1102,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Swallows errors (e.g. mentor-only accounts with no backend candidate record) so the
   // optimistic local UI update above never blocks on this.
   const syncCandidateProfile = (candidateId: string, updates: Partial<UserProfileData>) => {
-    peerpathApi.updateCandidateProfile(candidateId, updates).catch(err => console.warn('[API updateCandidateProfile]:', err));
+    peerpathApi.updateCandidateProfile(candidateId || 'me', updates).catch(err => console.warn('[API updateCandidateProfile]:', err));
   };
 
   const updateUserProfile = (updates: Partial<UserProfileData>) => {
@@ -1119,9 +1120,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateFullProfile = async (updates: Partial<UserProfileData>): Promise<boolean> => {
     try {
       // The server validates and fills derived fields (full name, experience/CTC text)
-      const saved = await peerpathApi.updateCandidateProfile(activeUsername, updates);
+      const saved = await peerpathApi.updateCandidateProfile(activeUsername || 'me', updates);
       const profile = profileFromServer(saved);
-      setUserProfiles(prev => ({ ...prev, [activeUsername]: { ...(prev[activeUsername] || userProfile), ...profile } }));
+      const profileKey = activeUsername || (saved as any)?.id || 'me';
+      setUserProfiles(prev => ({ ...prev, [profileKey]: { ...(prev[profileKey] || userProfile), ...profile } }));
       if (currentUser && profile.name && profile.name !== currentUser.name) {
         setCurrentUser({ ...currentUser, name: profile.name });
       }

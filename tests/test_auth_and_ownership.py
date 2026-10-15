@@ -14,7 +14,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 # Keep uploaded files out of the repo (must be set before backend.config is imported)
 _tmp_dir = tempfile.mkdtemp()
 os.environ.setdefault("RESUMES_DIR", f"{_tmp_dir}/resumes")
-os.environ.setdefault("RECORDINGS_DIR", f"{_tmp_dir}/recordings")
+os.environ["APP_ENV"] = "development"
+os.environ["EMAIL_BACKEND"] = "console"
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient

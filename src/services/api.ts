@@ -185,15 +185,17 @@ export const peerpathApi = {
   },
 
   // Candidate Profile
-  async getCandidateProfile(id: string): Promise<UserProfileData> {
-    const res = await fetchWithRetry(`${API_BASE}/candidates/${id}`);
-    if (!res.ok) throw new Error(`Failed fetching candidate ${id}`);
+  async getCandidateProfile(id?: string): Promise<UserProfileData> {
+    const candidateId = id || 'me';
+    const res = await fetchWithRetry(`${API_BASE}/candidates/${candidateId}`);
+    if (!res.ok) throw new Error(`Failed fetching candidate ${candidateId}`);
     const json = await res.json();
     return json.data;
   },
 
-  async updateCandidateProfile(id: string, updates: Partial<UserProfileData>): Promise<UserProfileData> {
-    const res = await fetchWithRetry(`${API_BASE}/candidates/${id}`, {
+  async updateCandidateProfile(id?: string, updates: Partial<UserProfileData> = {}): Promise<UserProfileData> {
+    const candidateId = id || 'me';
+    const res = await fetchWithRetry(`${API_BASE}/candidates/${candidateId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates)
