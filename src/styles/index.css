@@ -15,6 +15,7 @@
 @import './views/sessions.css';
 @import './views/admin.css';
 @import './views/become-mentor-landing.css';
+@import './views/static-page.css';
 
 /* 3. Interactive Modals */
 @import './modals/booking-modal.css';

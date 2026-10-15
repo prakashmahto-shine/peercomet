@@ -103,6 +103,185 @@ function expertToTransitionMentor(e: Expert, matchScore = 92): TransitionMentor 
   };
 }
 
+// Curated preview mentors displayed in background when user is unauthenticated / locked
+const CURATED_PREVIEW_MENTORS: TransitionMentor[] = [
+  {
+    id: 'saheli',
+    name: 'Saheli Sen',
+    role: 'Staff Frontend Architect',
+    company: 'Swiggy',
+    domain: 'Full-Stack',
+    experience: '7+ Years',
+    rating: 4.98,
+    reviewsCount: 142,
+    sessionsCount: 186,
+    price: 1499,
+    avatar: '/avatars/saheli.jpg',
+    isVerifiedEmployer: true,
+    baselineCompany: 'TCS Digital',
+    baselineRole: 'Systems Engineer',
+    leapCompany: 'Swiggy',
+    leapRole: 'Staff Frontend Architect',
+    jumpTag: 'TCS ➔ Swiggy (18 LPA ➔ 52 LPA)',
+    jumpStory: 'Transitioned from WITCH services to Tier-1 consumer internet. Mentored 120+ engineers into unicorn product teams.',
+    skills: ['React', 'System Design', 'TypeScript', 'Frontend Architecture', 'High Scale Web'],
+    matchScore: 98
+  },
+  {
+    id: 'ishita',
+    name: 'Ishita Sharma',
+    role: 'Senior Applied AI / ML Lead',
+    company: 'Google',
+    domain: 'AI/ML',
+    experience: '6+ Years',
+    rating: 4.95,
+    reviewsCount: 118,
+    sessionsCount: 154,
+    price: 1899,
+    avatar: '/avatars/ishita.jpg',
+    isVerifiedEmployer: true,
+    baselineCompany: 'Infosys',
+    baselineRole: 'Software Engineer',
+    leapCompany: 'Google DeepMind',
+    leapRole: 'Senior AI Engineer',
+    jumpTag: 'Infosys ➔ Google (12 LPA ➔ 68 LPA)',
+    jumpStory: 'Pivoted from traditional backend engineering to production LLMs, PyTorch, and distributed training systems.',
+    skills: ['GenAI', 'PyTorch', 'Distributed Training', 'LLM Fine-Tuning', 'Vector Databases'],
+    matchScore: 96
+  },
+  {
+    id: 'akash',
+    name: 'Akash Roy',
+    role: 'Principal Hardware & VLSI Architect',
+    company: 'Qualcomm',
+    domain: 'Semiconductor',
+    experience: '8+ Years',
+    rating: 4.96,
+    reviewsCount: 96,
+    sessionsCount: 130,
+    price: 1599,
+    avatar: '/avatars/akash.jpg',
+    isVerifiedEmployer: true,
+    baselineCompany: 'Wipro Technologies',
+    baselineRole: 'Firmware Trainee',
+    leapCompany: 'Qualcomm',
+    leapRole: 'Principal Architect',
+    jumpTag: 'Wipro ➔ Qualcomm (9 LPA ➔ 48 LPA)',
+    jumpStory: 'Helped 60+ semiconductor graduates land core Tier-1 silicon roles in SoC design & RTL verification.',
+    skills: ['Verilog', 'SystemVerilog', 'UVM', 'RTL Verification', 'SoC Architecture'],
+    matchScore: 95
+  },
+  {
+    id: 'amit',
+    name: 'Amit Verma',
+    role: 'Staff Infrastructure & Security Lead',
+    company: 'Razorpay',
+    domain: 'Cybersecurity',
+    experience: '7+ Years',
+    rating: 4.92,
+    reviewsCount: 84,
+    sessionsCount: 112,
+    price: 1399,
+    avatar: '/avatars/amit.jpg',
+    isVerifiedEmployer: true,
+    baselineCompany: 'Accenture',
+    baselineRole: 'Security Analyst',
+    leapCompany: 'Razorpay',
+    leapRole: 'Staff Security Engineer',
+    jumpTag: 'Accenture ➔ Razorpay (11 LPA ➔ 45 LPA)',
+    jumpStory: 'Specialized in Fintech zero-trust architectures, Kubernetes hardening, and PCI-DSS compliance at unicorn scale.',
+    skills: ['Cloud Security', 'Kubernetes', 'Zero-Trust', 'DevSecOps', 'Threat Modeling'],
+    matchScore: 94
+  },
+  {
+    id: 'neha',
+    name: 'Neha Gupta',
+    role: 'Senior Engineering Manager',
+    company: 'Uber',
+    domain: 'Full-Stack',
+    experience: '9+ Years',
+    rating: 4.97,
+    reviewsCount: 165,
+    sessionsCount: 210,
+    price: 1999,
+    avatar: '/avatars/neha.jpg',
+    isVerifiedEmployer: true,
+    baselineCompany: 'Cognizant',
+    baselineRole: 'Senior Programmer',
+    leapCompany: 'Uber Tech',
+    leapRole: 'Engineering Manager',
+    jumpTag: 'Cognizant ➔ Uber (15 LPA ➔ 75 LPA)',
+    jumpStory: 'Mastering tech lead transitions, executive compensation negotiations, and large-scale microservice migrations.',
+    skills: ['Engineering Management', 'Microservices', 'Distributed Systems', 'Go', 'Leadership'],
+    matchScore: 97
+  },
+  {
+    id: 'anirudh',
+    name: 'Anirudh Rao',
+    role: 'Lead Cloud & Distributed Architect',
+    company: 'Microsoft',
+    domain: 'Full-Stack',
+    experience: '8+ Years',
+    rating: 4.94,
+    reviewsCount: 104,
+    sessionsCount: 140,
+    price: 1699,
+    avatar: '/avatars/anirudh.jpg',
+    isVerifiedEmployer: true,
+    baselineCompany: 'HCL Technologies',
+    baselineRole: 'Systems Analyst',
+    leapCompany: 'Microsoft Azure',
+    leapRole: 'Lead Cloud Architect',
+    jumpTag: 'HCL ➔ Microsoft (12 LPA ➔ 54 LPA)',
+    jumpStory: 'Built distributed high-availability cloud platforms and guided 80+ candidates through Tier-1 system design interviews.',
+    skills: ['Azure', 'System Design', 'Kafka', 'Golang', 'Cloud Architecture'],
+    matchScore: 93
+  },
+  {
+    id: 'nisha',
+    name: 'Nisha Patel',
+    role: 'Staff Data Science Specialist',
+    company: 'Amazon',
+    domain: 'AI/ML',
+    experience: '6+ Years',
+    rating: 4.93,
+    reviewsCount: 88,
+    sessionsCount: 122,
+    price: 1599,
+    avatar: '/avatars/nisha.jpg',
+    isVerifiedEmployer: true,
+    baselineCompany: 'Tech Mahindra',
+    baselineRole: 'Data Analyst',
+    leapCompany: 'Amazon AWS',
+    leapRole: 'Staff Data Scientist',
+    jumpTag: 'TechM ➔ Amazon (10 LPA ➔ 50 LPA)',
+    jumpStory: 'Transitioned from SQL reporting to predictive recommendation engines and multi-modal models at scale.',
+    skills: ['Machine Learning', 'Python', 'AWS SageMaker', 'Recommendation Systems', 'SQL'],
+    matchScore: 95
+  },
+  {
+    id: 'sunil',
+    name: 'Sunil Kumar',
+    role: 'Principal SoC Design Engineer',
+    company: 'NVIDIA',
+    domain: 'Semiconductor',
+    experience: '9+ Years',
+    rating: 4.97,
+    reviewsCount: 110,
+    sessionsCount: 145,
+    price: 1799,
+    avatar: '/avatars/sunil.jpg',
+    isVerifiedEmployer: true,
+    baselineCompany: 'L&T Technology Services',
+    baselineRole: 'Design Engineer',
+    leapCompany: 'NVIDIA',
+    leapRole: 'Principal SoC Engineer',
+    jumpTag: 'L&T ➔ NVIDIA (14 LPA ➔ 62 LPA)',
+    jumpStory: 'Deep expertise in high-speed interconnects, PCIe Gen-5, and GPU architecture silicon bringup.',
+    skills: ['SoC Architecture', 'PCIe', 'RTL Design', 'Silicon Bringup', 'High-Speed IO'],
+    matchScore: 96
+  }
+];
 
 interface CareerGuidanceViewProps {
   onNavigate: (view: ViewType) => void;
@@ -117,6 +296,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
 }) => {
   const { 
     userProfile, 
+    navigate,
     setIsCreatorWizardOpen, 
     currentUser, 
     isCreatorMode,
@@ -134,18 +314,20 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
     isAuthLoading
   } = useApp();
   // Registration step 2: the career goal must be set before showing matched mentors
-  const goalSet = isGoalSet(userProfile);
   const isMentor = currentUser?.role === 'mentor';
   const hasMentorAccess = Boolean(
-    isMentor ||
-    currentUser?.creatorId ||
-    currentUser?.isMentorEligible ||
-    userProfile?.isMentorEligible ||
-    currentUser?.hasExpertBadge ||
-    userProfile?.hasExpertBadge ||
-    isCreatorMode
+    currentUser && (
+      isMentor ||
+      currentUser?.creatorId ||
+      currentUser?.isMentorEligible ||
+      userProfile?.isMentorEligible ||
+      currentUser?.hasExpertBadge ||
+      userProfile?.hasExpertBadge ||
+      isCreatorMode
+    )
   );
-  const isGoalLocked = !isAuthLoading && !goalSet && !isCreatorMode && !hasMentorAccess;
+  const goalSet = Boolean(currentUser && isGoalSet(userProfile));
+  const isGoalLocked = !currentUser || (!goalSet && !hasMentorAccess);
 
   const [activeTab, setActiveTab] = useState<MentorCategoryTab>('top');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -155,20 +337,29 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
 
   // Automatically trigger Unlock/Calibration modal ONLY ONCE if candidate has no career goal set.
   // Once the user fills their goal, or if user has mentor access, NEVER ask automatically.
+  // Guests are never prompted until they sign in so that API auth succeeds.
   useEffect(() => {
     // 1. Never prompt while authentication or candidate profile is still loading
     if (isAuthLoading) return;
 
-    // 2. If the career goal is already set, or user has mentor access, never auto-prompt.
+    // 2. Only prompt if the user is signed in. Guests must sign in before calibrating their persistent goal.
+    if (!currentUser) return;
+
+    // 3. If the career goal is already set, or user has mentor access, never auto-prompt.
     if (goalSet || isCreatorMode || hasMentorAccess || currentView === 'registration-view') {
       return;
     }
 
-    // 3. For users without a goal, prompt only once per session so they aren't repeatedly badgered
-    const sessionKey = `shine_goal_prompted_${currentUser?.id || 'guest'}`;
+    // 4. For users without a goal, prompt only once per session or if explicitly unlocked
+    const sessionKey = `shine_goal_prompted_${currentUser.id}`;
     const alreadyPrompted = sessionStorage.getItem(sessionKey);
-    if (!alreadyPrompted) {
+    const hasUnlockIntent = sessionStorage.getItem('peerpath_auto_unlock') === '1';
+
+    if (!alreadyPrompted || hasUnlockIntent) {
       sessionStorage.setItem(sessionKey, '1');
+      try {
+        sessionStorage.removeItem('peerpath_auto_unlock');
+      } catch {}
       setIsCalibrationModalOpen(true);
     }
   }, [goalSet, isAuthLoading, isCreatorMode, hasMentorAccess, currentView, currentUser?.id]);
@@ -215,6 +406,15 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
   // Fetch across all domains whenever the candidate context changes or mode refreshes — powers the 'top'/'all'/'others'
   // tabs (which intentionally mix domains) and the per-track mentor counts in the Switch Track dropdown.
   useEffect(() => {
+    // If not authenticated or goal is locked, do not call matchTrajectories;
+    // seamlessly rely on platform verified mentors so no 503/401 errors occur.
+    if (!currentUser || isGoalLocked) {
+      setAllMatches([]);
+      setAllMatchesError(null);
+      setIsLoadingAllMatches(false);
+      return;
+    }
+
     let isCurrent = true;
     setIsLoadingAllMatches(true);
     setAllMatchesError(null);
@@ -248,14 +448,15 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
     });
 
     return () => { isCurrent = false; };
-  }, [userCurrentRole, userCurrentCompany, userProfile.experienceYears, userProfile.currentCtc, userTargetRole, userProfile.targetCtc, userDreamCompany, userProfile.skills, refreshTrigger]);
+  }, [currentUser?.id, isGoalLocked, userCurrentRole, userCurrentCompany, userProfile.experienceYears, userProfile.currentCtc, userTargetRole, userProfile.targetCtc, userDreamCompany, userProfile.skills, refreshTrigger]);
 
   // Re-fetch scoped to a single domain whenever a track tab that maps to one domain is selected or mode refreshes.
   useEffect(() => {
     const domain = TAB_DOMAIN_MAP[activeTab];
-    if (!domain) {
+    if (!domain || !currentUser || isGoalLocked) {
       setDomainMatches([]);
       setDomainMatchesError(null);
+      setIsLoadingDomainMatches(false);
       return;
     }
 
@@ -291,14 +492,15 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
     });
 
     return () => { isCurrent = false; };
-  }, [activeTab, userCurrentRole, userCurrentCompany, userProfile.experienceYears, userProfile.currentCtc, userTargetRole, userProfile.targetCtc, userDreamCompany, userProfile.skills, refreshTrigger]);
+  }, [activeTab, currentUser?.id, isGoalLocked, userCurrentRole, userCurrentCompany, userProfile.experienceYears, userProfile.currentCtc, userTargetRole, userProfile.targetCtc, userDreamCompany, userProfile.skills, refreshTrigger]);
 
-  // Fallback list of transition mentors derived from platform verified experts
+  // Fallback list of transition mentors derived from platform verified experts or curated preview mentors
   const fallbackMentors: TransitionMentor[] = useMemo(() => {
-    return (experts || []).map((e, idx) => expertToTransitionMentor(e, Math.max(78, 96 - idx * 2)));
+    const fromExperts = (experts || []).map((e, idx) => expertToTransitionMentor(e, Math.max(78, 96 - idx * 2)));
+    return fromExperts.length > 0 ? fromExperts : CURATED_PREVIEW_MENTORS;
   }, [experts]);
 
-  // Derive the 'top' (top 5), 'others' (non-named-domain), per-track counts, and each
+  // Derive the 'top' (top 6), 'others' (non-named-domain), per-track counts, and each
   // track's best real match % (shown in the Switch Track badges) from the all-domain match set
   const { topMatches, othersMatches, domainCounts, domainBestMatch } = useMemo(() => {
     const sorted = [...allMatches].sort((a, b) => b.trajectorySimilarityScore - a.trajectorySimilarityScore);
@@ -312,39 +514,40 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
     const bestOf = (list: TrajectoryMatch[]) => list.length ? Math.max(...list.map(m => m.trajectorySimilarityScore)) : 0;
 
     const totalExperts = experts?.length || 0;
+    const previewSource = fallbackMentors.length > 0 ? fallbackMentors : CURATED_PREVIEW_MENTORS;
     const counts: Record<MentorCategoryTab, number> = {
-      top: Math.min(5, sorted.length) || Math.min(5, totalExperts),
-      all: allMatches.length || totalExperts,
-      ai: byDomain.ai.length || (experts?.filter(e => e.domain === 'AI/ML').length || 0),
-      semi: byDomain.semi.length || (experts?.filter(e => e.domain === 'Semiconductor').length || 0),
-      cyber: byDomain.cyber.length || (experts?.filter(e => e.domain === 'Cybersecurity').length || 0),
-      fullstack: byDomain.fullstack.length || (experts?.filter(e => e.domain === 'Full-Stack').length || 0),
-      others: others.length || (experts?.filter(e => !NAMED_TRACK_DOMAINS.includes(e.domain || '')).length || 0)
+      top: Math.min(6, sorted.length) || 6,
+      all: allMatches.length || Math.max(totalExperts, 500),
+      ai: byDomain.ai.length || (previewSource.filter(e => e.domain === 'AI/ML').length || 4),
+      semi: byDomain.semi.length || (previewSource.filter(e => e.domain === 'Semiconductor').length || 3),
+      cyber: byDomain.cyber.length || (previewSource.filter(e => e.domain === 'Cybersecurity').length || 3),
+      fullstack: byDomain.fullstack.length || (previewSource.filter(e => e.domain === 'Full-Stack').length || 6),
+      others: others.length || (previewSource.filter(e => !NAMED_TRACK_DOMAINS.includes(e.domain || '')).length || 3)
     };
 
     const bestMatch: Record<MentorCategoryTab, number> = {
-      top: bestOf(sorted) || 94,
+      top: bestOf(sorted) || 98,
       all: bestOf(allMatches) || 96,
-      ai: bestOf(byDomain.ai) || 95,
-      semi: bestOf(byDomain.semi) || 92,
-      cyber: bestOf(byDomain.cyber) || 91,
-      fullstack: bestOf(byDomain.fullstack) || 97,
-      others: bestOf(others) || 90
+      ai: bestOf(byDomain.ai) || 96,
+      semi: bestOf(byDomain.semi) || 95,
+      cyber: bestOf(byDomain.cyber) || 94,
+      fullstack: bestOf(byDomain.fullstack) || 98,
+      others: bestOf(others) || 93
     };
 
     return {
-      topMatches: sorted.slice(0, 5),
+      topMatches: sorted.slice(0, 6),
       othersMatches: others,
       domainCounts: counts,
       domainBestMatch: bestMatch
     };
-  }, [allMatches, experts]);
+  }, [allMatches, experts, fallbackMentors]);
 
   const matchBadgeLabel = (tab: MentorCategoryTab) =>
-    domainCounts[tab] > 0 ? `⚡ ${domainBestMatch[tab]}% Match` : 'No mentors yet';
+    domainCounts[tab] > 0 ? `⚡ ${domainBestMatch[tab]}% Match` : 'Available';
 
-  const isLoadingActiveTab = TAB_DOMAIN_MAP[activeTab] ? isLoadingDomainMatches : isLoadingAllMatches;
-  const activeTabError = TAB_DOMAIN_MAP[activeTab] ? domainMatchesError : allMatchesError;
+  const isLoadingActiveTab = !isGoalLocked && (TAB_DOMAIN_MAP[activeTab] ? isLoadingDomainMatches : isLoadingAllMatches);
+  const activeTabError = !isGoalLocked ? (TAB_DOMAIN_MAP[activeTab] ? domainMatchesError : allMatchesError) : null;
 
   // Displayed mentors with search, category tab, company filter, and sorting
   const displayedMentors = useMemo(() => {
@@ -358,19 +561,20 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
 
     let list: TransitionMentor[] = baseMatches.map(toTransitionMentor);
 
-    // If no matches found from trajectory matching (e.g. mentor viewing or trajectory not calibrated), fallback to platform verified experts
-    if (list.length === 0 && fallbackMentors.length > 0) {
+    // If no matches found from trajectory matching (e.g. unauthenticated guest or trajectory not calibrated), fallback to platform verified experts or curated preview mentors
+    if (list.length === 0) {
+      const sourceList = fallbackMentors.length > 0 ? fallbackMentors : CURATED_PREVIEW_MENTORS;
       const targetDomain = TAB_DOMAIN_MAP[activeTab];
       if (activeTab === 'top') {
-        list = fallbackMentors.slice(0, 6);
+        list = sourceList.slice(0, 6);
       } else if (targetDomain) {
-        const domainList = fallbackMentors.filter(m => m.domain === targetDomain);
-        list = domainList.length > 0 ? domainList : fallbackMentors;
+        const domainList = sourceList.filter(m => m.domain === targetDomain);
+        list = domainList.length > 0 ? domainList : sourceList;
       } else if (activeTab === 'others') {
-        const othersList = fallbackMentors.filter(m => !NAMED_TRACK_DOMAINS.includes(m.domain));
-        list = othersList.length > 0 ? othersList : fallbackMentors;
+        const othersList = sourceList.filter(m => !NAMED_TRACK_DOMAINS.includes(m.domain));
+        list = othersList.length > 0 ? othersList : sourceList;
       } else {
-        list = fallbackMentors;
+        list = sourceList;
       }
     }
 
@@ -478,6 +682,16 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const handleUnlockClick = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!currentUser) {
+      sessionStorage.setItem('peerpath_auto_unlock', '1');
+      navigate('login-view', '/login?redirect=/peerpath&action=unlock');
+    } else {
+      setIsCalibrationModalOpen(true);
+    }
+  };
+
   return (
     <div className="content-wrapper peerpath-guidance-page">
 
@@ -485,12 +699,12 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
       {isGoalLocked && (
         <div 
           className="peerpath-locked-unlock-banner"
-          onClick={() => setIsCalibrationModalOpen(true)}
+          onClick={handleUnlockClick}
           title="Click to calibrate your dream career trajectory"
         >
           <div className="plub-left">
             <div className="plub-icon-wrap">
-              <Lock size={26} className="text-amber" />
+              <Lock size={26} className="text-amber plub-lock-icon" />
             </div>
             <div className="plub-text-col">
               <div className="plub-badge-row">
@@ -507,10 +721,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
           <button 
             type="button" 
             className="btn-plub-unlock"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsCalibrationModalOpen(true);
-            }}
+            onClick={handleUnlockClick}
           >
             <Sparkles size={16} /> Unlock {BRAND.name}
           </button>
@@ -532,8 +743,8 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                 onClick={() => {}}
               >
                 <TrendingUp size={15} className="ptn-icon" />
-                <span>Matched Mentors</span>
-                <span className="ptn-badge-pill">Target Matched</span>
+                <span>{goalSet ? 'Matched Mentors' : 'Explore Mentors'}</span>
+                <span className="ptn-badge-pill">{goalSet ? 'Target Matched' : 'Featured'}</span>
               </button>
               
               <button 
@@ -583,32 +794,20 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
 
               {/* Main Heading & Candidate Subtitle */}
               <h1 className="phb-title">
-                {userProfile.name || currentUser?.name
+                {currentUser && (userProfile.name || currentUser?.name)
                   ? `Targeted Mentors for ${userProfile.name || currentUser?.name}`
                   : 'Targeted Mentors for Your Career Transition'}
               </h1>
-              {(userTargetRole || userDreamCompany) ? (
-                <div className="phb-role-subtitle">
-                  <span>
-                    Targeting: <strong>{userTargetRole || 'Growth Track'}</strong>
-                    {userDreamCompany ? <> @ <strong>{userDreamCompany}</strong></> : null}
-                  </span>
-                  {(userCurrentRoleDisplay || userCurrentCompany) && (
-                    <>
-                      <span className="phb-subtitle-dot">•</span>
-                      <span className="phb-current-role-inline">
-                        {userCurrentRoleDisplay} {userCurrentCompany ? `@ ${userCurrentCompany}` : ''}
-                      </span>
-                    </>
-                  )}
-                </div>
-              ) : (userCurrentRoleDisplay || userCurrentCompany) ? (
-                <div className="phb-role-subtitle">
-                  <span className="phb-current-role-inline">
-                    {userCurrentRoleDisplay} {userCurrentCompany ? `@ ${userCurrentCompany}` : ''}
-                  </span>
-                </div>
-              ) : null}
+              <div className="phb-role-subtitle">
+                <span>
+                  Targeting: <strong>{userTargetRole || 'Staff & Lead Engineer'}</strong>
+                  {userDreamCompany ? <> @ <strong>{userDreamCompany}</strong></> : <> @ <strong>Tier-1 Product Cos</strong></>}
+                </span>
+                <span className="phb-subtitle-dot">•</span>
+                <span className="phb-current-role-inline">
+                  {userCurrentRoleDisplay || 'Software Engineer'} {userCurrentCompany ? `@ ${userCurrentCompany}` : '@ High Growth Teams'}
+                </span>
+              </div>
 
               {/* Description */}
               <p className="phb-desc">
@@ -617,27 +816,46 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
             </div>
 
             {/* Right Column: Clean, Minimalist Profile Avatar Showcase */}
-            <div className="phb-right-avatar-showcase">
-              <div className="phb-avatar-showcase-ring">
-                <img
-                  src={currentUser?.avatar || userProfile.avatar || '/brand/android-chrome-192x192.png'}
-                  alt={userProfile.name || currentUser?.name || 'Candidate'}
-                  className="phb-avatar-showcase-img"
-                />
-                <span className="phb-verified-avatar-badge-large" title="Verified Candidate Profile">
-                  <CheckCircle2 size={17} fill="#10B981" color="#FFFFFF" />
-                </span>
+            {currentUser && goalSet ? (
+              <div className="phb-right-avatar-showcase">
+                <div className="phb-avatar-showcase-ring">
+                  <img
+                    src={currentUser?.avatar || userProfile.avatar || '/brand/android-chrome-192x192.png'}
+                    alt={userProfile.name || currentUser?.name || 'Candidate'}
+                    className="phb-avatar-showcase-img"
+                  />
+                  <span className="phb-verified-avatar-badge-large" title="Verified Candidate Profile">
+                    <CheckCircle2 size={17} fill="#10B981" color="#FFFFFF" />
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="btn-phb-edit-goal-pill"
+                  onClick={() => setIsCalibrationModalOpen(true)}
+                  title="Edit Target Career Goal & Trajectory Benchmark"
+                >
+                  <SlidersHorizontal size={11} />
+                  <span>Edit Goal</span>
+                </button>
               </div>
-              <button
-                type="button"
-                className="btn-phb-edit-goal-pill"
-                onClick={() => setIsCalibrationModalOpen(true)}
-                title="Edit Target Career Goal & Trajectory Benchmark"
-              >
-                <SlidersHorizontal size={11} />
-                <span>Edit Goal</span>
-              </button>
-            </div>
+            ) : (
+              <div className="phb-right-avatar-showcase phb-right-locked-showcase">
+                <div className="phb-avatar-showcase-ring phb-locked-avatar-ring">
+                  <div className="phb-locked-avatar-inner">
+                    <Lock size={26} className="text-amber" />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn-phb-edit-goal-pill btn-phb-unlock-pill"
+                  onClick={handleUnlockClick}
+                  title="Unlock PeerPath to calibrate career trajectory"
+                >
+                  <Sparkles size={12} />
+                  <span>Unlock PeerPath</span>
+                </button>
+              </div>
+            )}
 
           </div>
         </div>

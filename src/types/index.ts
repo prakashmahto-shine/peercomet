@@ -50,7 +50,12 @@ export type ViewType =
   | 'login-view'
   | 'registration-view'
   | 'admin-dashboard-view'
-  | 'become-mentor-view';
+  | 'become-mentor-view'
+  | 'terms-view'
+  | 'privacy-view'
+  | 'cookies-view'
+  | 'security-view'
+  | 'contact-view';
 
 export interface BookingDetails {
   expert: Expert;

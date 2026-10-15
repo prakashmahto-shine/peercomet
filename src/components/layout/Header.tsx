@@ -46,15 +46,17 @@ export const Header: React.FC<HeaderProps> = ({
   const isPeerpathView = true;
 
   const isAlreadyMentor = Boolean(
-    currentUser?.role === 'mentor' || 
-    userProfile?.isMentor || 
-    currentUser?.creatorId ||
-    currentUser?.isMentorEligible ||
-    userProfile?.isMentorEligible ||
-    currentUser?.hasExpertBadge ||
-    userProfile?.hasExpertBadge ||
-    currentUser?.id === 'akash' ||
-    (currentUser?.username && currentUser.username.toLowerCase() === 'akash')
+    currentUser && (
+      currentUser?.role === 'mentor' || 
+      userProfile?.isMentor || 
+      currentUser?.creatorId ||
+      currentUser?.isMentorEligible ||
+      userProfile?.isMentorEligible ||
+      currentUser?.hasExpertBadge ||
+      userProfile?.hasExpertBadge ||
+      currentUser?.id === 'akash' ||
+      (currentUser?.username && currentUser.username.toLowerCase() === 'akash')
+    )
   );
 
   const loggedInFirstName = (currentUser?.name || '').split(' ')[0].toLowerCase();
@@ -164,7 +166,7 @@ export const Header: React.FC<HeaderProps> = ({
                     <MessageSquare size={15} /> Community
                   </button>
                 </>
-              ) : (
+              ) : currentUser ? (
                 <>
                   <button 
                     className={`myshine-link ${currentView === 'experts-view' ? 'active' : ''}`} 
@@ -190,7 +192,7 @@ export const Header: React.FC<HeaderProps> = ({
                     <MessageSquare size={15} /> Community
                   </button>
                 </>
-              )
+              ) : null
             ) : (
               /* Shine Jobs Portal Navigation */
               <>
@@ -301,8 +303,9 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* 🔔 Community Notification Bell */}
-          <div className="header-notif-container" ref={notifMenuRef}>
+          {/* 🔔 Community Notification Bell (Authenticated Users Only) */}
+          {currentUser && (
+            <div className="header-notif-container" ref={notifMenuRef}>
             <button 
               type="button"
               className="header-bell-btn" 
@@ -438,6 +441,7 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             )}
           </div>
+          )}
 
           {/* User Avatar Dropdown OR Login/Register CTA */}
           {currentUser ? (
@@ -587,7 +591,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button 
               type="button"
               className="btn-header-login-gold"
-              onClick={() => onNavigate('login-view')}
+              onClick={() => onNavigate('login-view', '/login?redirect=/peerpath&action=unlock')}
             >
               <User size={14} />
               <span>Login / Register</span>

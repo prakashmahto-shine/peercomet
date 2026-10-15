@@ -4,6 +4,7 @@ import { BRAND } from '../../config/brand';
 interface PeerpathLogoProps {
   size?: number;
   showText?: boolean;
+  showSubtext?: boolean;
   textColor?: string;
   subTextColor?: string;
   className?: string;
@@ -121,6 +122,7 @@ export const PeerpathSymbolSvg: React.FC<{
 export const PeerpathLogo: React.FC<PeerpathLogoProps> = ({
   size = 36,
   showText = true,
+  showSubtext = false,
   textColor = '#0F172A',
   subTextColor = '#64748B',
   className = '',
@@ -169,18 +171,20 @@ export const PeerpathLogo: React.FC<PeerpathLogoProps> = ({
           >
             {BRAND.name.toUpperCase()}
           </span>
-          <span 
-            className="peerpath-brand-sub" 
-            style={{ 
-              fontSize: '11px', 
-              color: subTextColor, 
-              fontWeight: 600,
-              marginTop: '1px',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            by <strong className="shine-mark" style={{ color: isDark ? '#FCD34D' : '#0C3B6E', fontWeight: 800 }}>{BRAND.parentDomain}</strong>
-          </span>
+          {showSubtext && (
+            <span 
+              className="peerpath-brand-sub" 
+              style={{ 
+                fontSize: '11px', 
+                color: subTextColor, 
+                fontWeight: 600,
+                marginTop: '1px',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              by <strong className="shine-mark" style={{ color: isDark ? '#FCD34D' : '#0C3B6E', fontWeight: 800 }}>{BRAND.parentDomain}</strong>
+            </span>
+          )}
         </div>
       )}
     </div>

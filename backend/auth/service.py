@@ -92,6 +92,10 @@ def send_otp(identifier: str) -> Tuple[str, bool]:
     """Emails a sign-in code. Returns (request_id, is_registered)."""
     email, is_demo = _resolve(identifier)
 
+    # Disallow public OTP requests for internal administrator accounts
+    if email in {"admin@peerpath.com", "admin@shine.com"}:
+        raise AuthError("Administrator accounts must authenticate directly via internal operations portal at /admin.", 403)
+
     if store.count_recent_email_otps(email, datetime.utcnow() - SEND_WINDOW) >= MAX_SENDS_PER_WINDOW:
         raise AuthError("Too many codes requested. Please try again in a few minutes.", 429)
 

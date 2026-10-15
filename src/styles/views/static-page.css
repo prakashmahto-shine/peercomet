@@ -1,0 +1,712 @@
+/* =========================================================================
+   STATIC LEGAL & GOVERNANCE PAGE (TERMS, PRIVACY, COOKIES, SECURITY, CONTACT)
+   ========================================================================= */
+
+.static-legal-page-root {
+  min-height: 100vh;
+  background-color: #F8FAFC;
+  padding-bottom: 80px;
+}
+
+/* 1. Hero Header */
+.slp-hero-header {
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0C3B6E 100%);
+  color: #FFFFFF;
+  padding: 44px 0 38px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.slp-hero-header::after {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -10%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.slp-hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+.slp-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.slp-crumb-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.slp-crumb-link:hover {
+  color: #38BDF8;
+}
+
+.slp-crumb-sep {
+  color: #475569;
+}
+
+.slp-crumb-active {
+  color: #E2E8F0;
+  font-weight: 600;
+}
+
+.slp-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34D399;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  margin-bottom: 12px;
+}
+
+.slp-hero-title {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin: 0 0 10px;
+  color: #FFFFFF;
+}
+
+.slp-hero-sub {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #CBD5E1;
+  max-width: 780px;
+  margin: 0 0 20px;
+}
+
+.slp-hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: #94A3B8;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.slp-meta-item strong {
+  color: #E2E8F0;
+}
+
+.slp-meta-dot {
+  color: #475569;
+}
+
+.slp-btn-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #E2E8F0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-left: auto;
+}
+
+.slp-btn-copy:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #FFFFFF;
+}
+
+/* 2. Main Two-Column Layout */
+.slp-main-layout {
+  display: grid;
+  grid-template-columns: 310px 1fr;
+  gap: 32px;
+  margin-top: 32px;
+  align-items: start;
+}
+
+/* 3. Sidebar */
+.slp-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: sticky;
+  top: 90px;
+}
+
+.slp-nav-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 10px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.slp-nav-header {
+  padding: 8px 12px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94A3B8;
+  letter-spacing: 0.8px;
+}
+
+.slp-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s ease;
+}
+
+.slp-nav-icon {
+  color: #64748B;
+  flex-shrink: 0;
+  transition: color 0.18s ease;
+}
+
+.slp-nav-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.slp-nav-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1E293B;
+  transition: color 0.18s ease;
+}
+
+.slp-nav-desc {
+  font-size: 11.5px;
+  color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slp-nav-chevron {
+  color: #CBD5E1;
+  flex-shrink: 0;
+  transition: transform 0.18s ease;
+}
+
+.slp-nav-item:hover {
+  background: #F8FAFC;
+  border-color: #E2E8F0;
+}
+
+.slp-nav-item.active {
+  background: linear-gradient(135deg, #F0FDF4 0%, #EFF6FF 100%);
+  border-color: #38BDF8;
+  box-shadow: 0 2px 6px rgba(56, 189, 248, 0.12);
+}
+
+.slp-nav-item.active .slp-nav-icon {
+  color: #0284C7;
+}
+
+.slp-nav-item.active .slp-nav-label {
+  color: #0C4A6E;
+  font-weight: 700;
+}
+
+.slp-nav-item.active .slp-nav-chevron {
+  color: #0284C7;
+  transform: translateX(2px);
+}
+
+/* Trust Guarantees Box */
+.slp-trust-box {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.slp-trust-box h4 {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 12px;
+}
+
+.slp-trust-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.slp-trust-list li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.slp-parent-badge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  color: #475569;
+}
+
+/* 4. Main Article / Content Area */
+.slp-article-container {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 36px 40px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
+}
+
+.slp-article-header {
+  padding-bottom: 24px;
+  border-bottom: 1px solid #F1F5F9;
+  margin-bottom: 28px;
+}
+
+.slp-article-kicker {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #0284C7;
+  margin-bottom: 6px;
+}
+
+.slp-article-header h2 {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0 0 12px;
+  letter-spacing: -0.3px;
+}
+
+.slp-lead-para {
+  font-size: 15px;
+  line-height: 1.65;
+  color: #475569;
+  margin: 0;
+}
+
+.slp-section-block {
+  margin-bottom: 28px;
+}
+
+.slp-section-block h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 10px;
+}
+
+.slp-section-block p {
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: #334155;
+  margin: 0 0 12px;
+}
+
+.slp-section-block ul {
+  margin: 0 0 14px;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.slp-section-block li {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #334155;
+}
+
+.slp-section-block a {
+  color: #0284C7;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.slp-section-block.highlight-card {
+  background: #F0F9FF;
+  border: 1px solid #BAE6FD;
+  border-radius: 12px;
+  padding: 20px 22px;
+  margin-bottom: 28px;
+}
+
+.slp-section-block.highlight-card h3 {
+  color: #0369A1;
+}
+
+.slp-info-callout {
+  background: #F8FAFC;
+  border-left: 4px solid #0284C7;
+  padding: 14px 18px;
+  border-radius: 0 8px 8px 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #334155;
+  margin-top: 10px;
+}
+
+/* 5. Warning Banner for Fraud Alert */
+.slp-warning-banner {
+  display: flex;
+  gap: 16px;
+  background: #FEF3C7;
+  border: 1px solid #F59E0B;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 28px;
+}
+
+.slp-wb-icon {
+  flex-shrink: 0;
+}
+
+.slp-wb-content h4 {
+  font-size: 16px;
+  font-weight: 800;
+  color: #92400E;
+  margin: 0 0 8px;
+}
+
+.slp-wb-content p {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #78350F;
+  margin: 0 0 8px;
+}
+
+.slp-wb-content p:last-child {
+  margin-bottom: 0;
+}
+
+.slp-wb-content a {
+  color: #92400E;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+/* 6. Cookie Table */
+.slp-table-responsive {
+  overflow-x: auto;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  margin: 14px 0 20px;
+}
+
+.slp-cookie-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13.5px;
+}
+
+.slp-cookie-table th {
+  background: #F8FAFC;
+  color: #0F172A;
+  font-weight: 700;
+  padding: 12px 16px;
+  border-bottom: 1px solid #CBD5E1;
+}
+
+.slp-cookie-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #F1F5F9;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.slp-cookie-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* 7. Contact Cards Grid */
+.slp-contact-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-bottom: 32px;
+}
+
+.slp-contact-card {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 22px 18px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.slp-contact-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+}
+
+.scc-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.scc-icon-wrap.purple {
+  background: #F3E8FF;
+  color: #7E22CE;
+}
+
+.scc-icon-wrap.amber {
+  background: #FEF3C7;
+  color: #B45309;
+}
+
+.scc-icon-wrap.blue {
+  background: #E0F2FE;
+  color: #0369A1;
+}
+
+.slp-contact-card h4 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 6px;
+}
+
+.slp-contact-card p {
+  font-size: 12.5px;
+  color: #64748B;
+  line-height: 1.5;
+  margin: 0 0 14px;
+  flex: 1;
+}
+
+.scc-action-link {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0284C7;
+  text-decoration: none;
+  margin-bottom: 6px;
+}
+
+.scc-action-link:hover {
+  text-decoration: underline;
+}
+
+.scc-response-time {
+  font-size: 11px;
+  color: #94A3B8;
+  font-weight: 500;
+}
+
+/* Office Row */
+.slp-offices-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.slp-office-card {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.soc-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: #0F172A;
+  margin-bottom: 6px;
+}
+
+.slp-office-card p {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #64748B;
+  margin: 0;
+}
+
+/* Ticket Form Card */
+.slp-ticket-form-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 24px;
+  margin-top: 32px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.stfc-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stfc-header h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 3px;
+}
+
+.stfc-header p {
+  font-size: 13px;
+  color: #64748B;
+  margin: 0;
+}
+
+.stfc-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stfc-row-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.stfc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stfc-field label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.stfc-field input,
+.stfc-field select,
+.stfc-field textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #0F172A;
+  background: #FFFFFF;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.stfc-field input:focus,
+.stfc-field select:focus,
+.stfc-field textarea:focus {
+  border-color: #38BDF8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+}
+
+.stfc-btn-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+  color: #FFFFFF;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  align-self: flex-start;
+}
+
+.stfc-btn-submit:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0369A1 0%, #075985 100%);
+  transform: translateY(-1px);
+}
+
+.stfc-btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 8. Responsive Breakpoints */
+@media (max-width: 960px) {
+  .slp-main-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .slp-sidebar {
+    position: static;
+  }
+
+  .slp-contact-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .slp-offices-row {
+    grid-template-columns: 1fr;
+  }
+
+  .stfc-row-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .slp-article-container {
+    padding: 24px 20px;
+  }
+}

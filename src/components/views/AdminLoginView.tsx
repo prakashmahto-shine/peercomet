@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   ShieldCheck, ShieldAlert, AlertCircle, ArrowRight, LogOut, 
-  Mail, KeyRound, CheckCircle, Lock, Award, Users, Banknote 
+  Mail, Lock, Award, Users, Banknote, Eye, EyeOff 
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { PeerpathLogo, PeerpathSymbolSvg } from '../common/PeerpathLogo';
@@ -9,53 +9,36 @@ import { PeerpathLogo, PeerpathSymbolSvg } from '../common/PeerpathLogo';
 export const AdminLoginView: React.FC = () => {
   const { 
     currentUser, 
-    requestOtp, 
-    verifyOtp, 
+    adminLogin, 
     logout, 
     navigate 
   } = useApp();
 
   const [adminEmail, setAdminEmail] = useState<string>('admin@peerpath.com');
-  const [adminOtp, setAdminOtp] = useState<string>('');
-  const [adminRequestId, setAdminRequestId] = useState<string | null>(null);
+  const [adminPassword, setAdminPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const [adminAuthError, setAdminAuthError] = useState<string>('');
   const [isAdminSubmitting, setIsAdminSubmitting] = useState<boolean>(false);
 
-  const handleAdminSendOtp = async (e: React.FormEvent) => {
+  const handleAdminSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAdminAuthError('');
     if (!adminEmail.trim()) {
-      setAdminAuthError('Please enter an authorized administrator email.');
+      setAdminAuthError('Please enter administrator work email.');
+      return;
+    }
+    if (!adminPassword) {
+      setAdminAuthError('Please enter internal security password.');
       return;
     }
     setIsAdminSubmitting(true);
-    const challenge = await requestOtp(adminEmail.trim());
-    setIsAdminSubmitting(false);
-    if (challenge) {
-      setAdminRequestId(challenge.requestId);
-      setAdminOtp('');
-    } else {
-      setAdminAuthError('Failed to send security code. Please try again.');
-    }
-  };
-
-  const handleAdminVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAdminAuthError('');
-    if (!adminRequestId) return;
-    if (!/^\d{6}$/.test(adminOtp.trim())) {
-      setAdminAuthError('Please enter the 6-digit verification code.');
-      return;
-    }
-    setIsAdminSubmitting(true);
-    const success = await verifyOtp({
-      requestId: adminRequestId,
+    const success = await adminLogin({
       email: adminEmail.trim(),
-      otp: adminOtp.trim()
+      password: adminPassword
     });
     setIsAdminSubmitting(false);
     if (!success) {
-      setAdminAuthError('Invalid code or session expired. Please retry.');
+      setAdminAuthError('Access Denied: Invalid administrator credentials.');
     }
   };
 
@@ -186,7 +169,7 @@ export const AdminLoginView: React.FC = () => {
                 </div>
               </div>
             ) : (
-              /* Not signed in: OTP Sign-In */
+              /* Internal Operations CRM Login */
               <div className="admin-login-form-wrapper">
                 {adminAuthError && (
                   <div className="admin-error-notice">
@@ -195,100 +178,70 @@ export const AdminLoginView: React.FC = () => {
                   </div>
                 )}
 
-                {!adminRequestId ? (
-                  <form onSubmit={handleAdminSendOtp} className="admin-form-fields">
-                    <div className="admin-form-group">
-                      <label>Administrator Work Email</label>
-                      <div className="admin-input-wrapper">
-                        <Mail size={16} className="admin-field-icon" />
-                        <input
-                          type="email"
-                          value={adminEmail}
-                          onChange={e => setAdminEmail(e.target.value)}
-                          placeholder="admin@peerpath.com"
-                          className="admin-text-field"
-                          autoFocus
-                          required
-                        />
-                      </div>
-
-                      {/* Quick demo helper pills */}
-                      <div className="admin-quick-pills">
-                        <span className="admin-quick-label">Quick Access:</span>
-                        <button
-                          type="button"
-                          className="btn-quick-email"
-                          onClick={() => setAdminEmail('admin@peerpath.com')}
-                        >
-                          admin@peerpath.com
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-quick-email"
-                          onClick={() => setAdminEmail('admin@shine.com')}
-                        >
-                          admin@shine.com
-                        </button>
-                      </div>
+                <form onSubmit={handleAdminSubmit} className="admin-form-fields">
+                  <div className="admin-form-group">
+                    <label>Administrator Work Email</label>
+                    <div className="admin-input-wrapper">
+                      <Mail size={16} className="admin-field-icon" />
+                      <input
+                        type="email"
+                        value={adminEmail}
+                        onChange={e => setAdminEmail(e.target.value)}
+                        placeholder="admin@peerpath.com"
+                        className="admin-text-field"
+                        autoFocus
+                        required
+                      />
                     </div>
+                  </div>
 
-                    <button
-                      type="submit"
-                      className="btn-admin-primary"
-                      disabled={isAdminSubmitting}
-                    >
-                      <span>{isAdminSubmitting ? 'Sending Security Code...' : 'Send Security OTP'}</span>
-                      <ArrowRight size={16} />
-                    </button>
-                  </form>
-                ) : (
-                  <form onSubmit={handleAdminVerify} className="admin-form-fields">
-                    <div className="admin-form-group">
-                      <label>Enter 6-Digit Admin Verification Code</label>
-                      <div className="admin-input-wrapper">
-                        <KeyRound size={16} className="admin-field-icon" />
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          value={adminOtp}
-                          onChange={e => setAdminOtp(e.target.value.replace(/\D/g, ''))}
-                          placeholder="123456"
-                          maxLength={6}
-                          className="admin-text-field admin-otp-field"
-                          autoFocus
-                          required
-                        />
-                      </div>
-                      <div className="admin-demo-code-banner">
-                        <CheckCircle size={13} className="text-emerald-600" />
-                        <span>Sent to <strong>{adminEmail}</strong> (Demo code: <code>123456</code>)</span>
-                      </div>
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="btn-admin-primary"
-                      disabled={isAdminSubmitting}
-                    >
-                      <span>{isAdminSubmitting ? 'Verifying...' : 'Verify & Open CRM'}</span>
-                      <ShieldCheck size={16} />
-                    </button>
-
-                    <div className="admin-sub-actions">
+                  <div className="admin-form-group">
+                    <label>Internal Security Password</label>
+                    <div className="admin-input-wrapper">
+                      <Lock size={16} className="admin-field-icon" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={adminPassword}
+                        onChange={e => setAdminPassword(e.target.value)}
+                        placeholder="Enter password"
+                        className="admin-text-field"
+                        required
+                        style={{ paddingRight: '40px' }}
+                      />
                       <button
                         type="button"
-                        className="btn-admin-link"
-                        onClick={() => { setAdminRequestId(null); setAdminAuthError(''); }}
+                        onClick={() => setShowPassword(p => !p)}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        style={{
+                          position: 'absolute',
+                          right: '12px',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: '#94a3b8',
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: 0
+                        }}
                       >
-                        ← Change Administrator Email
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
-                  </form>
-                )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="btn-admin-primary"
+                    disabled={isAdminSubmitting}
+                  >
+                    <span>{isAdminSubmitting ? 'Authenticating...' : 'Authorize & Open CRM'}</span>
+                    <ShieldCheck size={16} />
+                  </button>
+                </form>
 
                 <div className="admin-card-trust-footer">
                   <ShieldCheck size={14} className="text-emerald-600" />
-                  <span>SOC-2 Type II · 256-Bit Encrypted RBAC Access</span>
+                  <span>SOC-2 Type II · Internal Operations Access Only</span>
                 </div>
 
                 <div className="admin-auth-footer">

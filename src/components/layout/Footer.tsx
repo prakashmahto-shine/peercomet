@@ -9,21 +9,8 @@ export const Footer: React.FC = () => {
   const [isBlogsOpen, setIsBlogsOpen] = useState<boolean>(false);
   const [isJobsOpen, setIsJobsOpen] = useState<boolean>(false);
 
-  // Check if current view is inside Peerpath ecosystem
-  const isPeerpathView = [
-    'guidance-view',
-    'experts-view',
-    'expert-profile-view',
-    'community-view',
-    'mentor-dashboard-view',
-    'sessions-view',
-    'payment-view',
-    'confirmed-view',
-    'live-call-view',
-    'post-session-view',
-    'recruiter-view',
-    'profile-view'
-  ].includes(currentView);
+  // Check if current view is inside Peerpath ecosystem (all views except legacy external jobs portal)
+  const isPeerpathView = currentView !== 'jobs-view';
 
   const partners = [
     { name: 'Shine.com', label: 'Jobs & Recruitment Portal', src: 'https://staticcand.shine.com/c/s1/images/candidate/nova/home/shine-logo.svg', isShine: true },
@@ -37,8 +24,6 @@ export const Footer: React.FC = () => {
   return (
     <footer className={`shine-official-footer-wrapper ${isPeerpathView ? 'peerpath-standalone-footer' : 'shine-jobs-footer'}`}>
       
-
-
       {/* 2. Main Footer Body */}
       <div className="footer-main-navy-section">
         <div className="content-wrapper" style={{ paddingTop: '36px', paddingBottom: '30px' }}>
@@ -48,7 +33,7 @@ export const Footer: React.FC = () => {
             <div className="ftbs-left">
               {isPeerpathView ? (
                 <div className="ftbs-peerpath-brand">
-                  <PeerpathLogo size={38} textColor="#FFFFFF" subTextColor="#CBD5E1" theme="dark" />
+                  <PeerpathLogo size={38} textColor="#FFFFFF" subTextColor="#CBD5E1" theme="dark" showSubtext={false} />
                 </div>
               ) : (
                 <div className="ftbs-shine-brand">
@@ -100,7 +85,7 @@ export const Footer: React.FC = () => {
                 <div className="footer-nav-col">
                   <h4>For Mentors</h4>
                   <ul className="footer-links-list">
-                    <li><a href="#!" onClick={(e) => { e.preventDefault(); navigate('guidance-view'); }}>Become a Mentor (0% Fee)</a></li>
+                    <li><a href="/become-a-mentor" onClick={(e) => { e.preventDefault(); navigate('become-mentor-view'); }}>Become a Mentor (0% Fee)</a></li>
                     <li><a href="#!" onClick={(e) => { e.preventDefault(); navigate('mentor-dashboard-view'); }}>Mentor Studio Portal</a></li>
                     <li><a href="#!" onClick={(e) => { e.preventDefault(); navigate('sessions-view'); }}>Manage Availability & Calls</a></li>
                     <li><a href="#!">Earnings & Bank Payouts</a></li>
@@ -119,10 +104,10 @@ export const Footer: React.FC = () => {
                 <div className="footer-nav-col">
                   <h4>Trust & Help</h4>
                   <ul className="footer-links-list">
-                    <li><a href="#!">100% Satisfaction Guarantee</a></li>
-                    <li><a href="#!">Verified Mentors Screening</a></li>
-                    <li><a href="#!">Contact {BRAND.name} Support</a></li>
-                    <li><a href="#!">Privacy & Call Security</a></li>
+                    <li><a href="/security" onClick={(e) => { e.preventDefault(); navigate('security-view'); }}>100% Satisfaction Guarantee</a></li>
+                    <li><a href="/security" onClick={(e) => { e.preventDefault(); navigate('security-view'); }}>Verified Mentors Screening</a></li>
+                    <li><a href="/contact" onClick={(e) => { e.preventDefault(); navigate('contact-view'); }}>Contact {BRAND.name} Support</a></li>
+                    <li><a href="/privacy" onClick={(e) => { e.preventDefault(); navigate('privacy-view'); }}>Privacy & Call Security</a></li>
                   </ul>
                 </div>
               </>
@@ -202,10 +187,10 @@ export const Footer: React.FC = () => {
                 <div className="footer-nav-col">
                   <h4>Company</h4>
                   <ul className="footer-links-list">
-                    <li><a href="#!">About HT Media Group</a></li>
-                    <li><a href="#!">Contact Us</a></li>
-                    <li><a href="#!">Fraud Alert</a></li>
-                    <li><a href="#!">FAQ's</a></li>
+                    <li><a href="https://www.htmedia.in/" target="_blank" rel="noopener noreferrer">About HT Media Group ↗</a></li>
+                    <li><a href="/contact" onClick={(e) => { e.preventDefault(); navigate('contact-view'); }}>Contact Us</a></li>
+                    <li><a href="/security" onClick={(e) => { e.preventDefault(); navigate('security-view'); }}>Fraud Alert</a></li>
+                    <li><a href="/security" onClick={(e) => { e.preventDefault(); navigate('security-view'); }}>FAQ's</a></li>
                   </ul>
                 </div>
               </>
@@ -221,7 +206,7 @@ export const Footer: React.FC = () => {
                 <h3 className="f-partner-heading">Our Network Partner Brands</h3>
               </div>
               <p className="f-partner-subdesc">
-                Backed by India's premier journalism, media & recruitment network reaching <strong>4.5 Crore+ professionals</strong>.
+                Backed by Shine's network of <strong>4.5 Crore+ registered candidates</strong> and HT Media Group.
               </p>
             </div>
 
@@ -325,7 +310,6 @@ export const Footer: React.FC = () => {
                 <PeerpathSymbolSvg size={18} theme="dark" />
               </div>
               <span className="fb-brand-name">{BRAND.name.toUpperCase()}</span>
-              <span className="fb-brand-by">by <strong style={{ color: '#FCD34D' }}>{BRAND.parentDomain}</strong></span>
             </div>
             <span className="fb-co-brand-text">
               • © {new Date().getFullYear()} HT Media Group Enterprise • All Rights Reserved
@@ -333,13 +317,13 @@ export const Footer: React.FC = () => {
           </div>
 
           <div className="fb-center-links">
-            <a href="#!">T&C</a>
+            <a href="/terms" onClick={(e) => { e.preventDefault(); navigate('terms-view'); }}>T&C</a>
             <span>|</span>
-            <a href="#!">Privacy Policy</a>
+            <a href="/privacy" onClick={(e) => { e.preventDefault(); navigate('privacy-view'); }}>Privacy Policy</a>
             <span>|</span>
-            <a href="#!">Cookie Policy</a>
+            <a href="/cookies" onClick={(e) => { e.preventDefault(); navigate('cookies-view'); }}>Cookie Policy</a>
             <span>|</span>
-            <a href="#!">Security & Fraud</a>
+            <a href="/security" onClick={(e) => { e.preventDefault(); navigate('security-view'); }}>Security & Fraud</a>
           </div>
 
           <div className="fb-right-social">

@@ -103,7 +103,8 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({
     updateFullProfile,
     uploadResume,
     resumeExtract,
-    setResumeExtract
+    setResumeExtract,
+    currentUser
   } = useApp();
 
   const [form, setForm] = useState<ProfileForm>(() => formFromProfile(userProfile));
@@ -113,6 +114,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const [banner, setBanner] = useState<{ kind: 'success' | 'warning'; text: string } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [uploadFileName, setUploadFileName] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const resumeInputRef = useRef<HTMLInputElement>(null);
 
@@ -142,7 +144,11 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({
     put('graduationYear', ex.graduationYear);
     put('linkedinUrl', ex.linkedinUrl);
     put('githubUrl', ex.githubUrl);
-    if (filled.has('currentCompany')) updates.currentlyNotWorking = false;
+    if (filled.has('currentCompany') || filled.has('designation')) {
+      updates.currentlyNotWorking = false;
+    } else {
+      updates.currentlyNotWorking = true;
+    }
 
     setForm(prev => ({ ...prev, ...updates }));
     if (ex.skills?.length) {
@@ -187,10 +193,13 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
+    setUploadFileName(file.name);
     setIsUploading(true);
     setBanner(null);
+    setErrorMessage('');
     const result = await uploadResume(file);
     setIsUploading(false);
+    setUploadFileName('');
     if (result) applyResume(result);
   };
 
@@ -215,38 +224,48 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({
     e.preventDefault();
     setErrorMessage('');
 
-    // Required fields
-    if (!form.firstName.trim()) return setErrorMessage('Please enter your first name');
-    if (!form.location.trim()) return setErrorMessage('Please enter your current city');
-    if (form.totalExperienceYears.trim() === '') return setErrorMessage('Please enter your total experience (0 if you are a fresher)');
-    if (!form.currentlyNotWorking && (!form.designation.trim() || !form.currentCompany.trim())) {
-      return setErrorMessage("Please enter your current designation and company, or tick \"I am not working currently\"");
-    }
-    const years = toNumber(form.totalExperienceYears);
-    const months = toNumber(form.totalExperienceMonths);
-    if (years !== null && (!Number.isInteger(years) || years < 0 || years > 60)) return setErrorMessage('Experience (years) must be a whole number from 0 to 60');
-    if (months !== null && (!Number.isInteger(months) || months < 0 || months > 11)) return setErrorMessage('Experience (months) must be from 0 to 11');
+    // If designation and currentCompany are both empty and user hasn't checked currentlyNotWorking:
+    // Auto-detect currentlyNotWorking = true so freshers, students, and between-jobs candidates are NEVER blocked!
+    const isWorkingEmpty = !form.designation.trim() && !form.currentCompany.trim();
+    const effectiveNotWorking = form.currentlyNotWorking || isWorkingEmpty;
+
+    // Graceful fallbacks so Save & Continue always succeeds
+    const firstName = form.firstName.trim() || userProfile.firstName || currentUser?.name?.split(' ')[0] || 'User';
+    const location = form.location.trim() || userProfile.location || 'Remote / Flexible';
+    const expYearsStr = form.totalExperienceYears.trim() === '' ? '0' : form.totalExperienceYears;
+    const years = toNumber(expYearsStr) ?? 0;
+    const months = toNumber(form.totalExperienceMonths) ?? 0;
+
+    if (years < 0 || years > 60) return setErrorMessage('Experience (years) must be a whole number from 0 to 60');
+    if (months < 0 || months > 11) return setErrorMessage('Experience (months) must be from 0 to 11');
+
+    const designation = effectiveNotWorking ? '' : form.designation.trim();
+    const currentCompany = effectiveNotWorking ? '' : form.currentCompany.trim();
+
     const currentCtc = toNumber(form.currentCtcLpa);
     const expectedCtc = toNumber(form.expectedCtcLpa);
-    if ([currentCtc, expectedCtc].some(v => v !== null && (Number.isNaN(v) || v < 0 || v > 1000))) return setErrorMessage('Salary must be a number in lakhs per annum (e.g. 12.5)');
+    if ([currentCtc, expectedCtc].some(v => v !== null && (Number.isNaN(v) || v < 0 || v > 1000))) {
+      return setErrorMessage('Salary must be a number in lakhs per annum (e.g. 12.5)');
+    }
     if (form.dateOfBirth) {
       const age = ageFrom(form.dateOfBirth);
       if (age === null || age < 15 || age > 80) return setErrorMessage('Please enter a valid date of birth');
     }
     const gradYear = toNumber(form.graduationYear);
-    if (gradYear !== null && (!Number.isInteger(gradYear) || gradYear < 1950 || gradYear > 2100)) return setErrorMessage('Please enter a valid passing year');
+    if (gradYear !== null && (!Number.isInteger(gradYear) || gradYear < 1950 || gradYear > 2100)) {
+      return setErrorMessage('Please enter a valid passing year');
+    }
 
-    const designation = form.currentlyNotWorking ? '' : form.designation.trim();
     const updates: Partial<UserProfileData> = {
-      firstName: form.firstName.trim(),
+      firstName,
       lastName: form.lastName.trim(),
       dateOfBirth: form.dateOfBirth || null,
-      location: form.location.trim(),
+      location,
       totalExperienceYears: years,
-      totalExperienceMonths: years === null ? null : (months ?? 0),
+      totalExperienceMonths: months,
       designation,
-      currentCompany: form.currentlyNotWorking ? '' : form.currentCompany.trim(),
-      currentlyNotWorking: form.currentlyNotWorking,
+      currentCompany,
+      currentlyNotWorking: effectiveNotWorking,
       noticePeriod: form.noticePeriod.trim(),
       currentCtcLpa: currentCtc,
       expectedCtcLpa: expectedCtc,
@@ -260,7 +279,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({
       portfolioUrl: toUrl(form.portfolioUrl),
       jobSearchStatus: form.jobSearchStatus,
       // The headline follows the designation unless the user wrote their own
-      ...(!userProfile.headline || userProfile.headline === userProfile.designation ? { headline: designation } : {})
+      ...(!userProfile.headline || userProfile.headline === userProfile.designation ? { headline: designation || 'Tech Professional' } : {})
     };
 
     setIsSaving(true);
@@ -293,28 +312,50 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
             {/* Resume: upload to auto-fill */}
             <div className="sup-resume-section">
-              <div className={`sup-floating-group resume-upload-group ${isUploading ? 'is-uploading' : ''}`}>
-                <label className="sup-floating-label">Resume</label>
-                <div
-                  className="sup-resume-input-row"
-                  onClick={() => !isUploading && resumeInputRef.current?.click()}
-                  style={{ cursor: isUploading ? 'not-allowed' : 'pointer' }}
-                >
-                  <div className="sup-resume-left-content">
-                    <FileText size={16} className="text-purple-600 flex-shrink-0" />
-                    <span className="sup-resume-filename">
-                      {isUploading ? 'Uploading and reading your resume…'
-                        : hasResume(userProfile) ? `${userProfile.resumeFileName}${formatResumeAge(userProfile) ? ` • uploaded ${formatResumeAge(userProfile)}` : ''}`
-                        : 'Upload your resume to fill this form automatically'}
+              {isUploading ? (
+                <div className="sup-resume-uploading-card">
+                  <div className="sup-ruc-spinner-wrap">
+                    <Loader2 size={24} className="animate-spin text-purple-600" />
+                  </div>
+                  <div className="sup-ruc-content">
+                    <div className="sup-ruc-title-row">
+                      <strong className="sup-ruc-title">
+                        Uploading &amp; Reading {uploadFileName || 'Resume'}…
+                      </strong>
+                      <span className="sup-ruc-badge">AI Parser</span>
+                    </div>
+                    <p className="sup-ruc-subtitle">
+                      Extracting your work history, education, skills, and contact details…
+                    </p>
+                    <div className="sup-ruc-progress-bar">
+                      <div className="sup-ruc-progress-shimmer" />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="sup-floating-group resume-upload-group">
+                  <label className="sup-floating-label">Resume</label>
+                  <div
+                    className="sup-resume-input-row"
+                    onClick={() => resumeInputRef.current?.click()}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className="sup-resume-left-content">
+                      <FileText size={16} className="text-purple-600 flex-shrink-0" />
+                      <span className="sup-resume-filename">
+                        {hasResume(userProfile)
+                          ? `${userProfile.resumeFileName}${formatResumeAge(userProfile) ? ` • uploaded ${formatResumeAge(userProfile)}` : ''}`
+                          : 'Upload your resume to fill this form automatically'}
+                      </span>
+                    </div>
+                    <span className="btn-sup-upload-inline">
+                      <Upload size={14} />
+                      <span>{hasResume(userProfile) ? 'Upload new' : 'Upload'}</span>
                     </span>
                   </div>
-                  <span className={`btn-sup-upload-inline ${isUploading ? 'loading' : ''}`}>
-                    {isUploading ? <Loader2 size={14} className="animate-spin text-purple-600" /> : <Upload size={14} />}
-                    <span>{hasResume(userProfile) ? 'Upload new' : 'Upload'}</span>
-                  </span>
+                  <input ref={resumeInputRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }} onChange={handleResumeChange} />
                 </div>
-                <input ref={resumeInputRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }} onChange={handleResumeChange} />
-              </div>
+              )}
               <span className="sup-resume-subtext">
                 PDF, DOCX or TXT, up to 5 MB. Only you and the mentors you book can download it.
                 {hasResume(userProfile) && (

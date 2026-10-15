@@ -31,6 +31,7 @@ interface AppContextType {
   // Email code sign-in / sign-up. requestOtp returns null on error (a toast is shown).
   requestOtp: (email: string) => Promise<{ requestId: string; isRegistered: boolean } | null>;
   verifyOtp: (params: { requestId: string; email: string; otp: string; name?: string; mobile?: string }) => Promise<boolean>;
+  adminLogin: (params: { email: string; password: string }) => Promise<boolean>;
   logout: (redirectToAdmin?: boolean) => void;
 
   // Experts & Mentors
@@ -919,6 +920,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const urlParams = new URLSearchParams(window.location.search);
     const redirectParam = urlParams.get('redirect');
+    const actionParam = urlParams.get('action');
+    if (actionParam === 'unlock') {
+      try {
+        sessionStorage.setItem('peerpath_auto_unlock', '1');
+      } catch {}
+    }
     const utmSource = urlParams.get('utm_source');
     const campaign = urlParams.get('campaign') || urlParams.get('utm_campaign');
     const currentPath = window.location.pathname;
@@ -949,6 +956,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     showToast(`👋 Welcome, ${account.name || 'there'}!`, `You are now signed in to ${BRAND.name}.`);
+    return true;
+  };
+
+  const adminLogin = async (params: { email: string; password: string }) => {
+    let me: AuthUser;
+    try {
+      me = await peerpathApi.adminLogin({
+        email: params.email.trim(),
+        password: params.password.trim()
+      });
+    } catch (err) {
+      showToast('Admin Sign In Failed', err instanceof Error ? err.message : 'Invalid administrator credentials.', 'warning');
+      return false;
+    }
+    await applySession(me);
+    navigate('admin-dashboard-view', '/admin');
+    showToast('👋 Administrator Authorized', 'PeerPath Operations CRM Console unlocked.');
     return true;
   };
 
@@ -1267,6 +1291,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isAuthLoading,
         requestOtp,
         verifyOtp,
+        adminLogin,
         logout,
         experts,
         selectedExpert,

@@ -216,6 +216,56 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     category: 'shared',
     hideHeader: true,
     hideFooter: true
+  },
+  {
+    id: 'terms-of-service',
+    name: 'Terms of Service',
+    path: '/terms',
+    aliases: ['/terms-of-service', '/terms-and-conditions', '/tos'],
+    view: 'terms-view',
+    title: `Terms of Service & User Agreement | ${BRAND.name}`,
+    description: 'Terms of Service and user agreement governing mentorship and platform usage on PeerPath.',
+    category: 'shared'
+  },
+  {
+    id: 'privacy-policy',
+    name: 'Privacy Policy',
+    path: '/privacy',
+    aliases: ['/privacy-policy', '/privacy-notice'],
+    view: 'privacy-view',
+    title: `Privacy Policy & Data Protection | ${BRAND.name}`,
+    description: 'Privacy Policy and candidate data protection practices on PeerPath.',
+    category: 'shared'
+  },
+  {
+    id: 'cookie-policy',
+    name: 'Cookie Policy',
+    path: '/cookies',
+    aliases: ['/cookie-policy'],
+    view: 'cookies-view',
+    title: `Cookie Policy & Tracking Preferences | ${BRAND.name}`,
+    description: 'Information about how cookies and tracking preferences work on PeerPath.',
+    category: 'shared'
+  },
+  {
+    id: 'security-fraud',
+    name: 'Security & Trust Safety',
+    path: '/security',
+    aliases: ['/fraud-alert', '/security-fraud', '/safety'],
+    view: 'security-view',
+    title: `Security, Safety & Fraud Prevention | ${BRAND.name}`,
+    description: 'Security policies, verified screening standards, and fraud protection guidelines.',
+    category: 'shared'
+  },
+  {
+    id: 'contact-support',
+    name: 'Contact & Support',
+    path: '/contact',
+    aliases: ['/support', '/help', '/contact-us'],
+    view: 'contact-view',
+    title: `Contact & Support Helpdesk | ${BRAND.name}`,
+    description: 'Official support, contact channels, and helpdesk for PeerPath.',
+    category: 'shared'
   }
 ];
 

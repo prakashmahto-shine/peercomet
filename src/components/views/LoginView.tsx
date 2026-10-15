@@ -9,9 +9,11 @@ import { PeerpathLogo } from '../common/PeerpathLogo';
 import { OtpLoginForm } from '../auth/OtpLoginForm';
 
 export const LoginView: React.FC = () => {
+  const { navigate } = useApp();
   const urlParams = new URLSearchParams(window.location.search);
   const utmSource = urlParams.get('utm_source');
   const campaign = urlParams.get('campaign') || urlParams.get('utm_campaign');
+  const actionParam = urlParams.get('action');
 
   return (
     <div className="peerpath-master-login-page">
@@ -63,57 +65,23 @@ export const LoginView: React.FC = () => {
                 Get personalized guidance, roadmaps and real insights from verified professionals to accelerate your career.
               </p>
 
-              {/* 3 Value Pillars */}
-              <div className="story-pillars-stack">
-                <div className="story-pillar-card">
-                  <div className="spc-icon-box purple">
-                    <Users size={18} />
-                  </div>
-                  <div className="spc-text">
-                    <h4>1:1 Sessions with Industry Experts</h4>
-                    <p>Learn directly from vetted professionals</p>
-                  </div>
+              {/* Sleek Trust & Proof Bar */}
+              <div className="story-trust-metrics">
+                <div className="stm-item">
+                  <span className="stm-stat">500+</span>
+                  <span className="stm-label">Verified Mentors</span>
                 </div>
-
-                <div className="story-pillar-card">
-                  <div className="spc-icon-box blue">
-                    <BookOpen size={18} />
-                  </div>
-                  <div className="spc-text">
-                    <h4>Personalized Career Roadmaps</h4>
-                    <p>Get a 90-day plan tailored for you</p>
-                  </div>
+                <div className="stm-dot">•</div>
+                <div className="stm-item">
+                  <span className="stm-stat">4.9 ★</span>
+                  <span className="stm-label">Avg. Rating</span>
                 </div>
-
-                <div className="story-pillar-card">
-                  <div className="spc-icon-box green">
-                    <TrendingUp size={18} />
-                  </div>
-                  <div className="spc-text">
-                    <h4>Real Career Outcomes</h4>
-                    <p>Bridge skill gaps, switch roles, and grow faster</p>
-                  </div>
+                <div className="stm-dot">•</div>
+                <div className="stm-item">
+                  <span className="stm-stat">100k+</span>
+                  <span className="stm-label">Candidate Network</span>
                 </div>
               </div>
-
-              {/* Stats Footer Row */}
-              <div className="story-stats-strip">
-                <div className="sss-item">
-                  <strong>500+</strong>
-                  <span>Verified Mentors</span>
-                </div>
-                <div className="sss-divider"></div>
-                <div className="sss-item">
-                  <strong>4.9 ★</strong>
-                  <span>Avg. Rating</span>
-                </div>
-                <div className="sss-divider"></div>
-                <div className="sss-item">
-                  <strong>100,000+</strong>
-                  <span>Candidate Network</span>
-                </div>
-              </div>
-
             </div>
 
             {/* Center Floating Mentors Cluster */}
@@ -229,7 +197,12 @@ export const LoginView: React.FC = () => {
             <div className="frosted-glass-sign-in-box">
               
               {/* Campaign / Invite Banner */}
-              {utmSource === 'whatsapp' ? (
+              {actionParam === 'unlock' ? (
+                <div className="fgb-campaign-pill unlock" style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FCD34D' }}>
+                  <Sparkles size={13} className="text-amber-600 flex-shrink-0" />
+                  <span>Unlock PeerPath • Sign in to set goal &amp; find mentors</span>
+                </div>
+              ) : utmSource === 'whatsapp' ? (
                 <div className="fgb-campaign-pill whatsapp">
                   <MessageSquare size={13} className="text-emerald-600 flex-shrink-0" />
                   <span>WhatsApp Invite: Access your 1:1 Mentors</span>
@@ -248,8 +221,12 @@ export const LoginView: React.FC = () => {
 
               {/* Box Header */}
               <div className="fgb-header">
-                <h2 className="fgb-title">Welcome 👋</h2>
-                <p className="fgb-subtitle">Sign in or create your account with your email</p>
+                <h2 className="fgb-title">{actionParam === 'unlock' ? 'Unlock PeerPath 🚀' : 'Welcome 👋'}</h2>
+                <p className="fgb-subtitle">
+                  {actionParam === 'unlock' 
+                    ? 'Sign in or create your account to calibrate goal and match with mentors'
+                    : 'Sign in or create your account with your email'}
+                </p>
               </div>
 
               <OtpLoginForm />
@@ -267,6 +244,46 @@ export const LoginView: React.FC = () => {
           </div>
 
         </main>
+
+        {/* =========================================================================
+            BOTTOM TRUST STRIP: Top Tech Company Mentors + Minimal SaaS Footer
+           ========================================================================= */}
+        <footer className="login-canvas-footer">
+          <div className="lcf-trust-strip">
+            <span className="lcf-trust-label">MENTORS FROM LEADING TECH TEAMS</span>
+            <div className="lcf-logos-row">
+              <span className="lcf-logo-pill">
+                <span className="lcf-brand-dot google"></span> Google
+              </span>
+              <span className="lcf-logo-pill">
+                <span className="lcf-brand-dot microsoft"></span> Microsoft
+              </span>
+              <span className="lcf-logo-pill">
+                <span className="lcf-brand-dot flipkart"></span> Flipkart
+              </span>
+              <span className="lcf-logo-pill">
+                <span className="lcf-brand-dot amazon"></span> Amazon
+              </span>
+              <span className="lcf-logo-pill">
+                <span className="lcf-brand-dot uber"></span> Uber
+              </span>
+              <span className="lcf-logo-pill">
+                <span className="lcf-brand-dot meta"></span> Meta
+              </span>
+            </div>
+          </div>
+
+          <div className="lcf-bottom-bar">
+            <span>© {new Date().getFullYear()} PeerPath • Backed by 4.5Cr+ Candidate Network by Shine.com</span>
+            <div className="lcf-links">
+              <a href="/privacy" onClick={(e) => { e.preventDefault(); navigate('privacy-view'); }}>Privacy Policy</a>
+              <span className="lcf-divider">•</span>
+              <a href="/terms" onClick={(e) => { e.preventDefault(); navigate('terms-view'); }}>Terms of Service</a>
+              <span className="lcf-divider">•</span>
+              <a href="/contact" onClick={(e) => { e.preventDefault(); navigate('contact-view'); }}>Support</a>
+            </div>
+          </div>
+        </footer>
 
       </div>
     </div>

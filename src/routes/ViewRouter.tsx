@@ -19,6 +19,7 @@ import { LoginView } from '../components/views/LoginView';
 import { RegistrationView } from '../components/views/RegistrationView';
 import { AdminDashboardView } from '../components/views/AdminDashboardView';
 import { BecomeMentorLandingView } from '../components/views/BecomeMentorLandingView';
+import { StaticPageView } from '../components/views/StaticPageView';
 
 interface ViewRouterProps {
   onSelectExpert?: (expertId: string) => void;
@@ -164,6 +165,22 @@ export const ViewRouter: React.FC<ViewRouterProps> = ({
           <RegistrationView />
         </>
       );
+
+    // 8. Static Governance & Legal Pages
+    case 'terms-view':
+      return <StaticPageView initialTab="terms" />;
+
+    case 'privacy-view':
+      return <StaticPageView initialTab="privacy" />;
+
+    case 'cookies-view':
+      return <StaticPageView initialTab="cookies" />;
+
+    case 'security-view':
+      return <StaticPageView initialTab="security" />;
+
+    case 'contact-view':
+      return <StaticPageView initialTab="contact" />;
 
     default:
       return (
