@@ -302,8 +302,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const activeUsername = currentUser?.id || '';
   const userProfile: UserProfileData = userProfiles[activeUsername] || EMPTY_PROFILE;
 
-  // Creator / Mentor Studio Mode
-  const [isCreatorMode, setIsCreatorMode] = useState<boolean>(false);
+  // Creator / Mentor Studio Mode (persisted across page reloads)
+  const [isCreatorMode, setIsCreatorMode] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem('shine_peerpath_creator_mode');
+      if (stored !== null) return JSON.parse(stored);
+    } catch {}
+    return false;
+  });
 
   useEffect(() => {
     try {
@@ -821,7 +827,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   // Loads the signed-in user's profile and switches the app to them
-  const applySession = async (me: AuthUser): Promise<{ account: UserAccount; profile?: UserProfileData }> => {
+  const applySession = async (me: AuthUser): Promise<{ account: UserAccount; profile?: UserProfileData; effectiveCreatorMode: boolean }> => {
     let profile: UserProfileData | undefined;
     try {
       profile = profileFromServer(await peerpathApi.getCandidateProfile(me.id));
@@ -838,8 +844,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       me.creatorId ||
       account.hasExpertBadge
     );
-    setIsCreatorMode(isMentor);
-    return { account, profile };
+    let userSavedMode: boolean | null = null;
+    try {
+      const stored = localStorage.getItem('shine_peerpath_creator_mode');
+      if (stored !== null) userSavedMode = JSON.parse(stored);
+    } catch {}
+    // If the user previously chose Seek Guidance (false) or Mentor (true), honor their selection!
+    const effectiveCreatorMode = userSavedMode !== null ? userSavedMode : isMentor;
+    setIsCreatorMode(effectiveCreatorMode);
+    return { account, profile, effectiveCreatorMode };
   };
 
   // Restore an existing session on page load
@@ -849,7 +862,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       .then(async me => {
         if (!isCurrent) return;
         if (me) {
-          const { profile } = await applySession(me);
+          const { profile, effectiveCreatorMode } = await applySession(me);
           const currentPath = window.location.pathname;
           const isMentorUser = Boolean(
             me.isMentor ||
@@ -857,9 +870,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             profile?.isMentorEligible ||
             me.creatorId
           );
-          // If on root or default /peerpath, direct mentor users to their studio dashboard
-          if (isMentorUser && (currentPath === '/' || currentPath === '/peerpath') && !window.location.search.includes('redirect')) {
-            navigate('mentor-dashboard-view', '/creator-studio');
+          // Only direct to mentor studio on fresh root '/' if active mode is Mentor.
+          // If the user is on /peerpath or in Seek Guidance mode, KEEP THEM on guidance-view!
+          if (effectiveCreatorMode && isMentorUser && currentPath === '/' && !window.location.search.includes('redirect')) {
+            navigate('mentor-dashboard-view', '/mentor');
+          } else if (!effectiveCreatorMode && currentPath === '/') {
+            navigate('guidance-view', '/peerpath');
           }
         } else {
           const currentPath = window.location.pathname;
@@ -925,7 +941,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // New users (and anyone with missing required details) finish registration first
       navigate('registration-view', '/register');
     } else if (isMentorUser && !utmSource && !campaign) {
-      navigate('mentor-dashboard-view', '/creator-studio');
+      navigate('mentor-dashboard-view', '/mentor');
     } else {
       // Normal candidate login always directs to /peerpath
       navigate('guidance-view', '/peerpath');

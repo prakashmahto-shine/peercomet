@@ -96,7 +96,7 @@ export const PaymentView: React.FC = () => {
         <div className="trust-guarantee-box">
           <ShieldCheck size={22} className="t-icon" />
           <p>
-            <strong>Shine Trust Guarantee:</strong> 100% full refund if mentor is unavailable or if you are not satisfied with session quality.
+            <strong>PeerPath Trust Guarantee (Backed by Shine):</strong> 100% full refund if mentor is unavailable or if you are not satisfied with session quality.
           </p>
         </div>
       </div>
@@ -162,7 +162,7 @@ export const PaymentView: React.FC = () => {
           
           <div className="rzp-compliance-footer">
             <Shield size={12} className="text-slate-400" />
-            <span>RBI & PCI-DSS Compliant • <strong>Shine Gateway</strong></span>
+            <span>RBI & PCI-DSS Compliant • <strong>PeerPath Secure Gateway</strong></span>
           </div>
         </div>
 

@@ -56,7 +56,7 @@ export const PostSessionView: React.FC = () => {
 
         <div className="feedback-header">
           <h2 className="f-title">How was your mentorship with {expert.name}?</h2>
-          <p className="f-subtitle">Your rating helps maintain community trust and high mentorship quality on Shine.</p>
+          <p className="f-subtitle">Your rating helps maintain community trust and high mentorship quality on PeerPath.</p>
         </div>
 
         <div className="star-rating-selector">

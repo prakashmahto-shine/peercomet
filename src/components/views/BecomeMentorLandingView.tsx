@@ -42,7 +42,7 @@ export const BecomeMentorLandingView: React.FC = () => {
       a: "As little or as much as you prefer! Most mentors host between 2 to 4 sessions per week (on weekends or weekday evenings). You set your own availability days and time slots directly in your profile."
     },
     {
-      q: "Does Shine PeerPath take any commission from my session fees?",
+      q: "Does PeerPath take any commission from my session fees?",
       a: "Zero percent (0%) platform commission! You keep 100% of your listed session price. For example, if you list a 45-minute 1:1 call for ₹1,499, you receive the full ₹1,499."
     },
     {
@@ -70,7 +70,7 @@ export const BecomeMentorLandingView: React.FC = () => {
           {/* Top Launch Pill */}
           <div className="bml-pill-badge">
             <Sparkles size={14} className="text-amber-400" />
-            <span>Shine PeerPath Mentor Network • 0% Platform Commission</span>
+            <span>PeerPath Mentor Network • 0% Platform Commission • Backed by Shine</span>
           </div>
 
           <h1 className="bml-hero-headline">
@@ -138,7 +138,7 @@ export const BecomeMentorLandingView: React.FC = () => {
               <span className="bml-metric-icon">🛡️</span>
               <div className="bml-metric-text">
                 <strong>Verified Profile</strong>
-                <small>Shine Mentor Badge</small>
+                <small>PeerPath Mentor Badge</small>
               </div>
             </div>
           </div>
@@ -285,7 +285,7 @@ export const BecomeMentorLandingView: React.FC = () => {
         <div className="bml-container">
           <div className="bml-section-header-center">
             <span className="bml-section-kicker">BUILT FOR TECH PROFESSIONALS</span>
-            <h2 className="bml-section-heading">Why India’s Top Engineers Mentor on Shine PeerPath</h2>
+            <h2 className="bml-section-heading">Why India’s Top Engineers Mentor on PeerPath</h2>
             <p className="bml-section-sub">
               We took away all the hassle of freelance mentoring — no endless LinkedIn DM scheduling, no chasing payment receipts, and no awkward candidate prep.
             </p>
@@ -401,7 +401,7 @@ export const BecomeMentorLandingView: React.FC = () => {
           <div className="bml-section-header-center">
             <span className="bml-section-kicker">QUESTIONS & ANSWERS</span>
             <h2 className="bml-section-heading">Frequently Asked Questions</h2>
-            <p className="bml-section-sub">Everything you need to know about becoming a mentor on Shine PeerPath.</p>
+            <p className="bml-section-sub">Everything you need to know about becoming a mentor on PeerPath.</p>
           </div>
 
           <div className="bml-faq-list">

@@ -12,7 +12,7 @@ import { isProfileComplete } from '../../utils/profile';
 
 interface HeaderProps {
   currentView: ViewType;
-  onNavigate: (view: ViewType) => void;
+  onNavigate: (view: ViewType, customPath?: string) => void;
   onOpenCreatorWizard: () => void;
   onSearch: (query: string) => void;
 }
@@ -244,8 +244,11 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => {
                   if (!isCreatorMode) {
                     setIsCreatorMode(true);
+                    try {
+                      localStorage.setItem('shine_peerpath_creator_mode', 'true');
+                    } catch {}
                     showToast('⚡ Mentor Studio Active', 'Switched to your mentor dashboard & candidate calls.', 'info');
-                    onNavigate('mentor-dashboard-view');
+                    onNavigate('mentor-dashboard-view', '/mentor');
                   }
                 }}
                 title="Mentor Mode: You are actively hosting sessions and guiding candidates"
@@ -261,8 +264,11 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => {
                   if (isCreatorMode) {
                     setIsCreatorMode(false);
+                    try {
+                      localStorage.setItem('shine_peerpath_creator_mode', 'false');
+                    } catch {}
                     showToast('👤 Mentee Mode Active', 'Need guidance for yourself? Browse & book 1:1 sessions with other mentors.', 'info');
-                    onNavigate('guidance-view');
+                    onNavigate('guidance-view', '/peerpath');
                   }
                 }}
                 title="Need 1:1 guidance for yourself? Switch to Mentee Mode to book sessions"

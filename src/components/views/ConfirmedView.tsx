@@ -108,9 +108,9 @@ export const ConfirmedView: React.FC = () => {
         <div className="conf-checklist-box">
           <h4><Sparkles size={16} /> What happens next?</h4>
           <ol>
-            <li>Your Shine CV and Trajectory Gap Report have been automatically pre-loaded for {expert.name || 'your mentor'}.</li>
+            <li>Your candidate profile and Trajectory Gap Report have been automatically pre-loaded for {expert.name || 'your mentor'}.</li>
             <li>You will receive a WhatsApp reminder 15 minutes before the call starts.</li>
-            <li>Post-session, your mentor will review and approve your <strong>Shine Verified Peer Badge</strong>.</li>
+            <li>Post-session, your mentor will review and approve your <strong>PeerPath Verified Peer Badge</strong>.</li>
           </ol>
         </div>
 

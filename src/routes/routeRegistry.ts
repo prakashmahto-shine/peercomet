@@ -148,13 +148,13 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     category: 'recruiter'
   },
   {
-    id: 'mentor-dashboard',
-    name: 'Mentor Studio & Earnings Cockpit',
-    path: '/mentor-dashboard',
-    aliases: ['/mentor', '/mentor-portal', '/creator-studio', '/creator', '/creator-dashboard'],
+    id: 'mentor-portal',
+    name: 'Verified Tech Mentors & Career Guidance',
+    path: '/mentor',
+    aliases: ['/mentor-dashboard', '/mentor-portal', '/creator-studio', '/creator', '/creator-dashboard'],
     view: 'mentor-dashboard-view',
-    title: `Mentor Studio & Earnings Analytics | ${BRAND.name}`,
-    description: 'Session calendar, candidate profiles & briefings, reach analytics, and payout tracker',
+    title: `Verified Tech Mentors & 1:1 Career Guidance | ${BRAND.name}`,
+    description: 'Connect with verified tech mentors for 1:1 guidance, mock interviews, and career roadmap',
     category: 'mentor',
     requiresAuth: true
   },

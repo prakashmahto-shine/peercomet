@@ -57,7 +57,7 @@ export const Footer: React.FC = () => {
                     alt="Shine Logo" 
                     className="ftbs-shine-logo"
                   />
-                  <span className="ftbs-tagline">Connecting 3.5 Crore+ Job Seekers with 300,000+ Employers</span>
+                  <span className="ftbs-tagline">Connecting 4.5 Crore+ Job Seekers with 300,000+ Employers</span>
                 </div>
               )}
             </div>
@@ -221,7 +221,7 @@ export const Footer: React.FC = () => {
                 <h3 className="f-partner-heading">Our Network Partner Brands</h3>
               </div>
               <p className="f-partner-subdesc">
-                Backed by India's premier journalism, media & recruitment network reaching <strong>3.5 Crore+ professionals</strong>.
+                Backed by India's premier journalism, media & recruitment network reaching <strong>4.5 Crore+ professionals</strong>.
               </p>
             </div>
 

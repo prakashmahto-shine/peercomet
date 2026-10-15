@@ -2943,6 +2943,33 @@
   color: #0F172A;
 }
 
+/* Clean Loading State */
+.peerpath-mentors-loading-state {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 48px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 16px 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  animation: fadeInMentors 0.25s ease-out;
+}
+
+@keyframes fadeInMentors {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Clean Empty State */
 .peerpath-mentors-empty-clean {
   background: #FFFFFF;
@@ -3637,6 +3664,116 @@
     width: 100%;
   }
   .btn-pmdb-studio {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Seek Guidance Session Banner (When mentor switches to mentee view) */
+.peerpath-seek-guidance-banner {
+  background: linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #312E81 100%);
+  border: 1px solid #4338CA;
+  border-radius: 16px;
+  padding: 18px 24px;
+  margin-bottom: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.12);
+  color: #FFFFFF;
+}
+
+.psgb-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.psgb-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #FCD34D;
+}
+
+.psgb-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #FFFFFF;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.psgb-desc {
+  font-size: 13px;
+  color: #C7D2FE;
+  margin: 0;
+  max-width: 660px;
+  line-height: 1.5;
+}
+
+.psgb-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.btn-psgb-bookings {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.btn-psgb-bookings:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.btn-psgb-studio-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-psgb-studio-link:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+@media (max-width: 768px) {
+  .peerpath-seek-guidance-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .psgb-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+  .btn-psgb-bookings, .btn-psgb-studio-link {
     width: 100%;
     justify-content: center;
   }

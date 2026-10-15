@@ -258,7 +258,7 @@ export const CreatorWizardModal: React.FC = () => {
                   Monetize Your Tech Experience <span className="text-gold-gradient">on Your Own Schedule</span>
                 </h1>
                 <p className="mft-subtext">
-                  Set your own session fees and take 1:1 calls when free. Shine automatically matches <strong>3.5 Crore active jobseekers</strong> directly to your calendar.
+                  Set your own session fees and take 1:1 calls when free. PeerPath matches from Shine's <strong>4.5 Crore active jobseeker network</strong> directly to your calendar.
                 </p>
               </div>
 
@@ -375,7 +375,7 @@ export const CreatorWizardModal: React.FC = () => {
                     </div>
                     <div className="wsm-b-content">
                       <h4>Zero Self-Marketing (Auto-Matched Pipeline)</h4>
-                      <p>No need to hunt for audience or self-promote. On Shine, our <strong>3.5Cr active candidate ecosystem</strong> routes relevant mentees directly to your calendar.</p>
+                      <p>No need to hunt for audience or self-promote. Powered by Shine's <strong>4.5Cr+ candidate ecosystem</strong>, PeerPath routes relevant mentees directly to your calendar.</p>
                     </div>
                   </div>
 
@@ -766,7 +766,7 @@ export const CreatorWizardModal: React.FC = () => {
             <div className="wizard-step-pane active animate-fade-in">
               <div className="wz-pane-header-clean">
                 <h2>Step 5: Review & Go Live!</h2>
-                <p>Here is how your verified profile will look to 3.5 Crore candidates and executive recruiters on {BRAND.name}.</p>
+                <p>Here is how your verified profile will look to 4.5 Crore candidates and executive recruiters on {BRAND.name}.</p>
               </div>
 
               {/* Realistic Peerpath Mentor Card Preview */}

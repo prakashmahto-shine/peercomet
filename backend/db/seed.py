@@ -48,17 +48,26 @@ def seed_demo_data(json_path: Path = DB_PATH):
 
     with db_session() as db:
         for i, c in enumerate(raw.get("creators", [])):
-            db.add(m.Creator(id=c["id"], owner_user_id=c["id"], data=c, created_at=ts(i)))
+            if not db.scalar(select(m.Creator).where(m.Creator.id == c["id"])):
+                db.add(m.Creator(id=c["id"], owner_user_id=c["id"], data=c, created_at=ts(i)))
         for i, c in enumerate(raw.get("candidates", [])):
-            db.add(m.Candidate(id=c["id"], email=(c.get("email") or "").lower() or None, data=c, created_at=ts(i)))
+            if not db.scalar(select(m.Candidate).where(m.Candidate.id == c["id"])):
+                db.add(m.Candidate(id=c["id"], email=(c.get("email") or "").lower() or None, data=c, created_at=ts(i)))
         for i, b in enumerate(raw.get("badges", [])):
-            db.add(m.Badge(id=b["id"], candidate_id=None, data=b, created_at=ts(i)))
+            if not db.scalar(select(m.Badge).where(m.Badge.id == b["id"])):
+                db.add(m.Badge(id=b["id"], candidate_id=None, data=b, created_at=ts(i)))
         for i, p in enumerate(raw.get("posts", [])):
-            db.add(m.Post(id=p["id"], mentor_id=p.get("mentorId", ""), data=p, created_at=ts(i)))
+            if not db.scalar(select(m.Post).where(m.Post.id == p["id"])):
+                db.add(m.Post(id=p["id"], mentor_id=p.get("mentorId", ""), data=p, created_at=ts(i)))
         for i, n in enumerate(raw.get("notifications", [])):
-            db.add(m.Notification(id=n["id"], recipient_id=n.get("recipientId"), is_read=bool(n.get("isRead")), data=n, created_at=ts(i)))
+            if not db.scalar(select(m.Notification).where(m.Notification.id == n["id"])):
+                db.add(m.Notification(id=n["id"], recipient_id=n.get("recipientId"), is_read=bool(n.get("isRead")), data=n, created_at=ts(i)))
         if raw.get("analytics"):
-            db.add(m.KeyValue(key="analytics", value=raw["analytics"]))
+            existing_an = db.scalar(select(m.KeyValue).where(m.KeyValue.key == "analytics"))
+            if existing_an:
+                existing_an.value = raw["analytics"]
+            else:
+                db.add(m.KeyValue(key="analytics", value=raw["analytics"]))
         db.flush()
 
         seen_slots = set()
@@ -69,10 +78,11 @@ def seed_demo_data(json_path: Path = DB_PATH):
                     # Demo data may contain double bookings; keep the newest one
                     s = {**s, "status": "cancelled"}
                 seen_slots.add(slot)
-            db.add(m.Booking(
-                id=s["id"], expert_id=s["expertId"], candidate_id=s["candidateId"], status=s["status"],
-                date=s["date"], time_slot=s["timeSlot"], data=s, created_at=ts(i),
-            ))
+            if not db.scalar(select(m.Booking).where(m.Booking.id == s["id"])):
+                db.add(m.Booking(
+                    id=s["id"], expert_id=s["expertId"], candidate_id=s["candidateId"], status=s["status"],
+                    date=s["date"], time_slot=s["timeSlot"], data=s, created_at=ts(i),
+                ))
 
     print(f"[DB] Seeded demo data from {json_path}")
 

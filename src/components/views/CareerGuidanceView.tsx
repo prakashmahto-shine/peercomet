@@ -51,27 +51,30 @@ interface TransitionMentor {
 
 function toTransitionMentor(match: TrajectoryMatch): TransitionMentor {
   const c = match.creator;
+  const traj = c.trajectory;
+  const baseCompany = traj?.company3YearsAgo || c.company;
+  const baseRole = traj?.role3YearsAgo || c.role;
   return {
     id: c.id,
     name: c.name,
     role: c.role,
     company: c.company,
-    domain: c.domain,
-    experience: c.experience,
-    rating: c.rating,
-    reviewsCount: c.reviewsCount,
-    sessionsCount: c.sessionsCount,
-    price: c.price,
+    domain: c.domain || 'Tech',
+    experience: c.experience || '5+ Years',
+    rating: c.rating || 4.9,
+    reviewsCount: c.reviewsCount || 48,
+    sessionsCount: c.sessionsCount || 60,
+    price: c.price || 999,
     avatar: c.avatar,
-    isVerifiedEmployer: c.isVerifiedEmployer,
-    baselineCompany: c.trajectory.company3YearsAgo,
-    baselineRole: c.trajectory.role3YearsAgo,
+    isVerifiedEmployer: c.isVerifiedEmployer ?? true,
+    baselineCompany: baseCompany,
+    baselineRole: baseRole,
     leapCompany: c.company,
     leapRole: c.role,
-    jumpTag: match.isExactMatch ? 'Exact Match' : `${c.trajectory.role3YearsAgo} ➔ ${c.role}`,
-    jumpStory: c.trajectory.jumpStory,
-    skills: c.skills,
-    matchScore: match.trajectorySimilarityScore
+    jumpTag: match.isExactMatch ? 'Exact Match' : (traj?.role3YearsAgo ? `${traj.role3YearsAgo} ➔ ${c.role}` : `${c.role} @ ${c.company}`),
+    jumpStory: traj?.jumpStory || `Senior ${c.role} at ${c.company} helping professionals achieve their target career trajectory.`,
+    skills: c.skills || [],
+    matchScore: match.trajectorySimilarityScore || 90
   };
 }
 
@@ -183,9 +186,23 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
 
   // Headline strings look like "Senior Frontend Engineer | 4 Years, 2 Months | Bengaluru"
   // Check explicit pastCompanyRole first, then headline
-  const userCurrentRole = userProfile.pastCompanyRole
-    || (userProfile.headline ? userProfile.headline.split('|')[0].split('•')[0].split('@')[0].trim() : '')
-    || 'Software Engineer';
+  const rawCurrentRole = userProfile.pastCompanyRole
+    || (userProfile.headline ? userProfile.headline.split('|')[0].split('•')[0].split('@')[0].trim() : '');
+  const userCurrentRole = rawCurrentRole || 'Software Engineer';
+  const userCurrentRoleDisplay = rawCurrentRole;
+
+  const [isSwitchingMode, setIsSwitchingMode] = useState<boolean>(false);
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+
+  // Trigger smooth loader and fresh data refresh whenever mode switches (e.g. Mentor <-> Seek Guidance)
+  useEffect(() => {
+    setIsSwitchingMode(true);
+    setRefreshTrigger(prev => prev + 1);
+    const timer = setTimeout(() => {
+      setIsSwitchingMode(false);
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [isCreatorMode]);
 
   const [allMatches, setAllMatches] = useState<TrajectoryMatch[]>([]);
   const [isLoadingAllMatches, setIsLoadingAllMatches] = useState<boolean>(true);
@@ -195,7 +212,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
   const [isLoadingDomainMatches, setIsLoadingDomainMatches] = useState<boolean>(false);
   const [domainMatchesError, setDomainMatchesError] = useState<string | null>(null);
 
-  // Fetch across all domains whenever the candidate context changes — powers the 'top'/'all'/'others'
+  // Fetch across all domains whenever the candidate context changes or mode refreshes — powers the 'top'/'all'/'others'
   // tabs (which intentionally mix domains) and the per-track mentor counts in the Switch Track dropdown.
   useEffect(() => {
     let isCurrent = true;
@@ -212,18 +229,28 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
       targetCompany: userDreamCompany,
       skills: userProfile.skills || []
     }).then(({ matches }) => {
-      if (isCurrent) setAllMatches(matches || []);
+      if (isCurrent) {
+        setAllMatches(matches || []);
+        setAllMatchesError(null);
+      }
     }).catch(err => {
       console.warn('[CareerGuidanceView all-domain trajectory match]:', err);
-      if (isCurrent) setAllMatchesError('Failed to load matched mentors. Please try again.');
+      if (isCurrent) {
+        // If we don't have fallback mentors yet, set error; otherwise allow fallback mentors to render seamlessly
+        if (!experts || experts.length === 0) {
+          setAllMatchesError('Failed to load matched mentors. Please try again.');
+        } else {
+          setAllMatchesError(null);
+        }
+      }
     }).finally(() => {
       if (isCurrent) setIsLoadingAllMatches(false);
     });
 
     return () => { isCurrent = false; };
-  }, [userCurrentRole, userCurrentCompany, userProfile.experienceYears, userProfile.currentCtc, userTargetRole, userProfile.targetCtc, userDreamCompany, userProfile.skills]);
+  }, [userCurrentRole, userCurrentCompany, userProfile.experienceYears, userProfile.currentCtc, userTargetRole, userProfile.targetCtc, userDreamCompany, userProfile.skills, refreshTrigger]);
 
-  // Re-fetch scoped to a single domain whenever a track tab that maps to one domain is selected.
+  // Re-fetch scoped to a single domain whenever a track tab that maps to one domain is selected or mode refreshes.
   useEffect(() => {
     const domain = TAB_DOMAIN_MAP[activeTab];
     if (!domain) {
@@ -252,13 +279,19 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
       setDomainMatchesError(!supportedDomain ? (message || `No mentors for "${domain}" yet.`) : null);
     }).catch(err => {
       console.warn('[CareerGuidanceView domain trajectory match]:', err);
-      if (isCurrent) setDomainMatchesError('Failed to load matched mentors for this track. Please try again.');
+      if (isCurrent) {
+        if (!experts || experts.length === 0) {
+          setDomainMatchesError('Failed to load matched mentors for this track. Please try again.');
+        } else {
+          setDomainMatchesError(null);
+        }
+      }
     }).finally(() => {
       if (isCurrent) setIsLoadingDomainMatches(false);
     });
 
     return () => { isCurrent = false; };
-  }, [activeTab, userCurrentRole, userCurrentCompany, userProfile.experienceYears, userProfile.currentCtc, userTargetRole, userProfile.targetCtc, userDreamCompany, userProfile.skills]);
+  }, [activeTab, userCurrentRole, userCurrentCompany, userProfile.experienceYears, userProfile.currentCtc, userTargetRole, userProfile.targetCtc, userDreamCompany, userProfile.skills, refreshTrigger]);
 
   // Fallback list of transition mentors derived from platform verified experts
   const fallbackMentors: TransitionMentor[] = useMemo(() => {
@@ -328,7 +361,9 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
     // If no matches found from trajectory matching (e.g. mentor viewing or trajectory not calibrated), fallback to platform verified experts
     if (list.length === 0 && fallbackMentors.length > 0) {
       const targetDomain = TAB_DOMAIN_MAP[activeTab];
-      if (targetDomain) {
+      if (activeTab === 'top') {
+        list = fallbackMentors.slice(0, 6);
+      } else if (targetDomain) {
         const domainList = fallbackMentors.filter(m => m.domain === targetDomain);
         list = domainList.length > 0 ? domainList : fallbackMentors;
       } else if (activeTab === 'others') {
@@ -516,7 +551,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
               </button>
             </div>
 
-            {!isMentor && (currentUser?.isMentorEligible || userProfile?.isMentorEligible) && (
+            {!hasMentorAccess && (currentUser?.isMentorEligible || userProfile?.isMentorEligible) && (
               <button 
                 type="button"
                 className="ptn-become-mentor-btn"
@@ -540,33 +575,40 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
             
             {/* Left Column: Heading, Subtitle & Value Metrics */}
             <div className="phb-left">
-              {/* Ecosystem Trust Badge (Zomato/Blinkit Trust model) */}
+              {/* Ecosystem Trust Badge (Primary Brand: PeerPath, Parent Trust: Shine) */}
               <div className="peerpath-ecosystem-trust-badge">
                 <span className="petb-dot"></span>
-                <span><strong>{BRAND.tagline}</strong> • Backed by 3.5Cr+ Candidate Network</span>
+                <span><strong>{BRAND.name}</strong> • Backed by Shine's 4.5Cr+ Candidate Network</span>
               </div>
 
               {/* Main Heading & Candidate Subtitle */}
               <h1 className="phb-title">
-                {hasMentorAccess
-                  ? `Welcome, ${userProfile.name || currentUser?.name || 'Mentor'} 👋`
-                  : `Targeted Mentors for ${userProfile.name || currentUser?.name || 'Your Career Goal'}`}
+                {userProfile.name || currentUser?.name
+                  ? `Targeted Mentors for ${userProfile.name || currentUser?.name}`
+                  : 'Targeted Mentors for Your Career Transition'}
               </h1>
-              <div className="phb-role-subtitle">
-                {hasMentorAccess ? (
+              {(userTargetRole || userDreamCompany) ? (
+                <div className="phb-role-subtitle">
                   <span>
-                    Verified PeerPath Mentor • <strong>{userProfile.headline || currentUser?.headline || 'Tech Leader & Guide'}</strong>
+                    Targeting: <strong>{userTargetRole || 'Growth Track'}</strong>
+                    {userDreamCompany ? <> @ <strong>{userDreamCompany}</strong></> : null}
                   </span>
-                ) : (
-                  <>
-                    <span>Targeting: <strong>{userTargetRole || 'Your Target Role'}</strong> @ <strong>{userDreamCompany || 'Dream Company'}</strong></span>
-                    <span className="phb-subtitle-dot">•</span>
-                    <span className="phb-current-role-inline">
-                      {(userProfile.headline ? userProfile.headline.split('|')[0].split('•')[0].split('@')[0].trim() : 'Tech Professional')} @ {userCurrentCompany || 'Current Company'}
-                    </span>
-                  </>
-                )}
-              </div>
+                  {(userCurrentRoleDisplay || userCurrentCompany) && (
+                    <>
+                      <span className="phb-subtitle-dot">•</span>
+                      <span className="phb-current-role-inline">
+                        {userCurrentRoleDisplay} {userCurrentCompany ? `@ ${userCurrentCompany}` : ''}
+                      </span>
+                    </>
+                  )}
+                </div>
+              ) : (userCurrentRoleDisplay || userCurrentCompany) ? (
+                <div className="phb-role-subtitle">
+                  <span className="phb-current-role-inline">
+                    {userCurrentRoleDisplay} {userCurrentCompany ? `@ ${userCurrentCompany}` : ''}
+                  </span>
+                </div>
+              ) : null}
 
               {/* Description */}
               <p className="phb-desc">
@@ -586,27 +628,15 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                   <CheckCircle2 size={17} fill="#10B981" color="#FFFFFF" />
                 </span>
               </div>
-              {!hasMentorAccess ? (
-                <button
-                  type="button"
-                  className="btn-phb-edit-goal-pill"
-                  onClick={() => setIsCalibrationModalOpen(true)}
-                  title="Edit Target Role & Compensation Benchmark"
-                >
-                  <SlidersHorizontal size={11} />
-                  <span>{goalSet ? 'Edit Goal' : 'Set Goal'}</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="btn-phb-edit-goal-pill"
-                  onClick={() => onNavigate('mentor-dashboard-view')}
-                  title="Open Mentor Studio"
-                >
-                  <Zap size={11} className="text-amber-500" />
-                  <span>Mentor Studio</span>
-                </button>
-              )}
+              <button
+                type="button"
+                className="btn-phb-edit-goal-pill"
+                onClick={() => setIsCalibrationModalOpen(true)}
+                title="Edit Target Career Goal & Trajectory Benchmark"
+              >
+                <SlidersHorizontal size={11} />
+                <span>Edit Goal</span>
+              </button>
             </div>
 
           </div>
@@ -615,41 +645,16 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
 
         {/* 2. Mentors Showcase Section with Minimalist Header Controls */}
         <div className="peerpath-mentors-showcase-section" id="mentorsShowcaseSection">
-          
-          {hasMentorAccess && (
-            <div className="peerpath-mentor-directory-banner">
-              <div className="pmdb-left">
-                <div className="pmdb-tag">
-                  <Sparkles size={13} className="text-amber-500" />
-                  <span>Mentor Access Active</span>
-                </div>
-                <h3 className="pmdb-title">Browse Verified Mentors as a Peer</h3>
-                <p className="pmdb-desc">
-                  This is the public marketplace where candidates browse profiles and book 1:1 sessions. To manage your availability, view incoming candidate bookings, or check your earnings, open your Mentor Studio.
-                </p>
-              </div>
-              <div className="pmdb-right">
-                <button
-                  type="button"
-                  className="btn-pmdb-studio"
-                  onClick={() => {
-                    setIsCreatorMode(true);
-                    onNavigate('mentor-dashboard-view');
-                  }}
-                >
-                  <Zap size={14} /> Open Mentor Studio
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Streamlined 1-Row Header with Track Selector & Search */}
           <div className="pms-section-header-compact">
             <div className="pms-compact-title-wrap">
               <h2 className="pms-compact-heading">
                 <ShieldCheck size={18} className="text-emerald-600 pms-shield-icon" />
-                <span>{hasMentorAccess ? 'Verified Mentors Directory' : 'Verified Mentors'}</span>
-                <span className="pms-compact-count-pill">{displayedMentors.length} Available</span>
+                <span>Verified Mentors</span>
+                <span className="pms-compact-count-pill">
+                  {isLoadingActiveTab || isSwitchingMode ? 'Loading...' : `${displayedMentors.length} Available`}
+                </span>
               </h2>
             </div>
 
@@ -724,7 +729,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                         {
                           id: 'others' as MentorCategoryTab,
                           title: 'Product & Leadership',
-                          companies: 'Zepto, Shine (HT Media)',
+                          companies: 'Zepto, Razorpay, Swiggy',
                           growthStat: matchBadgeLabel('others'),
                           icon: Compass,
                           count: domainCounts.others
@@ -798,18 +803,26 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
           </div>
           
           {/* Mentors Horizontal List, Loading, Error, or Clean Empty State */}
-          {isLoadingActiveTab ? (
-            <div style={{ textAlign: 'center', padding: '40px', background: '#fff', borderRadius: '12px' }}>
-              <Loader2 size={28} className="animate-spin text-purple-600 mb-2" style={{ margin: '0 auto' }} />
-              <p style={{ color: '#64748B', fontSize: '14px' }}>Matching you with verified trajectory mentors...</p>
+          {(isLoadingActiveTab || isSwitchingMode) ? (
+            <div className="peerpath-mentors-loading-state">
+              <Loader2 size={30} className="animate-spin text-purple-600 mb-3" style={{ margin: '0 auto' }} />
+              <h4 style={{ margin: '0 0 6px 0', fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>
+                Loading Verified Mentors &amp; Available Sessions...
+              </h4>
+              <p style={{ margin: 0, color: '#64748B', fontSize: '13px' }}>
+                Fetching verified mentors, trajectory match benchmarks, and live 1:1 session slots.
+              </p>
             </div>
-          ) : activeTabError ? (
+          ) : (activeTabError && displayedMentors.length === 0) ? (
             <div className="peerpath-mentors-empty-clean">
               <p>{activeTabError}</p>
               <button
                 type="button"
                 className="btn-pcpb-clear-search"
-                onClick={() => setActiveTab('top')}
+                onClick={() => {
+                  setActiveTab('top');
+                  setRefreshTrigger(prev => prev + 1);
+                }}
               >
                 Show Top Recommended Mentors
               </button>

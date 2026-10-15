@@ -41,11 +41,17 @@ export const MainLayout: React.FC = () => {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
-  // Sync browser tab title with active route
+  // Sync browser tab title and meta description with active route for SEO
   useEffect(() => {
     const routeMeta = getRouteByView(currentView);
     if (routeMeta?.title) {
       document.title = routeMeta.title;
+    }
+    if (routeMeta?.description) {
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) {
+        metaDesc.setAttribute('content', routeMeta.description);
+      }
     }
   }, [currentView]);
 

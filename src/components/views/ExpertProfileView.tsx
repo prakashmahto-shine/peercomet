@@ -151,7 +151,7 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
       outcomes: [
         { icon: '🔍', title: 'ATS Screener Audit', desc: 'Keyword alignment & format optimization for Tier-1 screeners' },
         { icon: '✍️', title: 'Impact Rewrites', desc: 'Metric-driven bullet points using the XYZ framework' },
-        { icon: '🛡️', title: 'Candidate Badge', desc: 'Verified status eligibility for Shine Job Board recruiter priority' }
+        { icon: '🛡️', title: 'Candidate Badge', desc: 'PeerPath Verified status for top recruiter priority across Shine network' }
       ],
       duration: '30 Mins',
       price: Math.max(499, Math.round((basePrice * 0.7) / 50) * 50 - 1),
@@ -698,7 +698,7 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
                 rating: 5.0,
                 date: '3 weeks ago',
                 outcome: '2 Direct Recruiter Inbounds in 7 Days',
-                comment: `"The CV audit was ruthless in the best possible way. ${expert.name} showed me how my resume lacked production metrics and real-world deployment proofs. The verified badge added to my Shine profile helped 2 recruiters reach out directly next week."`,
+                comment: `"The CV audit was ruthless in the best possible way. ${expert.name} showed me how my resume lacked production metrics and real-world deployment proofs. The verified badge added to my PeerPath profile helped 2 recruiters reach out directly next week."`,
                 helpfulCount: 19,
               },
               {

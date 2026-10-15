@@ -51,11 +51,9 @@ def _env_list(name: str, default: str = "") -> list:
 # Switching providers later = pg_dump/pg_restore + change this URL.
 # ------------------------------------------------------------------------------
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'backend' / 'data' / 'peerpath.sqlite3'}")
-# Seed demo creators/candidates from db.json into an empty database (local development only)
-# Off by default: development works with real data too. Set SEED_DEMO_DATA=true to load samples.
-SEED_DEMO_DATA = _env_bool("SEED_DEMO_DATA", False) and IS_DEVELOPMENT
-# Enables /api/demo/reset (local development only)
-DEMO_MODE = _env_bool("DEMO_MODE", False) and IS_DEVELOPMENT
+# Demo seeding disabled: only real database data is used across all environments
+SEED_DEMO_DATA = False
+DEMO_MODE = False
 
 # ------------------------------------------------------------------------------
 # Auth & sessions

@@ -628,7 +628,7 @@ export const MentorDashboardView: React.FC = () => {
                   alt={mentorName} 
                   className="md-avatar-img"
                 />
-                <span className="md-verified-check" title="Verified Lead Mentor on Shine">
+                <span className="md-verified-check" title="Verified Lead Mentor on PeerPath">
                   <CheckCircle2 size={15} />
                 </span>
               </div>
@@ -1456,7 +1456,7 @@ export const MentorDashboardView: React.FC = () => {
                   </span>
                 ) : (
                   <span className="mpp-badge-live">
-                    <Check size={13} /> Live on Shine
+                    <Check size={13} /> Live on PeerPath
                   </span>
                 )}
               </div>
@@ -1941,7 +1941,7 @@ export const MentorDashboardView: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="mpp-card-title">Direct Payouts & Settlement</h3>
-                  <p className="mpp-card-subtitle">Automated direct bank or UPI transfer. Shine charges 0% commission.</p>
+                  <p className="mpp-card-subtitle">Automated direct bank or UPI transfer. PeerPath charges 0% commission.</p>
                 </div>
               </div>
 
