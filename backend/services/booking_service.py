@@ -86,13 +86,24 @@ class BookingService:
         expert = store.get_creator_by_id(payload.expertId)
         if not expert:
             raise BookingError(f"Expert with id '{payload.expertId}' not found", 404)
-        if not payload.candidateId:
-            raise BookingError("candidateId is required")
-        if payload.candidateId.strip().lower() == expert.id.lower():
-            raise BookingError("You cannot book a session with yourself")
+        cand_id = (payload.candidateId or '').strip().lower()
+        exp_id = (expert.id or '').strip().lower()
+        owner_id = ((expert.ownerUserId or store.get_creator_owner(expert.id) or '')).strip().lower()
+        if cand_id and (cand_id == exp_id or (owner_id and cand_id == owner_id)):
+            raise BookingError("You cannot book a mentorship session with yourself", 400)
 
         session_type = resolve_session_type(payload.sessionType)
-        amount = SESSION_TYPES[session_type]['price'](expert.price)
+        # Check if mentor has a custom price configured for this service offering category
+        custom_price = None
+        if getattr(expert, 'serviceOfferings', None):
+            for offering in expert.serviceOfferings:
+                if isinstance(offering, dict) and offering.get('id') == session_type and offering.get('price') is not None:
+                    try:
+                        custom_price = int(offering['price'])
+                    except (ValueError, TypeError):
+                        pass
+                    break
+        amount = custom_price if custom_price is not None else SESSION_TYPES[session_type]['price'](expert.price)
 
         # Check-and-insert under the store lock so two concurrent checkouts can't take the same slot
         with store.lock:

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ProfileEditor } from '../profile/ProfileEditor';

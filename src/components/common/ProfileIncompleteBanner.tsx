@@ -20,6 +20,7 @@ export const ProfileIncompleteBanner: React.FC = () => {
     currentView === 'login-view' ||
     currentView === 'admin-dashboard-view' ||
     currentView === 'mentor-dashboard-view' ||
+    currentView === 'become-mentor-view' ||
     Boolean(currentUser.role === 'mentor' || currentUser.creatorId || currentUser.isMentorEligible || userProfile?.isMentorEligible)
   ) {
     return null;

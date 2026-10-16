@@ -12,6 +12,7 @@ import { peerpathApi } from '../../services/api';
 import { formatBookingDate } from '../../utils/bookingDates';
 import { BRAND } from '../../config/brand';
 import { isResumeRecent } from '../../utils/resume';
+import { isSelfMentor } from '../../utils/profile';
 
 // Used only when a mentor has no saved availability
 const DEFAULT_TIME_SLOTS = ['10:00 AM - 11:00 AM', '02:00 PM - 03:00 PM', '06:30 PM - 07:30 PM', '08:00 PM - 09:00 PM'];
@@ -48,6 +49,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   onSelectTime,
 }) => {
   const { 
+    currentUser,
     userProfile, 
     bookingDraft, 
     setBookingDraft, 
@@ -89,7 +91,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const expert: Expert = pickExpert(propExpert) || pickExpert(bookingDraft?.expert) || selectedExpert;
 
   const expertName = expert?.name || 'Mentor';
-  const expertAvatar = expert?.avatar || '/avatars/deepika.jpg';
+  const expertAvatar = expert?.avatar || '/brand/android-chrome-192x192.png';
   const expertRole = expert?.role || 'Tech Leader';
   const expertCompany = expert?.company || 'Top Tech Firm';
   const expertPrice = expert?.price || 1399;
@@ -129,13 +131,22 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   // 4 Harmonized 1:1 Services
   const sessionOfferings = useMemo(() => {
     const base = expertPrice || 1399;
+    const getPrice = (id: string, fallback: number) => {
+      const found = expert?.serviceOfferings?.find(s => s.id === id);
+      return found && found.price !== undefined ? found.price : fallback;
+    };
+    const getDur = (id: string, fallback: string) => {
+      const found = expert?.serviceOfferings?.find(s => s.id === id);
+      return found && found.duration ? found.duration : fallback;
+    };
+
     return [
       {
         id: 'career-guidance',
         title: 'Career Guidance & Strategy',
         icon: Compass,
-        duration: '30 Mins',
-        price: base,
+        duration: getDur('career-guidance', '45 Mins'),
+        price: getPrice('career-guidance', base),
         iconColor: '#7C3AED',
         iconBg: '#F5F3FF'
       },
@@ -143,8 +154,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         id: 'interview-prep',
         title: '1:1 Mock Interview & Scorecard',
         icon: Video,
-        duration: '30 Mins',
-        price: base,
+        duration: getDur('interview-prep', '60 Mins'),
+        price: getPrice('interview-prep', base),
         iconColor: '#059669',
         iconBg: '#ECFDF5'
       },
@@ -152,8 +163,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         id: 'resume-review',
         title: 'CV Audit & ATS Teardown',
         icon: FileText,
-        duration: '30 Mins',
-        price: Math.max(499, Math.round((base * 0.7) / 50) * 50 - 1),
+        duration: getDur('resume-review', '30 Mins'),
+        price: getPrice('resume-review', Math.max(499, Math.round((base * 0.7) / 50) * 50 - 1)),
         iconColor: '#D97706',
         iconBg: '#FEF3C7'
       },
@@ -161,13 +172,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         id: 'salary-negotiation',
         title: 'Salary & Offer Negotiation',
         icon: TrendingUp,
-        duration: '30 Mins',
-        price: Math.max(699, Math.round((base * 0.85) / 50) * 50 - 1),
+        duration: getDur('salary-negotiation', '30 Mins'),
+        price: getPrice('salary-negotiation', Math.max(699, Math.round((base * 0.85) / 50) * 50 - 1)),
         iconColor: '#2563EB',
         iconBg: '#EFF6FF'
       }
     ];
-  }, [expertPrice]);
+  }, [expertPrice, expert?.serviceOfferings]);
 
   const [selectedSessionId, setSelectedSessionId] = useState<string>('career-guidance');
 
@@ -213,8 +224,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
   };
 
+  const isSelf = isSelfMentor(expert, currentUser, userProfile);
+
   // 1-Click direct opening of Razorpay Gateway (No intermediate friction screens)
   const handleOpenRazorpay = () => {
+    if (isSelf) {
+      showToast('Self-booking not allowed', 'You cannot book a mentorship session with yourself.', 'info');
+      return;
+    }
     if (!activeDateStr || !activeTime) {
       showToast('Pick a slot', 'Please choose an available date and time slot.', 'info');
       return;
@@ -235,6 +252,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   const handleCompletePayment = async () => {
+    if (isSelf) {
+      showToast('Self-booking not allowed', 'You cannot book a mentorship session with yourself.', 'info');
+      return;
+    }
     const slotTime = activeTime;
     setIsProcessing(true);
     const booked = await bookSession(expert, activeDateStr, slotTime, activeSession.id);
@@ -262,6 +283,50 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   if (!isOpen || !expert?.id) return null;
+
+  if (isSelf) {
+    return (
+      <div className="app-modal-backdrop open" onClick={onClose}>
+        <div className="app-modal-card bfm-modal-card" style={{ maxWidth: '440px', padding: '32px 24px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <AlertCircle size={28} />
+          </div>
+          <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A', marginBottom: '8px' }}>
+            This is Your Mentor Profile
+          </h3>
+          <p style={{ fontSize: '14px', color: '#64748B', lineHeight: 1.5, marginBottom: '24px' }}>
+            You cannot book a mentorship session with yourself. You can manage your availability, pricing, and service offerings in the Mentor Studio.
+          </p>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+            <button
+              type="button"
+              className="btn-pm-profile-view"
+              onClick={() => {
+                onClose();
+                setIsBookingModalOpen(false);
+              }}
+              style={{ padding: '10px 18px', fontSize: '13px', borderRadius: '8px' }}
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              className="btn-shine-gold"
+              onClick={() => {
+                onClose();
+                setIsBookingModalOpen(false);
+                navigate('mentor-dashboard-view', '/mentor');
+              }}
+              style={{ padding: '10px 18px', fontSize: '13px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Briefcase size={14} />
+              <span>Go to Mentor Studio</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app-modal-backdrop open" onClick={onClose}>

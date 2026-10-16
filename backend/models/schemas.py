@@ -46,6 +46,8 @@ class Creator(BaseModel):
     isVerifiedEmployer: bool = True
     trajectory: CreatorTrajectory
     availability: CreatorAvailability = Field(default_factory=lambda: CreatorAvailability(days=['Wed', 'Sat', 'Sun'], timeSlots=['07:00 PM - 08:00 PM']))
+    serviceOfferings: Optional[List[Dict[str, Any]]] = None
+    ownerUserId: Optional[str] = None
 
 class PeerVerifiedBadge(BaseModel):
     id: str
@@ -242,6 +244,7 @@ class CreatorRegisterInput(BaseModel):
     role3YearsAgo: Optional[str] = None
     company3YearsAgo: Optional[str] = None
     salary3YearsAgo: Optional[str] = None
+    serviceOfferings: Optional[List[Dict[str, Any]]] = None
 
 class AvailabilityUpdateInput(BaseModel):
     days: List[str]
@@ -257,6 +260,7 @@ class CreatorUpdateInput(BaseModel):
     teaserTitle: Optional[str] = None
     duration: Optional[str] = None
     location: Optional[str] = None
+    serviceOfferings: Optional[List[Dict[str, Any]]] = None
 
 class CheckoutPayload(BaseModel):
     expertId: str

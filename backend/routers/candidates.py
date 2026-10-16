@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import ValidationError
 from backend.auth.deps import require_user
 from backend.data.store import store
+from backend.db.engine import db_session
 from backend.db.models import User
 from backend.models.schemas import CandidateProfile
 
@@ -10,7 +11,7 @@ router = APIRouter(prefix="/api/candidates", tags=["Candidates"])
 
 # Set by the platform (assessments, badges, sign-in, resume upload), never by the client
 PROTECTED_FIELDS = {
-    "id", "badges", "profileScore", "recruiterSearchMultiplier", "email", "phone",
+    "id", "badges", "profileScore", "recruiterSearchMultiplier", "email",
     "resumeFileName", "resumeUpdatedAt", "resumeFileKey", "isMentorEligible",
 }
 
@@ -49,9 +50,14 @@ def _with_display_fields(updates: Dict[str, Any], merged: Dict[str, Any]) -> Dic
 @router.get("/")
 @router.get("/{candidate_id}")
 def get_candidate_profile(candidate_id: str = "me", user: User = Depends(require_user)):
-    candidate = store.get_candidate(_own_id(candidate_id, user))
+    own_id = _own_id(candidate_id, user)
+    candidate = store.get_candidate(own_id)
     if not candidate:
-        raise HTTPException(status_code=404, detail="Candidate not found")
+        with db_session() as db:
+            store._ensure_candidate_profile(db, user)
+        candidate = store.get_candidate(own_id)
+    if not candidate:
+        candidate = CandidateProfile(id=own_id, name=user.name, email=user.email or "", phone=user.mobile or "")
     return {"success": True, "data": candidate}
 
 
@@ -65,7 +71,11 @@ def update_candidate_profile(updates: Dict[str, Any], candidate_id: str = "me", 
     own_id = _own_id(candidate_id, user)
     current = store.get_candidate(own_id)
     if not current:
-        raise HTTPException(status_code=404, detail="Candidate not found")
+        with db_session() as db:
+            store._ensure_candidate_profile(db, user)
+        current = store.get_candidate(own_id)
+    if not current:
+        current = CandidateProfile(id=own_id, name=user.name, email=user.email or "", phone=user.mobile or "")
 
     merged = {**current.model_dump(), **allowed}
     allowed = _with_display_fields(allowed, merged)

@@ -19,6 +19,7 @@ export interface Expert {
   verifiedEmail: string;
   isVerifiedEmployer?: boolean;
   followersCount?: number;
+  ownerUserId?: string;
   trajectory?: {
     role3YearsAgo: string;
     company3YearsAgo: string;
@@ -30,6 +31,17 @@ export interface Expert {
     days: string[];
     timeSlots: string[];
   };
+  serviceOfferings?: Array<{
+    id: string;
+    category?: string;
+    title: string;
+    duration: string;
+    tag?: string;
+    description?: string;
+    price: number;
+    icon?: string;
+    isEnabled?: boolean;
+  }>;
 }
 
 export type ViewType = 
@@ -144,6 +156,17 @@ export interface UserProfileData {
   mentorRate?: number;
   mentorDuration?: number;
   mentorAvailability?: { days: string[]; timeSlots: string[] };
+  mentorOfferings?: Array<{
+    id: string;
+    category?: string;
+    title: string;
+    duration: string;
+    tag?: string;
+    description?: string;
+    price: number;
+    icon?: string;
+    isEnabled?: boolean;
+  }>;
   mentorTeaserVideo?: {
     url: string;
     title: string;
@@ -252,6 +275,8 @@ export interface UserAccount {
   role: 'candidate' | 'mentor';
   avatar: string;
   email: string;
+  phone?: string;
+  mobile?: string;
   headline: string;
   company?: string;
   experienceYears?: string;

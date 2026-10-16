@@ -42,6 +42,7 @@ export const MentorDashboardView: React.FC = () => {
   const { 
     currentUser, 
     userProfile,
+    updateUserProfile,
     sessions: localSessions, 
     navigate, 
     selectExpertById,
@@ -52,6 +53,7 @@ export const MentorDashboardView: React.FC = () => {
     updateMentorTeaserVideo,
     creatorActiveTab,
     setCreatorActiveTab,
+    studioActionNonce,
     isAssessmentModalOpen,
     setIsAssessmentModalOpen,
     setAssessmentDraftSession,
@@ -82,15 +84,28 @@ export const MentorDashboardView: React.FC = () => {
   const [isLoadingSessions, setIsLoadingSessions] = useState<boolean>(true);
   const [analyticsData, setAnalyticsData] = useState<any>(null);
 
-  // Sync tab with context if changed externally
+  // Sync tab and trigger specific action when creatorActiveTab or studioActionNonce changes
   useEffect(() => {
     if (creatorActiveTab) {
-      if (creatorActiveTab === 'teaser' || creatorActiveTab === 'pricing' || creatorActiveTab === 'profile-settings') {
+      if (creatorActiveTab === 'teaser') {
         setActiveTab('profile-settings');
-      } else if (creatorActiveTab === 'reviews') {
-        setActiveTab('reviews');
+        setIsEditingProfile(true);
+        setTimeout(() => {
+          document.getElementById('mpp-video-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 80);
+      } else if (creatorActiveTab === 'pricing') {
+        setActiveTab('profile-settings');
+        setIsEditingProfile(true);
+        setTimeout(() => {
+          document.getElementById('mpp-session-offerings-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 80);
+      } else if (creatorActiveTab === 'profile-settings') {
+        setActiveTab('profile-settings');
       } else if (creatorActiveTab === 'availability') {
         setActiveTab('availability');
+        setIsEditingAvailability(true);
+      } else if (creatorActiveTab === 'reviews') {
+        setActiveTab('reviews');
       } else if (creatorActiveTab === 'history') {
         setActiveTab('bookings');
         setSessionSubFilter('completed');
@@ -99,7 +114,16 @@ export const MentorDashboardView: React.FC = () => {
         setSessionSubFilter('upcoming');
       }
     }
-  }, [creatorActiveTab]);
+  }, [creatorActiveTab, studioActionNonce]);
+
+  // Keep local inputs in sync with userProfile (candidate profile basic details)
+  useEffect(() => {
+    if (!isEditingProfile) {
+      setHeadlineInput(userProfile.headline || currentUser?.headline || '');
+      setBioInput(userProfile.summary || '');
+      setSkillsList(userProfile.skills || []);
+    }
+  }, [userProfile.headline, userProfile.summary, userProfile.skills, isEditingProfile]);
 
   const handleTabChange = (tab: 'bookings' | 'reviews' | 'availability' | 'profile-settings') => {
     setActiveTab(tab);
@@ -201,15 +225,21 @@ export const MentorDashboardView: React.FC = () => {
   // Bookings are stored against the creator id, which differs from the user id for candidates who became mentors
   const mentorId = currentUser?.creatorId || currentUser?.id || '';
   const mentorName = currentUser?.name || '';
-  const mentorAvatar = currentUser?.avatar || '/avatars/akash.jpg';
+  const mentorAvatar = currentUser?.avatar || '/brand/android-chrome-192x192.png';
   const myCreator = experts.find(e => e.id.toLowerCase() === mentorId.toLowerCase());
 
   // Start pricing from the mentor's real listed price, so saving settings never resets it to a default
   useEffect(() => {
+    const customOfferings = userProfile.mentorOfferings || myCreator?.serviceOfferings;
+    if (customOfferings && customOfferings.length > 0) {
+      setSessionOfferings(customOfferings as MentorSessionOffering[]);
+      if (myCreator?.price) setSessionRate1(myCreator.price);
+      return;
+    }
     if (!myCreator?.price) return;
     setSessionRate1(myCreator.price);
     setSessionOfferings(prev => prev.map((o, i) => (i === 0 ? { ...o, price: myCreator.price } : o)));
-  }, [myCreator?.id, myCreator?.price]);
+  }, [myCreator?.id, myCreator?.price, userProfile.mentorOfferings]);
 
   // 1. Fetch live sessions from Backend API
   useEffect(() => {
@@ -248,13 +278,17 @@ export const MentorDashboardView: React.FC = () => {
   const upcomingMentorSessions = liveSessions.filter(s => s.status === 'upcoming');
   const completedMentorSessions = liveSessions.filter(s => s.status === 'completed');
 
-  // Computed from real sessions only
+  // Computed from real sessions and backend creator profile only
   const totalEarnings = completedMentorSessions.reduce((sum, s) => sum + (s.amountPaid ?? s.expert.price ?? 0), 0);
   const badgesIssuedCount = completedMentorSessions.filter(s => s.badgeAwarded).length;
   const reviewedSessions = liveSessions.filter(s => s.candidateRating != null);
   const averageRating = reviewedSessions.length
     ? reviewedSessions.reduce((sum, s) => sum + (s.candidateRating || 0), 0) / reviewedSessions.length
     : null;
+  const reviewCount = reviewedSessions.length || myCreator?.reviewsCount || 0;
+  const displayRating = averageRating != null
+    ? averageRating.toFixed(1)
+    : (myCreator?.rating && myCreator.reviewsCount > 0 ? myCreator.rating.toFixed(1) : (reviewCount > 0 ? '5.0' : 'New'));
   const sessionReviews: CandidateReviewItem[] = reviewedSessions.map(s => ({
     id: `rev-${s.id}`,
     candidateName: s.candidateName,
@@ -541,6 +575,12 @@ export const MentorDashboardView: React.FC = () => {
     const primaryRate = sessionOfferings.find(o => o.isEnabled)?.price || sessionOfferings[0]?.price || 999;
     setSessionRate1(primaryRate);
     updateMentorRatesAndAvailability(primaryRate, 60, selectedDays, activeSlots);
+    updateUserProfile({
+      headline: headlineInput,
+      summary: bioInput,
+      skills: skillsList,
+      mentorRate: primaryRate
+    });
     setIsEditingProfile(false);
     showToast('Profile & Pricing Saved', `Your public listing, ${sessionOfferings.filter(o => o.isEnabled).length} session offerings, and rates have been saved & published!`);
   };
@@ -650,8 +690,8 @@ export const MentorDashboardView: React.FC = () => {
               <div className="md-rating-rate-strip">
                 <div className="md-star-rating">
                   <Star size={13} className="star-gold" fill="#F59E0B" />
-                  <strong>4.95</strong>
-                  <span>(145 reviews)</span>
+                  <strong>{displayRating}</strong>
+                  <span>({reviewCount} {reviewCount === 1 ? 'review' : 'reviews'})</span>
                 </div>
                 <span className="md-meta-dot">•</span>
                 <span className="md-rate-item">
@@ -713,7 +753,7 @@ export const MentorDashboardView: React.FC = () => {
                 className="btn-md-action btn-md-preview"
                 onClick={() => {
                   selectExpertById(mentorId);
-                  navigate('expert-profile-view', `/mentor/${mentorId}`);
+                  navigate('expert-profile-view', `/expert/${mentorId}`);
                 }}
                 title="See how candidates view your profile"
               >
@@ -821,7 +861,7 @@ export const MentorDashboardView: React.FC = () => {
               >
                 <Star size={14} fill="#F59E0B" color="#F59E0B" />
                 <span>Reviews</span>
-                <span className="cs-tab-pill-neutral">145</span>
+                <span className="cs-tab-pill-neutral">{reviewCount}</span>
               </button>
 
             </div>
@@ -871,7 +911,10 @@ export const MentorDashboardView: React.FC = () => {
                 <button 
                   type="button" 
                   className="btn-shine-gold-sm mt-3"
-                  onClick={() => handleTabChange('availability')}
+                  onClick={() => {
+                    handleTabChange('availability');
+                    setIsEditingAvailability(true);
+                  }}
                 >
                   Manage Open Time Slots
                 </button>
@@ -1073,32 +1116,36 @@ export const MentorDashboardView: React.FC = () => {
             {/* Overall Score Card */}
             <div className="rdo-card rdo-score-box">
               <div className="rdo-score-main">
-                <strong className="rdo-score-number">4.95</strong>
+                <strong className="rdo-score-number">{displayRating}</strong>
                 <div className="rdo-stars-col">
                   <div className="rdo-stars-row">
                     {[1, 2, 3, 4, 5].map((i) => (
                       <Star key={i} size={18} fill="#F59E0B" color="#F59E0B" />
                     ))}
                   </div>
-                  <span className="rdo-review-count">Based on <strong>145 Verified Candidate Reviews</strong></span>
+                  <span className="rdo-review-count">
+                    {reviewCount > 0 
+                      ? <>Based on <strong>{reviewCount} Verified Candidate {reviewCount === 1 ? 'Review' : 'Reviews'}</strong></>
+                      : 'No candidate reviews yet'}
+                  </span>
                 </div>
               </div>
 
               <div className="rdo-breakdown-bars">
                 <div className="rdo-bar-row">
                   <span className="rdo-bar-lbl">5 Star</span>
-                  <div className="rdo-track"><div className="rdo-fill" style={{ width: '96%' }}></div></div>
-                  <span className="rdo-bar-pct">96% (139)</span>
+                  <div className="rdo-track"><div className="rdo-fill" style={{ width: reviewCount > 0 ? `${Math.round((reviewedSessions.filter(s => s.candidateRating === 5).length / (reviewedSessions.length || 1)) * 100)}%` : '0%' }}></div></div>
+                  <span className="rdo-bar-pct">{reviewCount > 0 ? `${reviewedSessions.filter(s => s.candidateRating === 5).length}` : '0'}</span>
                 </div>
                 <div className="rdo-bar-row">
                   <span className="rdo-bar-lbl">4 Star</span>
-                  <div className="rdo-track"><div className="rdo-fill" style={{ width: '4%' }}></div></div>
-                  <span className="rdo-bar-pct">4% (6)</span>
+                  <div className="rdo-track"><div className="rdo-fill" style={{ width: reviewCount > 0 ? `${Math.round((reviewedSessions.filter(s => s.candidateRating === 4).length / (reviewedSessions.length || 1)) * 100)}%` : '0%' }}></div></div>
+                  <span className="rdo-bar-pct">{reviewCount > 0 ? `${reviewedSessions.filter(s => s.candidateRating === 4).length}` : '0'}</span>
                 </div>
                 <div className="rdo-bar-row">
                   <span className="rdo-bar-lbl">3 Star</span>
-                  <div className="rdo-track"><div className="rdo-fill" style={{ width: '0%' }}></div></div>
-                  <span className="rdo-bar-pct">0%</span>
+                  <div className="rdo-track"><div className="rdo-fill" style={{ width: reviewCount > 0 ? `${Math.round((reviewedSessions.filter(s => (s.candidateRating || 0) <= 3).length / (reviewedSessions.length || 1)) * 100)}%` : '0%' }}></div></div>
+                  <span className="rdo-bar-pct">{reviewCount > 0 ? `${reviewedSessions.filter(s => (s.candidateRating || 0) <= 3).length}` : '0'}</span>
                 </div>
               </div>
             </div>
@@ -1319,9 +1366,13 @@ export const MentorDashboardView: React.FC = () => {
                   <button
                     key={key}
                     type="button"
-                    disabled={!isEditingAvailability}
-                    className={`msp-day-chip ${isSelected ? 'day-selected' : 'day-unselected'} ${!isEditingAvailability ? 'chip-frozen' : ''}`}
-                    onClick={() => toggleDay(key)}
+                    className={`msp-day-chip ${isSelected ? 'day-selected' : 'day-unselected'}`}
+                    onClick={() => {
+                      if (!isEditingAvailability) {
+                        setIsEditingAvailability(true);
+                      }
+                      toggleDay(key);
+                    }}
                   >
                     <span className="day-key">{key}</span>
                     <span className="day-full">{label}</span>
@@ -1350,9 +1401,13 @@ export const MentorDashboardView: React.FC = () => {
                   <button
                     type="button"
                     key={slot}
-                    disabled={!isEditingAvailability}
-                    className={`mac-slot-toggle ${isSelected ? 'slot-enabled' : 'slot-disabled'} ${!isEditingAvailability ? 'slot-frozen' : ''}`}
-                    onClick={() => toggleSlot(slot)}
+                    className={`mac-slot-toggle ${isSelected ? 'slot-enabled' : 'slot-disabled'}`}
+                    onClick={() => {
+                      if (!isEditingAvailability) {
+                        setIsEditingAvailability(true);
+                      }
+                      toggleSlot(slot);
+                    }}
                   >
                     <div className="mac-slot-left">
                       <Clock size={15} />
@@ -1497,7 +1552,7 @@ export const MentorDashboardView: React.FC = () => {
           </div>
 
           {/* CARD 1: PROFILE IDENTITY & VIDEO PITCH (Bento Card) */}
-          <div className="mpp-card">
+          <div className="mpp-card" id="mpp-video-card">
             <div className="mpp-card-header">
               <div className="mpp-card-header-left">
                 <div className="mpp-card-icon-pill icon-purple">
@@ -1721,7 +1776,7 @@ export const MentorDashboardView: React.FC = () => {
           </div>
 
           {/* CARD 2: 1:1 SESSION OFFERINGS & CUSTOM PRICING */}
-          <div className="mpp-card">
+          <div className="mpp-card" id="mpp-session-offerings-card">
             <div className="mpp-card-header">
               <div className="mpp-card-header-left">
                 <div className="mpp-card-icon-pill icon-emerald">
@@ -1933,7 +1988,7 @@ export const MentorDashboardView: React.FC = () => {
           </div>
 
           {/* CARD 3: DIRECT PAYOUTS & BANK / UPI ACCOUNT */}
-          <div className="mpp-card">
+          <div className="mpp-card" id="mpp-payout-card">
             <div className="mpp-card-header">
               <div className="mpp-card-header-left">
                 <div className="mpp-card-icon-pill icon-blue">

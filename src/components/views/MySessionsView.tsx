@@ -269,7 +269,7 @@ export const MySessionsView: React.FC = () => {
         </div>
       </div>
 
-      {/* MENTOR TAB 1: Candidate Calls Hosted (for Akash / Mentor) */}
+      {/* MENTOR TAB 1: Candidate Calls Hosted (for Mentor) */}
       {isMentor && activeTab === 'hosted' && (
         <div className="sessions-cards-stream">
           {mentorHostedUpcoming.length === 0 ? (

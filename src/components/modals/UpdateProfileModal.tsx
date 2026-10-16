@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Sparkles } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ProfileEditor } from '../profile/ProfileEditor';

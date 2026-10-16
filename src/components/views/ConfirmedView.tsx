@@ -51,7 +51,7 @@ export const ConfirmedView: React.FC = () => {
         <p className="conf-subtitle">We've sent a calendar invite and video room link to <strong>{currentUser?.email || userProfile?.email || 'your registered email'}</strong>.</p>
 
         <div className="conf-session-info-card">
-          <img src={expert.avatar || '/avatars/akash.jpg'} alt={expert.name || 'Mentor'} className="conf-avatar" />
+          <img src={expert.avatar || '/brand/android-chrome-192x192.png'} alt={expert.name || 'Mentor'} className="conf-avatar" />
           <div className="conf-meta">
             <h3>{expert.name || 'Mentor'} • <span className="text-blue-600 font-semibold">{sessionType}</span></h3>
             <p>{expert.role || 'Tech Leader'} at {expert.company || 'Tech Company'}</p>

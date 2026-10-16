@@ -6,12 +6,16 @@ import { ToastContainer } from '../common/ToastContainer';
 import { ProfileIncompleteBanner } from '../common/ProfileIncompleteBanner';
 import { GlobalModals } from '../modals/GlobalModals';
 import { ViewRouter, pathToView, getRouteByView } from '../../routes';
+import { useRootModalScrollLock } from '../../hooks/useRootModalScrollLock';
 
 /**
  * Main Layout Component for Shine Peerpath
  * Coordinates Header, Active ViewRouter, Footer, Modals, and Toasts
  */
 export const MainLayout: React.FC = () => {
+  // Enforce universal background scroll lock whenever any modal/popup is open
+  useRootModalScrollLock();
+
   const {
     currentView,
     navigate,

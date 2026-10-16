@@ -1,14 +1,62 @@
-import React, { useState } from 'react';
-import { X, ArrowRight, ChevronDown } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { 
+  X, ArrowRight, ChevronDown, Check, Briefcase, 
+  Building2, Target, IndianRupee, Brain, Cpu, 
+  ShieldCheck, Code2, Sparkles, LucideIcon 
+} from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { BRAND } from '../../config/brand';
 
-const TRACKS: Record<string, { title: string; domain: string }> = {
-  'AI/ML': { title: 'AI/ML (Generative AI & LLMs)', domain: 'AI/ML' },
-  'Semi-conductor': { title: 'Semi-conductor (VLSI & Silicon)', domain: 'Semiconductor' },
-  'Cyber-security': { title: 'Cyber-security (Cloud & AppSec)', domain: 'Cybersecurity' },
-  'Full-stack': { title: 'Full-stack Architecture', domain: 'Full-Stack' },
-};
+interface TrackOption {
+  key: string;
+  title: string;
+  domain: string;
+  subtitle: string;
+  icon: LucideIcon;
+  badgeColor: string;
+}
+
+const TRACK_OPTIONS: TrackOption[] = [
+  {
+    key: 'Full-stack',
+    title: 'Full-Stack Architecture',
+    domain: 'Full-Stack',
+    subtitle: 'Frontend, backend, cloud & distributed systems',
+    icon: Code2,
+    badgeColor: '#ECFDF5'
+  },
+  {
+    key: 'AI/ML',
+    title: 'AI / Machine Learning',
+    domain: 'AI/ML',
+    subtitle: 'Generative AI, LLMs, computer vision & infra',
+    icon: Brain,
+    badgeColor: '#FAF5FF'
+  },
+  {
+    key: 'Semi-conductor',
+    title: 'Semiconductor & VLSI',
+    domain: 'Semiconductor',
+    subtitle: 'Silicon design, RTL verification & FPGA architecture',
+    icon: Cpu,
+    badgeColor: '#FEF3C7'
+  },
+  {
+    key: 'Cyber-security',
+    title: 'Cybersecurity & AppSec',
+    domain: 'Cybersecurity',
+    subtitle: 'Cloud security, threat defense & DevSecOps',
+    icon: ShieldCheck,
+    badgeColor: '#EFF6FF'
+  },
+  {
+    key: 'Others',
+    title: 'Custom Target Role',
+    domain: 'Others',
+    subtitle: 'Product management, DevOps, engineering leadership & more',
+    icon: Sparkles,
+    badgeColor: '#FFF1F2'
+  }
+];
 
 export const TrajectoryCalibrationModal: React.FC = () => {
   const {
@@ -27,25 +75,43 @@ export const TrajectoryCalibrationModal: React.FC = () => {
   const [customTargetRole, setCustomTargetRole] = useState<string>('');
   const [targetCtcLpa, setTargetCtcLpa] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
 
-  // Pre-fill modal with user's saved profile values when opening (both for initial calibration and "Edit Goal")
-  React.useEffect(() => {
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close custom dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isDropdownOpen]);
+
+  // Pre-fill modal with user's saved profile values when opening
+  useEffect(() => {
     if (isCalibrationModalOpen) {
-      setCurrentRole(userProfile?.designation || userProfile?.pastCompanyRole || '');
-      setCurrentCompany(userProfile?.currentCompany || userProfile?.pastCompany || '');
+      const initialRole = userProfile?.designation || userProfile?.headline?.split('@')[0]?.split('|')[0]?.trim() || userProfile?.pastCompanyRole || currentUser?.headline || '';
+      const initialCompany = userProfile?.currentCompany || userProfile?.pastCompany || currentUser?.company || '';
+      setCurrentRole(initialRole);
+      setCurrentCompany(initialCompany);
       setDreamCompany(userProfile?.dreamCompany || userProfile?.targetCompany || '');
 
       const existingRole = (userProfile?.targetRole || '').trim();
       const existingDomain = (userProfile?.domain || '').trim().toLowerCase();
 
-      const matchedKey = Object.keys(TRACKS).find(
-        k => TRACKS[k].title.toLowerCase() === existingRole.toLowerCase() ||
-             TRACKS[k].domain.toLowerCase() === existingDomain ||
-             (existingRole && existingRole.toLowerCase().includes(k.toLowerCase()))
+      const matchedOption = TRACK_OPTIONS.find(
+        opt => opt.title.toLowerCase() === existingRole.toLowerCase() ||
+               opt.domain.toLowerCase() === existingDomain ||
+               (existingRole && existingRole.toLowerCase().includes(opt.key.toLowerCase()))
       );
 
-      if (matchedKey) {
-        setTargetTrack(matchedKey);
+      if (matchedOption) {
+        setTargetTrack(matchedOption.key);
         setCustomTargetRole('');
       } else if (existingRole) {
         setTargetTrack('Others');
@@ -62,15 +128,17 @@ export const TrajectoryCalibrationModal: React.FC = () => {
         setTargetCtcLpa('');
       }
     }
-  }, [isCalibrationModalOpen, userProfile]);
+  }, [isCalibrationModalOpen, userProfile, currentUser]);
 
   if (!isCalibrationModalOpen) return null;
 
   const notWorking = Boolean(userProfile?.currentlyNotWorking);
+  const activeTrackOption = TRACK_OPTIONS.find(t => t.key === targetTrack) || TRACK_OPTIONS[0];
+  const ActiveIcon = activeTrackOption.icon;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const targetRole = targetTrack === 'Others' ? customTargetRole.trim() : TRACKS[targetTrack].title;
+    const targetRole = targetTrack === 'Others' ? customTargetRole.trim() : activeTrackOption.title;
     if (!targetRole) return showToast('Target role needed', 'Please enter the role you want to move into.', 'warning');
     if (!dreamCompany.trim()) return showToast('Target company needed', 'Please enter the company you want to join.', 'warning');
     const lpa = targetCtcLpa.trim() === '' ? null : Number(targetCtcLpa);
@@ -83,7 +151,7 @@ export const TrajectoryCalibrationModal: React.FC = () => {
       currentCompany: notWorking ? '' : currentCompany,
       dreamCompany: dreamCompany.trim(),
       targetRole,
-      domain: targetTrack === 'Others' ? undefined : TRACKS[targetTrack].domain,
+      domain: targetTrack === 'Others' ? undefined : activeTrackOption.domain,
       targetCtc: lpa !== null ? `${lpa} LPA` : undefined
     });
     if (success) {
@@ -109,151 +177,175 @@ export const TrajectoryCalibrationModal: React.FC = () => {
           >
             <X size={16} />
           </button>
+          <div className="tcm-tag-row">
+            <span className="tcm-tag-badge">
+              <Target size={11} /> Trajectory Goal
+            </span>
+          </div>
           <h2 className="tcm-title">
-            Your Career Goal
+            Set Your Career Target
           </h2>
           <p className="tcm-desc">
-            Tell us where you want to go next. We'll show mentors who made a similar move.
-            You can change this any time with "Edit Goal".
+            Match with verified mentors who made this exact move.
           </p>
         </div>
 
         {/* Modal Body Form */}
         <form onSubmit={handleSubmit} className="tcm-form">
 
-          {/* Section 1: Target Track Dropdown */}
-          <div className="tcm-field-compact">
+          {/* Section 1: Current Baseline (Pre-filled from Profile / Resume, Editable) */}
+          {!notWorking && (
+            <div className="tcm-grid-row">
+              {/* Current Role */}
+              <div className="tcm-field-compact">
+                <label className="tcm-group-label">
+                  <Briefcase size={13} className="text-slate-400" />
+                  <span>Current Role</span>
+                </label>
+                <input
+                  type="text"
+                  value={currentRole}
+                  onChange={e => setCurrentRole(e.target.value)}
+                  placeholder="e.g. Senior Frontend Dev"
+                  className="tcm-input-compact"
+                  required={!notWorking}
+                />
+              </div>
+
+              {/* Current Company */}
+              <div className="tcm-field-compact">
+                <label className="tcm-group-label">
+                  <Building2 size={13} className="text-slate-400" />
+                  <span>Current Company</span>
+                </label>
+                <input
+                  type="text"
+                  value={currentCompany}
+                  onChange={e => setCurrentCompany(e.target.value)}
+                  placeholder="e.g. TCS / Infosys / Startup"
+                  className="tcm-input-compact"
+                  required={!notWorking}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Section 2: Destination Target Role / Domain (Custom Premium Dropdown) */}
+          <div className="tcm-field-compact" ref={dropdownRef}>
             <label className="tcm-group-label">
-              <span>🎯 Target Role / Domain *</span>
+              <Target size={13} className="text-purple-600" />
+              <span>Target Role / Domain *</span>
             </label>
-            <div className="tcm-select-wrapper">
-              <select
-                value={targetTrack}
-                onChange={e => setTargetTrack(e.target.value)}
-                className="tcm-select-compact"
+
+            <div className="tcm-custom-select-wrap">
+              <button
+                type="button"
+                className={`tcm-select-trigger ${isDropdownOpen ? 'open' : ''}`}
+                onClick={() => setIsDropdownOpen(prev => !prev)}
+                aria-expanded={isDropdownOpen}
               >
-                <option value="AI/ML">🤖 AI / ML (Generative AI &amp; LLM Systems)</option>
-                <option value="Semi-conductor">⚡ Semi-conductor (VLSI &amp; Silicon Design)</option>
-                <option value="Cyber-security">🛡️ Cyber Security (Cloud &amp; AppSec)</option>
-                <option value="Full-stack">💻 Full-Stack &amp; Frontend Architecture</option>
-                <option value="Others">✨ Others (Enter Custom Role...)</option>
-              </select>
-              <ChevronDown size={15} className="tcm-select-arrow" />
+                <div className="tcm-st-left">
+                  <div className="tcm-st-icon" style={{ background: activeTrackOption.badgeColor }}>
+                    <ActiveIcon size={15} className="text-purple-700" />
+                  </div>
+                  <span className="tcm-st-title">{activeTrackOption.title}</span>
+                </div>
+                <ChevronDown size={16} className={`tcm-st-chevron ${isDropdownOpen ? 'rotated' : ''}`} />
+              </button>
+
+              {isDropdownOpen && (
+                <div className="tcm-dropdown-popover">
+                  <div className="tcm-dropdown-options-list">
+                    {TRACK_OPTIONS.map(opt => {
+                      const Icon = opt.icon;
+                      const isSelected = targetTrack === opt.key;
+                      return (
+                        <div
+                          key={opt.key}
+                          className={`tcm-option-item ${isSelected ? 'selected' : ''}`}
+                          onClick={() => {
+                            setTargetTrack(opt.key);
+                            setIsDropdownOpen(false);
+                          }}
+                        >
+                          <div className="tcm-opt-icon" style={{ background: opt.badgeColor }}>
+                            <Icon size={16} className={isSelected ? 'text-purple-700' : 'text-slate-600'} />
+                          </div>
+                          <div className="tcm-opt-text">
+                            <div className="tcm-opt-title-line">
+                              <span className="tcm-opt-title">{opt.title}</span>
+                              {isSelected && <Check size={14} className="text-purple-600" />}
+                            </div>
+                            <span className="tcm-opt-sub">{opt.subtitle}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Custom Role Input when "Others" is selected */}
             {targetTrack === 'Others' && (
-              <div className="mt-1.5 animate-fade-in">
+              <div className="mt-2 animate-fade-in">
                 <input
                   type="text"
                   value={customTargetRole}
                   onChange={e => setCustomTargetRole(e.target.value)}
-                  placeholder="Type your dream role (e.g. Lead Product Manager, Cloud DevOps)"
+                  placeholder="Specify dream role (e.g. Lead Product Manager, Cloud DevOps)"
                   className="tcm-input-compact"
+                  autoFocus
                   required
                 />
               </div>
             )}
           </div>
 
-          {/* Section 2: Baseline & Target Inputs (2x2 Grid) */}
-          <div className="tcm-grid-row">
-            {!notWorking && (<>
-            {/* Current Role */}
-            <div className="tcm-field-compact">
-              <label className="tcm-group-label">
-                <span>📍 Current Role</span>
-              </label>
-              <input
-                type="text"
-                value={currentRole}
-                onChange={e => setCurrentRole(e.target.value)}
-                placeholder="e.g. Senior Frontend Dev"
-                className="tcm-input-compact"
-                required
-              />
-            </div>
-
-            {/* Current Company */}
-            <div className="tcm-field-compact">
-              <label className="tcm-group-label">
-                <span>🏢 Current Company</span>
-              </label>
-              <input
-                type="text"
-                value={currentCompany}
-                onChange={e => setCurrentCompany(e.target.value)}
-                placeholder="e.g. TCS / Infosys / Startup"
-                className="tcm-input-compact"
-                required
-              />
-              <div className="tcm-mini-chips">
-                {['TCS', 'Infosys', 'Cognizant', 'Startup'].map(c => (
-                  <button
-                    type="button"
-                    key={c}
-                    onClick={() => setCurrentCompany(c)}
-                    className="tcm-mini-chip-btn"
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
-            </div>
-            </>)}
-
-            {/* Target Company (Full width or paired) */}
-            <div className="tcm-field-compact" style={{ gridColumn: 'span 2' }}>
-              <label className="tcm-group-label">
-                <span>🎯 Target Company</span>
-              </label>
-              <input
-                type="text"
-                value={dreamCompany}
-                onChange={e => setDreamCompany(e.target.value)}
-                placeholder="e.g. Swiggy, Flipkart, Google, Razorpay"
-                className="tcm-input-compact"
-                required
-              />
-              <div className="tcm-mini-chips">
-                {['Swiggy', 'Flipkart', 'Google', 'Razorpay', 'CRED'].map(dc => (
-                  <button
-                    type="button"
-                    key={dc}
-                    onClick={() => setDreamCompany(dc)}
-                    className="tcm-mini-chip-btn"
-                  >
-                    {dc}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Optional target salary */}
+          {/* Section 3: Target Company */}
           <div className="tcm-field-compact">
             <label className="tcm-group-label">
-              <span>💰 Target Salary (LPA, optional)</span>
+              <Building2 size={13} className="text-blue-500" />
+              <span>Target Company *</span>
             </label>
             <input
-              type="number"
-              min={0}
-              step="0.5"
-              value={targetCtcLpa}
-              onChange={e => setTargetCtcLpa(e.target.value)}
-              placeholder="e.g. 25"
+              type="text"
+              value={dreamCompany}
+              onChange={e => setDreamCompany(e.target.value)}
+              placeholder="e.g. Swiggy, Flipkart, Google, Razorpay"
               className="tcm-input-compact"
+              required
             />
           </div>
 
+          {/* Section 4: Target Salary */}
+          <div className="tcm-field-compact">
+            <label className="tcm-group-label">
+              <IndianRupee size={13} className="text-emerald-600" />
+              <span>Target Salary (optional)</span>
+            </label>
+            <div className="tcm-salary-input-wrap">
+              <input
+                type="number"
+                min={0}
+                step="0.5"
+                value={targetCtcLpa}
+                onChange={e => setTargetCtcLpa(e.target.value)}
+                placeholder="e.g. 25"
+                className="tcm-input-compact tcm-salary-input"
+              />
+              <span className="tcm-salary-suffix">LPA</span>
+            </div>
+          </div>
+
           {/* Hero Action CTA */}
-          <div className="tcm-actions-block">
+          <div className="tcm-actions-block" style={{ marginTop: '4px' }}>
             <button
               type="submit"
               className="btn-tcm-hero-submit"
               disabled={isSaving}
             >
-              <span>{isSaving ? 'Saving…' : 'Save Goal & See Matched Mentors'}</span>
+              <span>{isSaving ? 'Saving Goal…' : 'Save Goal & See Matched Mentors'}</span>
               <ArrowRight size={15} />
             </button>
           </div>
@@ -263,4 +355,3 @@ export const TrajectoryCalibrationModal: React.FC = () => {
     </div>
   );
 };
-

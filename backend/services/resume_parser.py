@@ -236,13 +236,33 @@ def _to_lpa(amount: str, unit: str) -> Optional[float]:
 
 # ----------------------------------------------------------------------------- field parsers
 def _name(lines: List[str]) -> Tuple[Optional[str], Optional[str]]:
+    ROLE_STOP_WORDS = {
+        "software", "softwere", "frontend", "backend", "fullstack", "full-stack",
+        "developer", "engineer", "architect", "designer", "lead", "manager",
+        "intern", "consultant", "analyst", "specialist", "programmer", "devops",
+        "administrator", "qa", "tester"
+    }
     for line in lines[:6]:
         clean = re.sub(r"^(name\s*[:\-]\s*)", "", line, flags=re.IGNORECASE).strip()
         words = clean.split()
-        if not 2 <= len(words) <= 4:
+        if not 2 <= len(words) <= 6:
             continue
         if re.search(r"@|\d|resume|curriculum|vitae|\bcv\b|profile|address|phone|email", clean, re.IGNORECASE):
             continue
+
+        # If line has role words appended (e.g. "Prakash Mahto Software Developer"), extract only the real name
+        name_words = []
+        for w in words:
+            if w.lower() in ROLE_STOP_WORDS:
+                break
+            name_words.append(w)
+
+        if 1 <= len(name_words) <= 4 and all(re.fullmatch(r"[A-Za-z][A-Za-z.'\-]*", w) for w in name_words):
+            name_words = [w.capitalize() if w.isupper() else w for w in name_words]
+            if len(name_words) == 1:
+                return name_words[0], ""
+            return name_words[0], " ".join(name_words[1:])
+
         if not all(re.fullmatch(r"[A-Za-z][A-Za-z.'\-]*", w) for w in words):
             continue
         if not (clean.istitle() or clean.isupper()):
@@ -378,6 +398,16 @@ def _role(text: str, lines: List[str]) -> Dict[str, str]:
         else:
             continue
         break
+
+    if "currentDesignation" not in result:
+        for line in lines[:5]:
+            m = re.search(r"\b((?:senior|lead|associate|staff|principal|junior)?\s*(?:software|softwere|frontend|backend|fullstack|full-stack|web|ui|react|python|java)?\s*(?:developer|engineer|architect|designer|analyst|programmer))\b", line, re.IGNORECASE)
+            if m:
+                clean_title = m.group(1).strip()
+                clean_title = re.sub(r"(?i)softwere", "Software", clean_title)
+                result["currentDesignation"] = clean_title.title()
+                break
+
     return result
 
 

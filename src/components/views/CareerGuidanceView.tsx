@@ -11,7 +11,7 @@ import { useApp } from '../../context/AppContext';
 import { calculateSalaryBenchmark } from '../../utils/salaryBenchmark';
 import { peerpathApi } from '../../services/api';
 import { BRAND } from '../../config/brand';
-import { isGoalSet } from '../../utils/profile';
+import { isGoalSet, isSelfMentor } from '../../utils/profile';
 
 export type MentorCategoryTab = 'top' | 'all' | 'ai' | 'semi' | 'cyber' | 'fullstack' | 'others';
 
@@ -47,6 +47,7 @@ interface TransitionMentor {
   jumpStory: string;
   skills: string[];
   matchScore: number;
+  ownerUserId?: string;
 }
 
 function toTransitionMentor(match: TrajectoryMatch): TransitionMentor {
@@ -60,10 +61,10 @@ function toTransitionMentor(match: TrajectoryMatch): TransitionMentor {
     role: c.role,
     company: c.company,
     domain: c.domain || 'Tech',
-    experience: c.experience || '5+ Years',
-    rating: c.rating || 4.9,
-    reviewsCount: c.reviewsCount || 48,
-    sessionsCount: c.sessionsCount || 60,
+    experience: c.experience || '4+ Years',
+    rating: c.rating && c.reviewsCount ? c.rating : (c.rating || 5.0),
+    reviewsCount: c.reviewsCount || 0,
+    sessionsCount: c.sessionsCount || 0,
     price: c.price || 999,
     avatar: c.avatar,
     isVerifiedEmployer: c.isVerifiedEmployer ?? true,
@@ -72,9 +73,10 @@ function toTransitionMentor(match: TrajectoryMatch): TransitionMentor {
     leapCompany: c.company,
     leapRole: c.role,
     jumpTag: match.isExactMatch ? 'Exact Match' : (traj?.role3YearsAgo ? `${traj.role3YearsAgo} ➔ ${c.role}` : `${c.role} @ ${c.company}`),
-    jumpStory: traj?.jumpStory || `Senior ${c.role} at ${c.company} helping professionals achieve their target career trajectory.`,
+    jumpStory: traj?.jumpStory || c.bio || `Senior ${c.role} at ${c.company} helping professionals achieve their target career trajectory.`,
     skills: c.skills || [],
-    matchScore: match.trajectorySimilarityScore || 90
+    matchScore: match.trajectorySimilarityScore || 90,
+    ownerUserId: (c as any).ownerUserId || (c as any).owner_user_id
   };
 }
 
@@ -85,10 +87,10 @@ function expertToTransitionMentor(e: Expert, matchScore = 92): TransitionMentor 
     role: e.role,
     company: e.company,
     domain: e.domain || 'Tech',
-    experience: e.experience || '5+ Years',
-    rating: e.rating || 4.9,
-    reviewsCount: e.reviewsCount || 48,
-    sessionsCount: e.sessionsCount || 60,
+    experience: e.experience || '4+ Years',
+    rating: e.rating && e.reviewsCount ? e.rating : (e.rating || 5.0),
+    reviewsCount: e.reviewsCount || 0,
+    sessionsCount: e.sessionsCount || 0,
     price: e.price || 999,
     avatar: e.avatar,
     isVerifiedEmployer: e.isVerifiedEmployer ?? true,
@@ -99,189 +101,10 @@ function expertToTransitionMentor(e: Expert, matchScore = 92): TransitionMentor 
     jumpTag: e.trajectory ? `${e.trajectory.role3YearsAgo} ➔ ${e.role}` : `${e.role} @ ${e.company}`,
     jumpStory: e.trajectory?.jumpStory || e.bio || `Senior ${e.role} at ${e.company} helping professionals advance their career.`,
     skills: e.skills || [],
-    matchScore: matchScore
+    matchScore: matchScore,
+    ownerUserId: e.ownerUserId || (e as any).owner_user_id
   };
 }
-
-// Curated preview mentors displayed in background when user is unauthenticated / locked
-const CURATED_PREVIEW_MENTORS: TransitionMentor[] = [
-  {
-    id: 'saheli',
-    name: 'Saheli Sen',
-    role: 'Staff Frontend Architect',
-    company: 'Swiggy',
-    domain: 'Full-Stack',
-    experience: '7+ Years',
-    rating: 4.98,
-    reviewsCount: 142,
-    sessionsCount: 186,
-    price: 1499,
-    avatar: '/avatars/saheli.jpg',
-    isVerifiedEmployer: true,
-    baselineCompany: 'TCS Digital',
-    baselineRole: 'Systems Engineer',
-    leapCompany: 'Swiggy',
-    leapRole: 'Staff Frontend Architect',
-    jumpTag: 'TCS ➔ Swiggy (18 LPA ➔ 52 LPA)',
-    jumpStory: 'Transitioned from WITCH services to Tier-1 consumer internet. Mentored 120+ engineers into unicorn product teams.',
-    skills: ['React', 'System Design', 'TypeScript', 'Frontend Architecture', 'High Scale Web'],
-    matchScore: 98
-  },
-  {
-    id: 'ishita',
-    name: 'Ishita Sharma',
-    role: 'Senior Applied AI / ML Lead',
-    company: 'Google',
-    domain: 'AI/ML',
-    experience: '6+ Years',
-    rating: 4.95,
-    reviewsCount: 118,
-    sessionsCount: 154,
-    price: 1899,
-    avatar: '/avatars/ishita.jpg',
-    isVerifiedEmployer: true,
-    baselineCompany: 'Infosys',
-    baselineRole: 'Software Engineer',
-    leapCompany: 'Google DeepMind',
-    leapRole: 'Senior AI Engineer',
-    jumpTag: 'Infosys ➔ Google (12 LPA ➔ 68 LPA)',
-    jumpStory: 'Pivoted from traditional backend engineering to production LLMs, PyTorch, and distributed training systems.',
-    skills: ['GenAI', 'PyTorch', 'Distributed Training', 'LLM Fine-Tuning', 'Vector Databases'],
-    matchScore: 96
-  },
-  {
-    id: 'akash',
-    name: 'Akash Roy',
-    role: 'Principal Hardware & VLSI Architect',
-    company: 'Qualcomm',
-    domain: 'Semiconductor',
-    experience: '8+ Years',
-    rating: 4.96,
-    reviewsCount: 96,
-    sessionsCount: 130,
-    price: 1599,
-    avatar: '/avatars/akash.jpg',
-    isVerifiedEmployer: true,
-    baselineCompany: 'Wipro Technologies',
-    baselineRole: 'Firmware Trainee',
-    leapCompany: 'Qualcomm',
-    leapRole: 'Principal Architect',
-    jumpTag: 'Wipro ➔ Qualcomm (9 LPA ➔ 48 LPA)',
-    jumpStory: 'Helped 60+ semiconductor graduates land core Tier-1 silicon roles in SoC design & RTL verification.',
-    skills: ['Verilog', 'SystemVerilog', 'UVM', 'RTL Verification', 'SoC Architecture'],
-    matchScore: 95
-  },
-  {
-    id: 'amit',
-    name: 'Amit Verma',
-    role: 'Staff Infrastructure & Security Lead',
-    company: 'Razorpay',
-    domain: 'Cybersecurity',
-    experience: '7+ Years',
-    rating: 4.92,
-    reviewsCount: 84,
-    sessionsCount: 112,
-    price: 1399,
-    avatar: '/avatars/amit.jpg',
-    isVerifiedEmployer: true,
-    baselineCompany: 'Accenture',
-    baselineRole: 'Security Analyst',
-    leapCompany: 'Razorpay',
-    leapRole: 'Staff Security Engineer',
-    jumpTag: 'Accenture ➔ Razorpay (11 LPA ➔ 45 LPA)',
-    jumpStory: 'Specialized in Fintech zero-trust architectures, Kubernetes hardening, and PCI-DSS compliance at unicorn scale.',
-    skills: ['Cloud Security', 'Kubernetes', 'Zero-Trust', 'DevSecOps', 'Threat Modeling'],
-    matchScore: 94
-  },
-  {
-    id: 'neha',
-    name: 'Neha Gupta',
-    role: 'Senior Engineering Manager',
-    company: 'Uber',
-    domain: 'Full-Stack',
-    experience: '9+ Years',
-    rating: 4.97,
-    reviewsCount: 165,
-    sessionsCount: 210,
-    price: 1999,
-    avatar: '/avatars/neha.jpg',
-    isVerifiedEmployer: true,
-    baselineCompany: 'Cognizant',
-    baselineRole: 'Senior Programmer',
-    leapCompany: 'Uber Tech',
-    leapRole: 'Engineering Manager',
-    jumpTag: 'Cognizant ➔ Uber (15 LPA ➔ 75 LPA)',
-    jumpStory: 'Mastering tech lead transitions, executive compensation negotiations, and large-scale microservice migrations.',
-    skills: ['Engineering Management', 'Microservices', 'Distributed Systems', 'Go', 'Leadership'],
-    matchScore: 97
-  },
-  {
-    id: 'anirudh',
-    name: 'Anirudh Rao',
-    role: 'Lead Cloud & Distributed Architect',
-    company: 'Microsoft',
-    domain: 'Full-Stack',
-    experience: '8+ Years',
-    rating: 4.94,
-    reviewsCount: 104,
-    sessionsCount: 140,
-    price: 1699,
-    avatar: '/avatars/anirudh.jpg',
-    isVerifiedEmployer: true,
-    baselineCompany: 'HCL Technologies',
-    baselineRole: 'Systems Analyst',
-    leapCompany: 'Microsoft Azure',
-    leapRole: 'Lead Cloud Architect',
-    jumpTag: 'HCL ➔ Microsoft (12 LPA ➔ 54 LPA)',
-    jumpStory: 'Built distributed high-availability cloud platforms and guided 80+ candidates through Tier-1 system design interviews.',
-    skills: ['Azure', 'System Design', 'Kafka', 'Golang', 'Cloud Architecture'],
-    matchScore: 93
-  },
-  {
-    id: 'nisha',
-    name: 'Nisha Patel',
-    role: 'Staff Data Science Specialist',
-    company: 'Amazon',
-    domain: 'AI/ML',
-    experience: '6+ Years',
-    rating: 4.93,
-    reviewsCount: 88,
-    sessionsCount: 122,
-    price: 1599,
-    avatar: '/avatars/nisha.jpg',
-    isVerifiedEmployer: true,
-    baselineCompany: 'Tech Mahindra',
-    baselineRole: 'Data Analyst',
-    leapCompany: 'Amazon AWS',
-    leapRole: 'Staff Data Scientist',
-    jumpTag: 'TechM ➔ Amazon (10 LPA ➔ 50 LPA)',
-    jumpStory: 'Transitioned from SQL reporting to predictive recommendation engines and multi-modal models at scale.',
-    skills: ['Machine Learning', 'Python', 'AWS SageMaker', 'Recommendation Systems', 'SQL'],
-    matchScore: 95
-  },
-  {
-    id: 'sunil',
-    name: 'Sunil Kumar',
-    role: 'Principal SoC Design Engineer',
-    company: 'NVIDIA',
-    domain: 'Semiconductor',
-    experience: '9+ Years',
-    rating: 4.97,
-    reviewsCount: 110,
-    sessionsCount: 145,
-    price: 1799,
-    avatar: '/avatars/sunil.jpg',
-    isVerifiedEmployer: true,
-    baselineCompany: 'L&T Technology Services',
-    baselineRole: 'Design Engineer',
-    leapCompany: 'NVIDIA',
-    leapRole: 'Principal SoC Engineer',
-    jumpTag: 'L&T ➔ NVIDIA (14 LPA ➔ 62 LPA)',
-    jumpStory: 'Deep expertise in high-speed interconnects, PCIe Gen-5, and GPU architecture silicon bringup.',
-    skills: ['SoC Architecture', 'PCIe', 'RTL Design', 'Silicon Bringup', 'High-Speed IO'],
-    matchScore: 96
-  }
-];
 
 interface CareerGuidanceViewProps {
   onNavigate: (view: ViewType) => void;
@@ -318,11 +141,8 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
   const hasMentorAccess = Boolean(
     currentUser && (
       isMentor ||
-      currentUser?.creatorId ||
-      currentUser?.isMentorEligible ||
-      userProfile?.isMentorEligible ||
-      currentUser?.hasExpertBadge ||
-      userProfile?.hasExpertBadge ||
+      Boolean(currentUser?.creatorId) ||
+      Boolean(userProfile?.isMentor) ||
       isCreatorMode
     )
   );
@@ -494,45 +314,45 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
     return () => { isCurrent = false; };
   }, [activeTab, currentUser?.id, isGoalLocked, userCurrentRole, userCurrentCompany, userProfile.experienceYears, userProfile.currentCtc, userTargetRole, userProfile.targetCtc, userDreamCompany, userProfile.skills, refreshTrigger]);
 
-  // Fallback list of transition mentors derived from platform verified experts or curated preview mentors
+  // Fallback list of transition mentors derived from platform verified experts
+  // Fallback list of transition mentors derived from platform verified experts (excluding self)
   const fallbackMentors: TransitionMentor[] = useMemo(() => {
-    const fromExperts = (experts || []).map((e, idx) => expertToTransitionMentor(e, Math.max(78, 96 - idx * 2)));
-    return fromExperts.length > 0 ? fromExperts : CURATED_PREVIEW_MENTORS;
-  }, [experts]);
+    const validExperts = (experts || []).filter(e => !isSelfMentor(e, currentUser, userProfile));
+    return validExperts.map((e, idx) => expertToTransitionMentor(e, Math.max(78, 96 - idx * 2)));
+  }, [experts, currentUser, userProfile]);
 
   // Derive the 'top' (top 6), 'others' (non-named-domain), per-track counts, and each
   // track's best real match % (shown in the Switch Track badges) from the all-domain match set
   const { topMatches, othersMatches, domainCounts, domainBestMatch } = useMemo(() => {
-    const sorted = [...allMatches].sort((a, b) => b.trajectorySimilarityScore - a.trajectorySimilarityScore);
-    const others = allMatches.filter(m => !NAMED_TRACK_DOMAINS.includes(m.creator.domain));
+    const filteredMatches = allMatches.filter(m => !isSelfMentor(m.creator, currentUser, userProfile));
+    const sorted = [...filteredMatches].sort((a, b) => b.trajectorySimilarityScore - a.trajectorySimilarityScore);
+    const others = filteredMatches.filter(m => !NAMED_TRACK_DOMAINS.includes(m.creator.domain));
     const byDomain = {
-      ai: allMatches.filter(m => m.creator.domain === 'AI/ML'),
-      semi: allMatches.filter(m => m.creator.domain === 'Semiconductor'),
-      cyber: allMatches.filter(m => m.creator.domain === 'Cybersecurity'),
-      fullstack: allMatches.filter(m => m.creator.domain === 'Full-Stack')
+      ai: filteredMatches.filter(m => m.creator.domain === 'AI/ML'),
+      semi: filteredMatches.filter(m => m.creator.domain === 'Semiconductor'),
+      cyber: filteredMatches.filter(m => m.creator.domain === 'Cybersecurity'),
+      fullstack: filteredMatches.filter(m => m.creator.domain === 'Full-Stack')
     };
     const bestOf = (list: TrajectoryMatch[]) => list.length ? Math.max(...list.map(m => m.trajectorySimilarityScore)) : 0;
 
-    const totalExperts = experts?.length || 0;
-    const previewSource = fallbackMentors.length > 0 ? fallbackMentors : CURATED_PREVIEW_MENTORS;
     const counts: Record<MentorCategoryTab, number> = {
-      top: Math.min(6, sorted.length) || 6,
-      all: allMatches.length || Math.max(totalExperts, 500),
-      ai: byDomain.ai.length || (previewSource.filter(e => e.domain === 'AI/ML').length || 4),
-      semi: byDomain.semi.length || (previewSource.filter(e => e.domain === 'Semiconductor').length || 3),
-      cyber: byDomain.cyber.length || (previewSource.filter(e => e.domain === 'Cybersecurity').length || 3),
-      fullstack: byDomain.fullstack.length || (previewSource.filter(e => e.domain === 'Full-Stack').length || 6),
-      others: others.length || (previewSource.filter(e => !NAMED_TRACK_DOMAINS.includes(e.domain || '')).length || 3)
+      top: sorted.length || fallbackMentors.slice(0, 6).length,
+      all: filteredMatches.length || fallbackMentors.length,
+      ai: byDomain.ai.length || fallbackMentors.filter(m => m.domain === 'AI/ML').length,
+      semi: byDomain.semi.length || fallbackMentors.filter(m => m.domain === 'Semiconductor').length,
+      cyber: byDomain.cyber.length || fallbackMentors.filter(m => m.domain === 'Cybersecurity').length,
+      fullstack: byDomain.fullstack.length || fallbackMentors.filter(m => m.domain === 'Full-Stack').length,
+      others: others.length || fallbackMentors.filter(m => !NAMED_TRACK_DOMAINS.includes(m.domain)).length
     };
 
     const bestMatch: Record<MentorCategoryTab, number> = {
-      top: bestOf(sorted) || 98,
-      all: bestOf(allMatches) || 96,
-      ai: bestOf(byDomain.ai) || 96,
-      semi: bestOf(byDomain.semi) || 95,
-      cyber: bestOf(byDomain.cyber) || 94,
-      fullstack: bestOf(byDomain.fullstack) || 98,
-      others: bestOf(others) || 93
+      top: bestOf(sorted) || (fallbackMentors.length > 0 ? 92 : 0),
+      all: bestOf(filteredMatches) || (fallbackMentors.length > 0 ? 90 : 0),
+      ai: bestOf(byDomain.ai) || (fallbackMentors.some(m => m.domain === 'AI/ML') ? 90 : 0),
+      semi: bestOf(byDomain.semi) || (fallbackMentors.some(m => m.domain === 'Semiconductor') ? 90 : 0),
+      cyber: bestOf(byDomain.cyber) || (fallbackMentors.some(m => m.domain === 'Cybersecurity') ? 90 : 0),
+      fullstack: bestOf(byDomain.fullstack) || (fallbackMentors.some(m => m.domain === 'Full-Stack') ? 90 : 0),
+      others: bestOf(others) || (fallbackMentors.some(m => !NAMED_TRACK_DOMAINS.includes(m.domain)) ? 90 : 0)
     };
 
     return {
@@ -541,17 +361,19 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
       domainCounts: counts,
       domainBestMatch: bestMatch
     };
-  }, [allMatches, experts, fallbackMentors]);
+  }, [allMatches, fallbackMentors, currentUser, userProfile]);
 
   const matchBadgeLabel = (tab: MentorCategoryTab) =>
-    domainCounts[tab] > 0 ? `⚡ ${domainBestMatch[tab]}% Match` : 'Available';
+    domainCounts[tab] > 0 
+      ? (domainBestMatch[tab] > 0 ? `⚡ ${domainBestMatch[tab]}% Match` : `${domainCounts[tab]} Mentors`) 
+      : 'No mentors yet';
 
-  const isLoadingActiveTab = !isGoalLocked && (TAB_DOMAIN_MAP[activeTab] ? isLoadingDomainMatches : isLoadingAllMatches);
-  const activeTabError = !isGoalLocked ? (TAB_DOMAIN_MAP[activeTab] ? domainMatchesError : allMatchesError) : null;
+  const isLoadingActiveTab = TAB_DOMAIN_MAP[activeTab] ? isLoadingDomainMatches : isLoadingAllMatches;
+  const activeTabError = TAB_DOMAIN_MAP[activeTab] ? domainMatchesError : allMatchesError;
 
   // Displayed mentors with search, category tab, company filter, and sorting
   const displayedMentors = useMemo(() => {
-    const baseMatches = activeTab === 'top'
+    const rawMatches = activeTab === 'top'
       ? topMatches
       : activeTab === 'all'
         ? allMatches
@@ -559,24 +381,31 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
           ? othersMatches
           : domainMatches;
 
+    const baseMatches = rawMatches.filter(m => !isSelfMentor(m.creator, currentUser, userProfile));
     let list: TransitionMentor[] = baseMatches.map(toTransitionMentor);
 
-    // If no matches found from trajectory matching (e.g. unauthenticated guest or trajectory not calibrated), fallback to platform verified experts or curated preview mentors
+    // If no matches found from trajectory matching, fall back to real verified mentors from database:
     if (list.length === 0) {
-      const sourceList = fallbackMentors.length > 0 ? fallbackMentors : CURATED_PREVIEW_MENTORS;
-      const targetDomain = TAB_DOMAIN_MAP[activeTab];
-      if (activeTab === 'top') {
-        list = sourceList.slice(0, 6);
-      } else if (targetDomain) {
-        const domainList = sourceList.filter(m => m.domain === targetDomain);
-        list = domainList.length > 0 ? domainList : sourceList;
-      } else if (activeTab === 'others') {
-        const othersList = sourceList.filter(m => !NAMED_TRACK_DOMAINS.includes(m.domain));
-        list = othersList.length > 0 ? othersList : sourceList;
+      if (fallbackMentors.length > 0) {
+        const targetDomain = TAB_DOMAIN_MAP[activeTab];
+        if (activeTab === 'top') {
+          list = fallbackMentors.slice(0, 6);
+        } else if (targetDomain) {
+          const domainList = fallbackMentors.filter(m => m.domain === targetDomain);
+          list = domainList.length > 0 ? domainList : fallbackMentors;
+        } else if (activeTab === 'others') {
+          const othersList = fallbackMentors.filter(m => !NAMED_TRACK_DOMAINS.includes(m.domain));
+          list = othersList.length > 0 ? othersList : fallbackMentors;
+        } else {
+          list = fallbackMentors;
+        }
       } else {
-        list = sourceList;
+        list = [];
       }
     }
+
+    // Explicitly guarantee user never sees their own mentor card in guidance list
+    list = list.filter(m => !isSelfMentor(m, currentUser, userProfile));
 
     // Company filter
     if (selectedCompany !== 'all') {
@@ -617,7 +446,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
       }
       return 0;
     });
-  }, [activeTab, topMatches, allMatches, othersMatches, domainMatches, selectedCompany, searchQuery, sortBy]);
+  }, [activeTab, topMatches, allMatches, othersMatches, domainMatches, selectedCompany, searchQuery, sortBy, currentUser, userProfile, fallbackMentors]);
 
   const currentTrackInfo = useMemo(() => {
     const trackMap: Record<MentorCategoryTab, { title: string; growthStat: string; count: number }> = {
@@ -753,12 +582,12 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                 onClick={() => onNavigate('experts-view')}
               >
                 <div className="ptn-avatars-stack">
-                  <img src="/avatars/saheli.jpg" alt="Mentor" className="ptn-av" />
-                  <img src="/avatars/ishita.jpg" alt="Mentor" className="ptn-av" />
-                  <img src="/avatars/akash.jpg" alt="Mentor" className="ptn-av" />
+                  {experts.slice(0, 3).map((exp, idx) => (
+                    <img key={exp.id || idx} src={exp.avatar || '/brand/android-chrome-192x192.png'} alt={exp.name} className="ptn-av" />
+                  ))}
                   <span className="ptn-live-dot"></span>
                 </div>
-                <span className="ptn-label-main">Explore 500+ Mentors</span>
+                <span className="ptn-label-main">Explore All Mentors</span>
               </button>
             </div>
 
@@ -1050,7 +879,9 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
               <p>
                 {searchQuery
                   ? <>No mentors found matching "<strong>{searchQuery}</strong>"</>
-                  : 'No mentors found for this track yet.'}
+                  : userTargetRole
+                    ? <>No verified mentors found for <strong>{userTargetRole}</strong> {userDreamCompany ? <>@ <strong>{userDreamCompany}</strong></> : null} yet.</>
+                    : 'No verified mentors found for this track yet.'}
               </p>
               <button
                 type="button"
@@ -1093,7 +924,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                       <div className="pm-meta-row">
                         <span className="pm-rating-text">
                           <Star size={10.5} fill="#F59E0B" color="#F59E0B" />
-                          <strong>{mentor.rating}</strong>
+                          <strong>{mentor.reviewsCount > 0 ? mentor.rating.toFixed(1) : 'New'}</strong>
                         </span>
                         <span className="pm-meta-sep">•</span>
                         <span className="pm-exp-text">{mentor.experience}</span>
@@ -1161,16 +992,27 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                     </div>
 
                     <div className="pm-h-actions-group">
-                      <button
-                        type="button"
-                        className="btn-pm-book-session"
-                        onClick={() => handleBook1on1(mentor)}
-                        title="Book 1:1 Mentorship Session"
-                      >
-                        <Calendar size={13} />
-                        <span>Book 1:1 Session</span>
-                        <ArrowRight size={13} />
-                      </button>
+                      {isSelfMentor(mentor, currentUser, userProfile) ? (
+                        <button
+                          type="button"
+                          className="btn-pm-profile-view"
+                          onClick={() => navigate('mentor-dashboard-view', '/mentor')}
+                        >
+                          <User size={12} />
+                          <span>Your Mentor Studio</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn-pm-book-session"
+                          onClick={() => handleBook1on1(mentor)}
+                          title="Book 1:1 Mentorship Session"
+                        >
+                          <Calendar size={13} />
+                          <span>Book 1:1 Session</span>
+                          <ArrowRight size={13} />
+                        </button>
+                      )}
 
                       <button
                         type="button"

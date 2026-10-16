@@ -57,14 +57,20 @@ export const CommunityView: React.FC = () => {
   const isMentorRole = currentUser?.role === 'mentor' || isCreatorMode;
 
   const myPosts = communityPosts.filter(post => 
-    post.mentorId === currentUser?.id || post.mentorId === 'akash'
+    post.mentorId === currentUser?.id || (currentUser?.creatorId && post.mentorId === currentUser.creatorId)
   );
+
+  const myTotalImpressions = myPosts.reduce((acc, p) => acc + (p.analytics?.impressions || 0), 0);
+  const myTotalComments = myPosts.reduce((acc, p) => acc + (p.commentsCount || p.comments?.length || 0), 0);
+  const myTotalVisits = myPosts.reduce((acc, p) => acc + (p.analytics?.profileClicks || 0), 0);
+  const myTotalBookings = myPosts.reduce((acc, p) => acc + (p.analytics?.bookingsGenerated || 0), 0);
+  const myTotalRevenue = myPosts.reduce((acc, p) => acc + (p.analytics?.revenueGenerated || 0), 0);
 
   // Filter posts
   const filteredPosts = communityPosts.filter(post => {
     // My Posts filter
     if (feedFilter === 'my-posts') {
-      const isMine = post.mentorId === currentUser?.id || post.mentorId === 'akash';
+      const isMine = post.mentorId === currentUser?.id || (currentUser?.creatorId && post.mentorId === currentUser.creatorId);
       if (!isMine) return false;
     } else if (feedFilter === 'following') {
       // Following filter
@@ -289,7 +295,7 @@ export const CommunityView: React.FC = () => {
               <div className="linkedin-composer-box">
                 <div className="lcb-top-row">
                   <img 
-                    src={currentUser?.avatar || '/avatars/akash.jpg'} 
+                    src={currentUser?.avatar || '/brand/android-chrome-192x192.png'} 
                     alt={currentUser?.name || 'Mentor'} 
                     className="lcb-avatar" 
                   />
@@ -400,7 +406,7 @@ export const CommunityView: React.FC = () => {
                   <div 
                     className="mpah-stat-card card-purple"
                     onClick={() => {
-                      const firstPost = communityPosts[0];
+                      const firstPost = myPosts[0] || communityPosts[0];
                       if (firstPost) {
                         setSelectedPostForAnalytics(firstPost);
                         setAnalyticsTab('overview');
@@ -410,10 +416,10 @@ export const CommunityView: React.FC = () => {
                   >
                     <div className="mpah-card-header">
                       <div className="mpah-icon-box bg-purple"><Eye size={15} /></div>
-                      <span className="mpah-badge-pill pill-purple"><TrendingUp size={10} /> +24%</span>
+                      <span className="mpah-badge-pill pill-purple"><TrendingUp size={10} /> Live</span>
                     </div>
                     <div className="mpah-card-body">
-                      <span className="mpah-val">14,820</span>
+                      <span className="mpah-val">{myTotalImpressions.toLocaleString()}</span>
                       <span className="mpah-lbl">Total Impressions</span>
                       <span className="mpah-subtext">Feed candidate reach</span>
                     </div>
@@ -422,7 +428,7 @@ export const CommunityView: React.FC = () => {
                   <div 
                     className="mpah-stat-card card-blue"
                     onClick={() => {
-                      const firstPost = communityPosts[0];
+                      const firstPost = myPosts[0] || communityPosts[0];
                       if (firstPost) {
                         setSelectedPostForAnalytics(firstPost);
                         setAnalyticsTab('overview');
@@ -432,10 +438,10 @@ export const CommunityView: React.FC = () => {
                   >
                     <div className="mpah-card-header">
                       <div className="mpah-icon-box bg-blue"><MessageSquare size={15} /></div>
-                      <span className="mpah-badge-pill pill-blue">96% Reply</span>
+                      <span className="mpah-badge-pill pill-blue">Discussions</span>
                     </div>
                     <div className="mpah-card-body">
-                      <span className="mpah-val">890</span>
+                      <span className="mpah-val">{myTotalComments}</span>
                       <span className="mpah-lbl">Comments & Replies</span>
                       <span className="mpah-subtext">Active discussions</span>
                     </div>
@@ -444,7 +450,7 @@ export const CommunityView: React.FC = () => {
                   <div 
                     className="mpah-stat-card card-emerald"
                     onClick={() => {
-                      const firstPost = communityPosts[0];
+                      const firstPost = myPosts[0] || communityPosts[0];
                       if (firstPost) {
                         setSelectedPostForAnalytics(firstPost);
                         setAnalyticsTab('audience');
@@ -457,7 +463,7 @@ export const CommunityView: React.FC = () => {
                       <span className="mpah-badge-pill pill-emerald">Direct</span>
                     </div>
                     <div className="mpah-card-body">
-                      <span className="mpah-val">340</span>
+                      <span className="mpah-val">{myTotalVisits}</span>
                       <span className="mpah-lbl">Profile Visits</span>
                       <span className="mpah-subtext">From post hooks</span>
                     </div>
@@ -466,7 +472,7 @@ export const CommunityView: React.FC = () => {
                   <div 
                     className="mpah-stat-card card-amber"
                     onClick={() => {
-                      const firstPost = communityPosts[0];
+                      const firstPost = myPosts[0] || communityPosts[0];
                       if (firstPost) {
                         setSelectedPostForAnalytics(firstPost);
                         setAnalyticsTab('conversions');
@@ -476,10 +482,10 @@ export const CommunityView: React.FC = () => {
                   >
                     <div className="mpah-card-header">
                       <div className="mpah-icon-box bg-amber"><Calendar size={15} /></div>
-                      <span className="mpah-badge-pill pill-amber">₹16.2K</span>
+                      <span className="mpah-badge-pill pill-amber">₹{myTotalRevenue.toLocaleString()}</span>
                     </div>
                     <div className="mpah-card-body">
-                      <span className="mpah-val val-amber">18</span>
+                      <span className="mpah-val val-amber">{myTotalBookings}</span>
                       <span className="mpah-lbl">1:1 Bookings</span>
                       <span className="mpah-subtext text-gold">Direct earnings</span>
                     </div>
@@ -825,14 +831,14 @@ export const CommunityView: React.FC = () => {
 
             <div className="lmc-author-strip">
               <img 
-                src={currentUser?.avatar || '/avatars/akash.jpg'} 
+                src={currentUser?.avatar || '/brand/android-chrome-192x192.png'} 
                 alt={currentUser?.name || 'Mentor'} 
                 className="lmc-author-avatar" 
               />
               <div className="lmc-author-meta">
                 <strong>{currentUser?.name || 'Mentor'}</strong>
                 <span className="lmc-privacy-tag">
-                  <Globe size={11} /> Anyone • {followedMentorIds.length * 140 + 380} followers notified
+                  <Globe size={11} /> Anyone • {followedMentorIds.length} followers notified
                 </span>
               </div>
             </div>

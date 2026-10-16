@@ -51,6 +51,43 @@ html, body {
   width: 100%;
 }
 
+/* ==========================================================================
+   ROOT-LEVEL SCROLL LOCK FOR ALL APPLICATION POPUPS & MODALS
+   ========================================================================== */
+html.peerpath-modal-open,
+body.peerpath-modal-open {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  touch-action: none !important;
+  height: 100% !important;
+}
+
+/* Isolate overscroll on all modal backdrops & prevent background chain */
+.app-modal-backdrop,
+.shine-modal-backdrop,
+.tcm-modal-backdrop,
+.modal-backdrop-blur,
+.crm-modal-backdrop,
+.rzp-modal-backdrop,
+.video-modal-backdrop,
+.linkedin-modal-backdrop,
+.analytics-modal-backdrop,
+.modal-backdrop {
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Isolate overscroll inside scrollable modal cards */
+.app-modal-card,
+.shine-update-profile-surface,
+.tcm-modal-card,
+.modal-surface-card,
+.crm-modal-content,
+.sup-form-body,
+.tcm-form {
+  overscroll-behavior: contain !important;
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
   background-color: var(--shine-bg-cream);
@@ -1073,7 +1110,7 @@ button {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  width: 245px;
+  width: 270px;
   background: #ffffff;
   border: 1px solid #E2E8F0;
   border-radius: 12px;
@@ -1170,8 +1207,8 @@ button {
 .flyout-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
+  gap: 10px;
+  padding: 8px 16px;
   font-size: 13px;
   font-weight: 600;
   color: #334155;
@@ -1183,6 +1220,36 @@ button {
 .flyout-item:hover {
   background: #F8FAFC;
   color: #0F172A;
+}
+
+.flyout-item-active {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+.flyout-section-tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: #94A3B8;
+  padding: 6px 16px 3px 16px;
+  text-transform: uppercase;
+}
+
+.flyout-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.flyout-item-sub {
+  font-size: 10.5px;
+  font-weight: 400;
+  color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .flyout-item-parent {

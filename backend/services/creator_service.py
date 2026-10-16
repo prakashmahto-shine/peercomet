@@ -50,7 +50,8 @@ class CreatorService:
             verifiedEmail=payload.verifiedEmail or f"@{company_clean}.com",
             isVerifiedEmployer=True,
             trajectory=trajectory,
-            availability=availability
+            availability=availability,
+            serviceOfferings=payload.serviceOfferings
         )
 
         saved = store.add_creator(new_creator, owner_user_id=owner_user_id)

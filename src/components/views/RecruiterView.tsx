@@ -15,6 +15,7 @@ interface CandidateRoleMatch {
     location: string;
     skills: string[];
     badges: Array<{ title: string }>;
+    avatar?: string;
   };
   matchPercent: number;
   matchedSkills: string[];
@@ -80,7 +81,7 @@ export const RecruiterView: React.FC<RecruiterViewProps> = ({ onNavigate }) => {
         <div className="recruiter-candidate-card verified-highlight" key={candidate.id}>
           <div className="r-card-header">
             <div className="r-candidate-meta">
-              <img src={`/avatars/${candidate.id}.jpg`} alt={candidate.name} className="r-avatar" />
+              <img src={candidate.avatar || '/brand/android-chrome-192x192.png'} alt={candidate.name} className="r-avatar" />
               <div>
                 <div className="r-name-row">
                   <h3>{candidate.name}</h3>

@@ -208,13 +208,18 @@ class Store:
         with db_session() as db:
             db.execute(delete(m.AuthSession).where(m.AuthSession.token_hash == _hash_token(token)))
 
-    # ------------------------------------------------------------------ creators
+    def _row_to_creator(self, row: m.Creator) -> Creator:
+        data = dict(row.data or {})
+        if row.owner_user_id and not data.get('ownerUserId'):
+            data['ownerUserId'] = row.owner_user_id
+        return Creator(**data)
+
     def get_creators(self, domain: Optional[str] = None, query: Optional[str] = None) -> List[Creator]:
         with db_session() as db:
             rows = db.scalars(
                 select(m.Creator).where(m.Creator.status == 'approved').order_by(m.Creator.created_at.desc())
             ).all()
-            creators = [Creator(**r.data) for r in rows]
+            creators = [self._row_to_creator(r) for r in rows]
 
         if domain and domain != 'all':
             target_norm = normalize_domain_key(domain) or domain.lower()
@@ -241,7 +246,7 @@ class Store:
     def get_creator_by_id(self, creator_id: str) -> Optional[Creator]:
         with db_session() as db:
             row = self._creator_row(db, creator_id)
-            return Creator(**row.data) if row else None
+            return self._row_to_creator(row) if row else None
 
     def get_creator_owner(self, creator_id: str) -> Optional[str]:
         with db_session() as db:
@@ -253,7 +258,7 @@ class Store:
             row = db.scalar(select(m.Creator).where(func.lower(m.Creator.owner_user_id) == _lower(user_id)))
             if not row:
                 row = self._creator_row(db, user_id)
-            return Creator(**row.data) if row else None
+            return self._row_to_creator(row) if row else None
 
     def add_creator(self, new_creator: Creator, owner_user_id: Optional[str] = None) -> Creator:
         with db_session() as db:
@@ -272,7 +277,7 @@ class Store:
             if not row:
                 return None
             row.data = {**row.data, **updates}
-            return Creator(**row.data)
+            return self._row_to_creator(row)
 
     def update_creator_availability(self, creator_id: str, days: List[str], time_slots: List[str]) -> Optional[Creator]:
         return self.update_creator(creator_id, {'availability': {'days': days, 'timeSlots': time_slots}})

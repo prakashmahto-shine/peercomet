@@ -65,7 +65,7 @@ export const PaymentView: React.FC = () => {
         <h2 className="pay-sec-heading">Session Summary</h2>
 
         <div className="pay-expert-card">
-          <img src={expert.avatar || '/avatars/deepika.jpg'} alt={expert.name} className="pay-avatar" />
+          <img src={expert.avatar || '/brand/android-chrome-192x192.png'} alt={expert.name} className="pay-avatar" />
           <div>
             <h4>{expert.name}</h4>
             <p>{expert.role} at {expert.company} • <strong className="text-blue-600">{sessionType}</strong></p>

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Briefcase, Award, Bell, FileText, ChevronDown, Sparkles, 
   User, Settings, LogOut, Video, Search, ArrowUpRight, Film, Clock, CreditCard,
-  Compass, TrendingUp, ShieldCheck, MessageSquare, Trash2, CheckCheck
+  Compass, TrendingUp, ShieldCheck, MessageSquare, Trash2, CheckCheck, Eye
 } from 'lucide-react';
 import { ViewType } from '../../types';
 import { useApp } from '../../context/AppContext';
@@ -33,6 +33,8 @@ export const Header: React.FC<HeaderProps> = ({
     isCreatorMode,
     setIsCreatorMode,
     navigateToCreatorStudio,
+    selectExpertById,
+    setIsUpdateProfileModalOpen,
     showToast,
     notifications,
     unreadNotificationsCount,
@@ -49,16 +51,11 @@ export const Header: React.FC<HeaderProps> = ({
     currentUser && (
       currentUser?.role === 'mentor' || 
       userProfile?.isMentor || 
-      currentUser?.creatorId ||
-      currentUser?.isMentorEligible ||
-      userProfile?.isMentorEligible ||
-      currentUser?.hasExpertBadge ||
-      userProfile?.hasExpertBadge ||
-      currentUser?.id === 'akash' ||
-      (currentUser?.username && currentUser.username.toLowerCase() === 'akash')
+      Boolean(currentUser?.creatorId)
     )
   );
 
+  const mentorCreatorId = currentUser?.creatorId || currentUser?.id || '';
   const loggedInFirstName = (currentUser?.name || '').split(' ')[0].toLowerCase();
   const upcomingCount = isCreatorMode
     ? sessions.filter(s => s.status === 'upcoming' && (s.expert.name.toLowerCase().includes(loggedInFirstName) || s.expert.id === currentUser?.id)).length
@@ -244,14 +241,12 @@ export const Header: React.FC<HeaderProps> = ({
                 type="button"
                 className={`nrms-tab ${isCreatorMode ? 'is-active-mentor' : 'is-inactive'}`}
                 onClick={() => {
-                  if (!isCreatorMode) {
-                    setIsCreatorMode(true);
-                    try {
-                      localStorage.setItem('shine_peerpath_creator_mode', 'true');
-                    } catch {}
-                    showToast('⚡ Mentor Studio Active', 'Switched to your mentor dashboard & candidate calls.', 'info');
-                    onNavigate('mentor-dashboard-view', '/mentor');
-                  }
+                  setIsCreatorMode(true);
+                  try {
+                    localStorage.setItem('shine_peerpath_creator_mode', 'true');
+                  } catch {}
+                  showToast('⚡ Mentor Studio Active', 'Switched to your mentor dashboard & candidate calls.', 'info');
+                  onNavigate('mentor-dashboard-view', '/mentor');
                 }}
                 title="Mentor Mode: You are actively hosting sessions and guiding candidates"
               >
@@ -264,14 +259,12 @@ export const Header: React.FC<HeaderProps> = ({
                 type="button"
                 className={`nrms-tab ${!isCreatorMode ? 'is-active-mentee' : 'is-inactive'}`}
                 onClick={() => {
-                  if (isCreatorMode) {
-                    setIsCreatorMode(false);
-                    try {
-                      localStorage.setItem('shine_peerpath_creator_mode', 'false');
-                    } catch {}
-                    showToast('👤 Mentee Mode Active', 'Need guidance for yourself? Browse & book 1:1 sessions with other mentors.', 'info');
-                    onNavigate('guidance-view', '/peerpath');
-                  }
+                  setIsCreatorMode(false);
+                  try {
+                    localStorage.setItem('shine_peerpath_creator_mode', 'false');
+                  } catch {}
+                  showToast('👤 Mentee Mode Active', 'Switched to candidate guidance mode. Browse & book 1:1 sessions.', 'info');
+                  onNavigate('guidance-view', '/peerpath');
                 }}
                 title="Need 1:1 guidance for yourself? Switch to Mentee Mode to book sessions"
               >
@@ -474,9 +467,13 @@ export const Header: React.FC<HeaderProps> = ({
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                       <strong>{currentUser.name}</strong>
                       <div style={{ display: 'flex', gap: 4 }}>
-                        {isAlreadyMentor && (
+                        {isAlreadyMentor && isCreatorMode ? (
                           <span style={{ background: '#ecfdf5', color: '#059669', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10, border: '1px solid rgba(16,185,129,0.3)' }}>
                             ⭐ Mentor
+                          </span>
+                        ) : (
+                          <span style={{ background: '#f1f5f9', color: '#475569', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10, border: '1px solid rgba(100,116,139,0.2)' }}>
+                            Candidate
                           </span>
                         )}
                         {currentUser?.isAdmin && (
@@ -493,37 +490,155 @@ export const Header: React.FC<HeaderProps> = ({
 
                   {isAlreadyMentor && isCreatorMode ? (
                     <>
-                      <a href="#!" className="flyout-item flyout-item-highlight" onClick={(e) => { e.preventDefault(); setIsUserMenuOpen(false); navigateToCreatorStudio('bookings'); }}>
-                        <Sparkles size={15} className="text-amber-500" /> <span style={{ fontWeight: 700 }}>Mentor Studio Hub</span>
+                      {/* Mentor Mode: Mentor Studio Tools & Profiles */}
+                      <div className="flyout-section-tag">MENTOR STUDIO</div>
+
+                      <a 
+                        href="/mentor" 
+                        className={`flyout-item ${currentView === 'mentor-dashboard-view' ? 'flyout-item-highlight' : ''}`}
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          setIsUserMenuOpen(false); 
+                          navigateToCreatorStudio('bookings'); 
+                        }}
+                      >
+                        <Sparkles size={15} className="text-amber-500" /> 
+                        <span style={{ fontWeight: 700 }}>Mentor Studio Hub</span>
                       </a>
-                      <a href="#!" className="flyout-item" onClick={(e) => { e.preventDefault(); setIsUserMenuOpen(false); navigateToCreatorStudio('teaser'); }}>
-                        <Film size={15} className="text-purple-600" /> Teaser & Profile Listing
+
+                      <a 
+                        href={`/expert/${mentorCreatorId}`} 
+                        className={`flyout-item ${currentView === 'expert-profile-view' ? 'flyout-item-active' : ''}`}
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          setIsUserMenuOpen(false); 
+                          selectExpertById(mentorCreatorId);
+                          onNavigate('expert-profile-view', `/expert/${mentorCreatorId}`); 
+                        }}
+                      >
+                        <Eye size={15} className="text-indigo-600" /> 
+                        <div className="flyout-item-text">
+                          <span style={{ fontWeight: 600, color: '#4338ca' }}>Public Mentor Profile</span>
+                          <span className="flyout-item-sub">What candidates see &amp; book</span>
+                        </div>
                       </a>
-                      <a href="#!" className="flyout-item" onClick={(e) => { e.preventDefault(); setIsUserMenuOpen(false); navigateToCreatorStudio('availability'); }}>
-                        <Clock size={15} className="text-blue-600" /> Manage Availability & Slots
+
+                      <a 
+                        href="/mentor" 
+                        className="flyout-item" 
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          setIsUserMenuOpen(false); 
+                          navigateToCreatorStudio('availability'); 
+                        }}
+                      >
+                        <Clock size={15} className="text-blue-600" /> 
+                        <span>Manage Availability &amp; Slots</span>
                       </a>
-                      <a href="#!" className="flyout-item" onClick={(e) => { e.preventDefault(); setIsUserMenuOpen(false); navigateToCreatorStudio('pricing'); }}>
-                        <CreditCard size={15} className="text-emerald-600" /> Session Rates & Payouts
+
+                      <a 
+                        href="/mentor" 
+                        className="flyout-item" 
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          setIsUserMenuOpen(false); 
+                          navigateToCreatorStudio('pricing'); 
+                        }}
+                      >
+                        <CreditCard size={15} className="text-emerald-600" /> 
+                        <span>Session Rates &amp; Offerings</span>
                       </a>
-                      <a href="#!" className="flyout-item flyout-item-highlight" onClick={(e) => { e.preventDefault(); setIsUserMenuOpen(false); onNavigate('sessions-view'); }}>
+
+                      <a 
+                        href="/mentor" 
+                        className="flyout-item" 
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          setIsUserMenuOpen(false); 
+                          navigateToCreatorStudio('teaser'); 
+                        }}
+                      >
+                        <Film size={15} className="text-purple-600" /> 
+                        <span>60s Video Teaser Pitch</span>
+                      </a>
+
+                      <a 
+                        href="/sessions" 
+                        className="flyout-item" 
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          setIsUserMenuOpen(false); 
+                          onNavigate('sessions-view', '/sessions'); 
+                        }}
+                      >
                         <Video size={15} className="text-purple-600" /> 
-                        <span style={{ fontWeight: 700, color: '#0F172A' }}>
-                          Candidate Calls (Host)
-                        </span>
+                        <span style={{ fontWeight: 600 }}>Candidate Calls (Host)</span>
                         {upcomingCount > 0 && (
                           <span className="flyout-count-pill">{upcomingCount}</span>
                         )}
                       </a>
+
+                      <div className="flyout-divider"></div>
+
+                      <a 
+                        href="/profile" 
+                        className={`flyout-item ${currentView === 'profile-view' ? 'flyout-item-active' : ''}`}
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          setIsUserMenuOpen(false); 
+                          onNavigate('profile-view', '/profile'); 
+                        }}
+                      >
+                        <User size={15} className="text-slate-600" /> 
+                        <div className="flyout-item-text">
+                          <span style={{ fontWeight: 600 }}>My Candidate Profile</span>
+                          <span className="flyout-item-sub">Basic info, skills &amp; resume</span>
+                        </div>
+                      </a>
                     </>
                   ) : (
                     <>
-                      <a href="#!" className="flyout-item" onClick={(e) => { e.preventDefault(); setIsUserMenuOpen(false); onNavigate('profile-view'); }}>
-                        <User size={15} /> My Profile
+                      {/* Seek Guidance Mode: ONLY Candidate Profile & Seeker Options */}
+                      <div className="flyout-section-tag">PROFILE</div>
+
+                      <a 
+                        href="/profile" 
+                        className={`flyout-item ${currentView === 'profile-view' ? 'flyout-item-active' : ''}`} 
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          setIsUserMenuOpen(false); 
+                          onNavigate('profile-view', '/profile'); 
+                        }}
+                      >
+                        <User size={15} className="text-blue-600" /> 
+                        <div className="flyout-item-text">
+                          <span style={{ fontWeight: 600 }}>My Candidate Profile</span>
+                          <span className="flyout-item-sub">Basic info, skills &amp; resume</span>
+                        </div>
                       </a>
-                      <a href="#!" className="flyout-item" onClick={(e) => { e.preventDefault(); setIsUserMenuOpen(false); onNavigate('guidance-view'); }}>
-                        <Sparkles size={15} className="text-purple-600" /> Career Roadmap & Goal
+
+                      <a 
+                        href="/peerpath" 
+                        className={`flyout-item ${currentView === 'guidance-view' ? 'flyout-item-active' : ''}`} 
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          setIsUserMenuOpen(false); 
+                          onNavigate('guidance-view', '/peerpath'); 
+                        }}
+                      >
+                        <Sparkles size={15} className="text-purple-600" /> 
+                        <span>Career Roadmap &amp; Goal</span>
                       </a>
-                      <a href="#!" className="flyout-item flyout-item-highlight" onClick={(e) => { e.preventDefault(); setIsUserMenuOpen(false); onNavigate('sessions-view'); }}>
+
+                      <a 
+                        href="/sessions" 
+                        className="flyout-item flyout-item-highlight" 
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          setIsUserMenuOpen(false); 
+                          onNavigate('sessions-view', '/sessions'); 
+                        }}
+                      >
                         <Video size={15} className="text-purple-600" /> 
                         <span style={{ fontWeight: 700, color: '#0F172A' }}>
                           My 1:1 Bookings
@@ -569,8 +684,16 @@ export const Header: React.FC<HeaderProps> = ({
 
                   <div className="flyout-divider"></div>
 
-                  <a href="#!" className="flyout-item" onClick={(e) => e.preventDefault()}>
-                    <Settings size={14} /> Account Settings
+                  <a 
+                    href="#!" 
+                    className="flyout-item" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setIsUserMenuOpen(false);
+                      setIsUpdateProfileModalOpen(true);
+                    }}
+                  >
+                    <Settings size={14} /> Account &amp; Basic Profile
                   </a>
                   
                   <a 

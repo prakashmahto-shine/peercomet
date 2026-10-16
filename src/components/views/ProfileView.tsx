@@ -4,12 +4,13 @@ import {
   Trash2, Star, Upload, ChevronDown, Check, Edit2, Briefcase, 
   Plus, X, Phone, Mail, CheckCircle2,
   GraduationCap, Zap, User,
-  Gift, Users,
+  Gift, Users, Eye,
   Share2, Building2, MapPin, CheckCircle, TrendingUp
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { BRAND } from '../../config/brand';
 import { formatResumeAge, hasResume, resumeAgeDays } from '../../utils/resume';
+import { parseNameAndRole } from '../../utils/profile';
 import { peerpathApi } from '../../services/api';
 
 // Age in whole years from a YYYY-MM-DD date of birth
@@ -28,6 +29,7 @@ export const ProfileView: React.FC = () => {
     userProfile, 
     navigate, 
     navigateToCreatorStudio,
+    selectExpertById,
     isCreatorMode, 
     updateUserProfile,
     updateProfileSummary, 
@@ -44,13 +46,12 @@ export const ProfileView: React.FC = () => {
     showToast,
     sessions
   } = useApp();
+  const mentorCreatorId = currentUser?.creatorId || currentUser?.id || '';
   const completedSessionCount = sessions.filter(sess => sess.status === 'completed').length;
 
   const isMentor = Boolean(
     userProfile.isMentor || 
-    currentUser?.role === 'mentor' || 
-    currentUser?.id === 'akash' ||
-    (currentUser?.username && currentUser.username.toLowerCase() === 'akash')
+    currentUser?.role === 'mentor'
   );
   const isNotLooking = (userProfile.jobSearchStatus || '').toLowerCase().includes('not looking');
 
@@ -63,6 +64,14 @@ export const ProfileView: React.FC = () => {
   const [summaryInput, setSummaryInput] = useState<string>(userProfile.summary);
   const [newSkillInput, setNewSkillInput] = useState<string>('');
   const [showAddSkillInput, setShowAddSkillInput] = useState<boolean>(false);
+
+  // Compute clean candidate name and professional title decoupled from resume string artifacts
+  const rawDisplayName = userProfile.name || [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') || currentUser?.name || 'Candidate';
+  const { cleanName, role: extractedRole } = parseNameAndRole(rawDisplayName, userProfile.designation);
+  const displayName = cleanName || rawDisplayName;
+  const displayRole = (userProfile.designation && !/^(tech professional|candidate|developer|professional)$/i.test(userProfile.designation.trim()))
+    ? userProfile.designation 
+    : (extractedRole || 'Software Professional');
 
 
   const handleSaveSummary = (e: React.FormEvent) => {
@@ -106,8 +115,8 @@ export const ProfileView: React.FC = () => {
     <div className="peerpath-profile-page-wrapper">
       <div className="peerpath-profile-container">
 
-        {/* Mentor Mode Banner (If Logged In User is Mentor / Creator) */}
-        {isMentor && (
+        {/* Mentor Mode Banner (ONLY in Mentor Mode; clean candidate profile in Seek Guidance mode) */}
+        {isMentor && isCreatorMode && (
           <div className="mentor-active-banner">
             <div className="mab-left">
               <div className="mab-icon">
@@ -115,16 +124,43 @@ export const ProfileView: React.FC = () => {
               </div>
               <div>
                 <strong>Verified Mentor Profile Active</strong>
-                <p>You are viewing candidate details. Manage your teaser video, availability slots, session rates, and 1:1 calls in Mentor Studio.</p>
+                <p>You are viewing your candidate profile. Basic details here (Name, Headline, Experience, Skills) sync with your public mentor profile.</p>
               </div>
             </div>
-            <button 
-              type="button" 
-              className="btn-mab-studio"
-              onClick={() => navigateToCreatorStudio('bookings')}
-            >
-              <span>⚡ Open Mentor Studio Hub</span>
-            </button>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <button 
+                type="button" 
+                className="btn-mab-preview"
+                onClick={() => {
+                  selectExpertById(mentorCreatorId);
+                  navigate('expert-profile-view', `/expert/${mentorCreatorId}`);
+                }}
+                style={{
+                  background: '#FFFFFF',
+                  color: '#1E293B',
+                  border: '1.5px solid #CBD5E1',
+                  borderRadius: '8px',
+                  padding: '7px 13px',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Eye size={14} className="text-indigo-600" />
+                <span>View Public Mentor Profile</span>
+              </button>
+
+              <button 
+                type="button" 
+                className="btn-mab-studio"
+                onClick={() => navigateToCreatorStudio('bookings')}
+              >
+                <span>⚡ Open Mentor Studio Hub</span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -174,7 +210,7 @@ export const ProfileView: React.FC = () => {
             <div className="phc-top-row">
               <div className="phc-avatar-wrap">
                 <img 
-                  src={currentUser?.avatar || userProfile?.avatar || (userProfile.isMentor ? '/avatars/akash.jpg' : '/brand/android-chrome-192x192.png')} 
+                  src={currentUser?.avatar || userProfile?.avatar || '/brand/android-chrome-192x192.png'} 
                   alt={userProfile.name} 
                   className="phc-avatar-img"
                 />
@@ -184,25 +220,55 @@ export const ProfileView: React.FC = () => {
               </div>
 
               <div className="phc-identity-details">
+                {/* Line 1: Clean Candidate Name + Verification & Notice Badges */}
                 <div className="phc-name-row">
-                  <h1 className="phc-name">{userProfile.name}</h1>
-                  <span className="phc-candidate-pill">
-                    <CheckCircle2 size={12} /> Email verified
-                  </span>
+                  <h1 className="phc-name">{displayName}</h1>
+                  <div className="phc-badges-cluster">
+                    {(userProfile.email || currentUser?.email) && (
+                      <span className="phc-candidate-pill" title="Email verified with Shine">
+                        <CheckCircle2 size={12} /> Email verified
+                      </span>
+                    )}
+                    {(userProfile.phone || currentUser?.mobile) && (
+                      <span className="phc-candidate-pill phc-pill-phone" title="Mobile verified with Shine">
+                        <CheckCircle2 size={12} /> Mobile verified
+                      </span>
+                    )}
+                    {userProfile.jobSearchStatus && !userProfile.jobSearchStatus.toLowerCase().includes('not looking') && (
+                      <span className="phc-notice-pill">
+                        {userProfile.jobSearchStatus}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                <p className="phc-headline">{userProfile.headline}</p>
-
-                {/* Quick Meta Pills */}
-                <div className="phc-meta-pills-row">
-                  {userProfile.currentCompany && (
-                    <span className="phc-meta-pill">
-                      <Building2 size={13} /> {userProfile.currentCompany}
+                {/* Line 2: Dedicated Professional Designation & Organization / Status */}
+                <div className="phc-designation-row">
+                  <span className="phc-role-title">{displayRole}</span>
+                  {!userProfile.currentlyNotWorking && userProfile.currentCompany && (
+                    <span className="phc-company-wrap">
+                      <span className="phc-company-at">at</span>
+                      <span className="phc-company-name">{userProfile.currentCompany}</span>
                     </span>
                   )}
-                  {userProfile.experienceYears && (
+                  {userProfile.currentlyNotWorking && (
+                    <span className="phc-seeking-badge">
+                      <span className="phc-sep-dot">•</span>
+                      <span className="phc-seeking-text">Open to Opportunities</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Line 3: Quick Meta Pills (Experience, Location, Education, Career State) */}
+                <div className="phc-meta-pills-row">
+                  {(userProfile.currentCompany || userProfile.currentlyNotWorking) && (
                     <span className="phc-meta-pill">
-                      <Briefcase size={13} /> {userProfile.experienceYears}
+                      <Building2 size={13} /> {userProfile.currentlyNotWorking ? 'Career Break' : userProfile.currentCompany}
+                    </span>
+                  )}
+                  {(userProfile.experienceYears || (userProfile.totalExperienceYears !== null && userProfile.totalExperienceYears !== undefined)) && (
+                    <span className="phc-meta-pill">
+                      <Briefcase size={13} /> {userProfile.experienceYears || `${userProfile.totalExperienceYears} yrs`}
                     </span>
                   )}
                   {userProfile.location && (
@@ -217,15 +283,15 @@ export const ProfileView: React.FC = () => {
                   )}
                 </div>
 
-                {/* Contact Verification Row */}
+                {/* Line 4: Verified Contact Info */}
                 <div className="phc-contact-row">
-                  {userProfile.phone && (
+                  {(userProfile.phone || currentUser?.mobile) && (
                     <span className="phc-contact-item">
-                      <Phone size={13} className="text-emerald" /> {userProfile.phone}
+                      <Phone size={13} className="text-emerald" /> +91 {userProfile.phone || currentUser?.mobile}
                       <Check size={12} className="text-emerald" />
                     </span>
                   )}
-                  {userProfile.phone && (userProfile.email || currentUser?.email) && (
+                  {(userProfile.phone || currentUser?.mobile) && (userProfile.email || currentUser?.email) && (
                     <span className="phc-contact-sep">•</span>
                   )}
                   {(userProfile.email || currentUser?.email) && (
@@ -408,32 +474,61 @@ export const ProfileView: React.FC = () => {
               <div className="wp-details-grid">
                 <div className="wp-info-cell">
                   <span className="wp-cell-label">Current Role</span>
-                  <strong>{userProfile.designation || userProfile.headline?.split('|')[0]?.trim() || 'Not specified'}</strong>
+                  <strong>
+                    {userProfile.currentlyNotWorking
+                      ? 'Career Break / Exploring Opportunities'
+                      : (userProfile.designation || displayRole || 'Not specified')}
+                  </strong>
                 </div>
                 <div className="wp-info-cell">
                   <span className="wp-cell-label">Current Company</span>
-                  <strong>{userProfile.currentCompany || 'Not specified'}</strong>
+                  <strong>
+                    {userProfile.currentlyNotWorking
+                      ? 'Not currently employed'
+                      : (userProfile.currentCompany || 'Not specified')}
+                  </strong>
                 </div>
                 <div className="wp-info-cell">
-                  <span className="wp-cell-label">Experience</span>
-                  <strong>{userProfile.experienceYears || 'Not specified'}</strong>
+                  <span className="wp-cell-label">Total Experience</span>
+                  <strong>
+                    {userProfile.experienceYears ||
+                      (userProfile.totalExperienceYears !== null && userProfile.totalExperienceYears !== undefined
+                        ? `${userProfile.totalExperienceYears} Year${userProfile.totalExperienceYears === 1 ? '' : 's'}${userProfile.totalExperienceMonths ? ` ${userProfile.totalExperienceMonths} Mo` : ''}`
+                        : 'Not specified')}
+                  </strong>
+                </div>
+                <div className="wp-info-cell">
+                  <span className="wp-cell-label">Current City</span>
+                  <strong>{userProfile.location || 'Not specified'}</strong>
                 </div>
                 <div className="wp-info-cell">
                   <span className="wp-cell-label">Current Compensation</span>
-                  <strong className={userProfile.currentCtc ? "text-emerald" : ""}>{userProfile.currentCtc || 'Not specified'}</strong>
+                  <strong className={userProfile.currentCtc || userProfile.currentCtcLpa ? "text-emerald" : ""}>
+                    {userProfile.currentCtc || (userProfile.currentCtcLpa !== null && userProfile.currentCtcLpa !== undefined ? `₹${userProfile.currentCtcLpa} LPA` : 'Not specified')}
+                  </strong>
                 </div>
                 <div className="wp-info-cell">
                   <span className="wp-cell-label">Expected Compensation</span>
-                  <strong>{userProfile.expectedCtc || 'Not specified'}</strong>
+                  <strong>
+                    {userProfile.expectedCtc || (userProfile.expectedCtcLpa !== null && userProfile.expectedCtcLpa !== undefined ? `₹${userProfile.expectedCtcLpa} LPA` : 'Not specified')}
+                  </strong>
                 </div>
                 <div className="wp-info-cell">
                   <span className="wp-cell-label">Notice Period</span>
                   <strong>{userProfile.noticePeriod || 'Not specified'}</strong>
                 </div>
-                {ageFromDob(userProfile.dateOfBirth) !== null && (
+                <div className="wp-info-cell">
+                  <span className="wp-cell-label">Mobile Number</span>
+                  <strong>{userProfile.phone || currentUser?.mobile ? `+91 ${userProfile.phone || currentUser?.mobile}` : 'Not specified'}</strong>
+                </div>
+                {userProfile.dateOfBirth && (
                   <div className="wp-info-cell">
-                    <span className="wp-cell-label">Age</span>
-                    <strong>{ageFromDob(userProfile.dateOfBirth)}</strong>
+                    <span className="wp-cell-label">Date of Birth / Age</span>
+                    <strong>
+                      {ageFromDob(userProfile.dateOfBirth) !== null
+                        ? `${userProfile.dateOfBirth} (${ageFromDob(userProfile.dateOfBirth)} yrs)`
+                        : userProfile.dateOfBirth}
+                    </strong>
                   </div>
                 )}
               </div>
@@ -469,6 +564,13 @@ export const ProfileView: React.FC = () => {
                   <GraduationCap size={18} className="text-blue" />
                   <h3>Education</h3>
                 </div>
+                <button
+                  type="button"
+                  className="btn-card-action"
+                  onClick={() => setIsUpdateProfileModalOpen(true)}
+                >
+                  <Edit2 size={13} /> Edit Education
+                </button>
               </div>
 
               {userProfile.educationDegree || userProfile.educationCollege ? (
@@ -482,13 +584,13 @@ export const ProfileView: React.FC = () => {
                     </strong>
                     <span className="edu-institution">
                       {userProfile.educationCollege || 'Institution not specified'}
-                      {userProfile.graduationYear ? ` • ${userProfile.graduationYear}` : ''}
+                      {userProfile.graduationYear ? ` • Class of ${userProfile.graduationYear}` : ''}
                     </span>
                   </div>
                 </div>
               ) : (
                 <div style={{ padding: '18px 16px', color: '#64748b', fontSize: '13px' }}>
-                  No education details added yet. Click <strong>Edit Profile</strong> to add your degree and college.
+                  No education details added yet. Click <button type="button" onClick={() => setIsUpdateProfileModalOpen(true)} style={{ background: 'none', border: 'none', color: '#7C3AED', fontWeight: 700, cursor: 'pointer', padding: 0 }}>Edit Education</button> to add your degree and college.
                 </div>
               )}
             </div>
