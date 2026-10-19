@@ -224,7 +224,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
   };
 
-  const isSelf = isSelfMentor(expert, currentUser, userProfile);
+  const isSelf = isSelfMentor(expert, currentUser);
 
   // 1-Click direct opening of Razorpay Gateway (No intermediate friction screens)
   const handleOpenRazorpay = () => {

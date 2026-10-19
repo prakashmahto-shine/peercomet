@@ -75,19 +75,23 @@ OTP_TTL_MINUTES = int(os.getenv("OTP_TTL_MINUTES", "10"))
 DEV_OTP_CODE = os.getenv("DEV_OTP_CODE", "123456")
 
 # Sign-in / sign-up is a one-time code sent by email.
-# 'smtp' sends real email when SMTP_HOST is configured.
-# 'console' prints the code to server logs and uses DEV_OTP_CODE (123456).
+# 'smtp'    sends real email (any SMTP service; on staging, Mailpit catches it in a web inbox).
+# 'console' local development only: prints the email to the log and the code is DEV_OTP_CODE.
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "smtp" if (SMTP_HOST and EMAIL_FROM) else "console").lower()
+if EMAIL_BACKEND == "console" and not IS_DEVELOPMENT:
+    # Never a fixed code on a server: without SMTP, sign-in answers 503 until it is configured
+    print("[Config:Warning] Email isn't configured (SMTP_HOST / EMAIL_FROM). Sign-in is unavailable "
+          "until it is. See docs/DEPLOYMENT.md.")
+    EMAIL_BACKEND = "smtp"
 
-# Comma-separated PeerPath user ids with extra permissions
-ADMIN_USER_IDS = set(_env_list("ADMIN_USER_IDS", "admin"))
+# Extra permissions, comma-separated. Emails are safe to use here because sign-in proves
+# ownership of the address (one-time code).
+ADMIN_EMAILS = {e.lower() for e in _env_list("ADMIN_EMAILS")}
+ADMIN_USER_IDS = set(_env_list("ADMIN_USER_IDS"))
 RECRUITER_USER_IDS = set(_env_list("RECRUITER_USER_IDS"))
 
 # Browser origins allowed to call the API with cookies
 CORS_ORIGINS = _env_list("CORS_ORIGINS", "http://localhost:4242,http://127.0.0.1:4242,http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000")
-
-if EMAIL_BACKEND == "console" and not IS_DEVELOPMENT:
-    print(f"[Config:Notice] SMTP_HOST not configured or EMAIL_BACKEND=console. Sign-in codes will be logged to server console (default code: {DEV_OTP_CODE}).")
 
 # ------------------------------------------------------------------------------
 # Session recordings storage: 'local' (directory / persistent volume) or 's3'

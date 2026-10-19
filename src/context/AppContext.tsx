@@ -31,8 +31,6 @@ interface AppContextType {
   // Email code sign-in / sign-up. requestOtp returns null on error (a toast is shown).
   requestOtp: (email: string) => Promise<{ requestId: string; isRegistered: boolean } | null>;
   verifyOtp: (params: { requestId: string; email: string; otp: string; name?: string; mobile?: string }) => Promise<boolean>;
-  devBypassLogin: (role?: 'candidate' | 'mentor') => Promise<boolean>;
-  adminLogin: (params: { email: string; password: string }) => Promise<boolean>;
   logout: (redirectToAdmin?: boolean) => void;
 
   // Experts & Mentors
@@ -160,6 +158,15 @@ interface AppContextType {
 }
 
 // Shown until the signed-in user's profile has loaded from the server
+const CREATOR_MODE_KEY = 'peerpath_creator_mode';
+
+/** Remembers a mode the user picked on the header switcher, for that user only. */
+export const rememberCreatorMode = (userId: string, enabled: boolean) => {
+  try {
+    localStorage.setItem(`${CREATOR_MODE_KEY}:${userId}`, JSON.stringify(enabled));
+  } catch {}
+};
+
 const EMPTY_PROFILE: UserProfileData = {
   name: '',
   headline: '',
@@ -372,20 +379,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const activeUsername = currentUser?.id || '';
   const userProfile: UserProfileData = userProfiles[activeUsername] || EMPTY_PROFILE;
 
-  // Creator / Mentor Studio Mode (persisted across page reloads)
-  const [isCreatorMode, setIsCreatorMode] = useState<boolean>(() => {
-    try {
-      const stored = localStorage.getItem('shine_peerpath_creator_mode');
-      if (stored !== null) return JSON.parse(stored);
-    } catch {}
-    return false;
-  });
+  // Mentor / Seek Guidance mode. Set from the session on sign-in; only the user's own click on
+  // the header switcher is remembered (per user, see rememberCreatorMode).
+  const [isCreatorMode, setIsCreatorMode] = useState<boolean>(false);
 
+  // The switcher always matches the page: the mentor dashboard is Mentor, /peerpath is Seek Guidance
   useEffect(() => {
-    try {
-      localStorage.setItem('shine_peerpath_creator_mode', JSON.stringify(isCreatorMode));
-    } catch {}
-  }, [isCreatorMode]);
+    if (currentView === 'mentor-dashboard-view') setIsCreatorMode(true);
+    else if (currentView === 'guidance-view') setIsCreatorMode(false);
+  }, [currentView]);
 
   const toggleCreatorMode = () => {
     setIsCreatorMode(prev => !prev);
@@ -607,7 +609,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (postsRes.ok) {
           const json = await postsRes.json();
           if (json.success && Array.isArray(json.data)) {
-            setCommunityPosts(json.data);
+            // The API sends `likes` and a `comments` list; the UI reads the counts
+            setCommunityPosts(json.data.map((p: any) => ({
+              ...p,
+              likesCount: p.likesCount ?? p.likes ?? 0,
+              commentsCount: p.commentsCount ?? (Array.isArray(p.comments) ? p.comments.length : 0)
+            })));
           }
         }
       } catch {
@@ -917,17 +924,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentUser(account);
     const isMentor = Boolean(
       me.isMentor ||
+      me.isMentorEligible ||
       Boolean(me.creatorId) ||
       Boolean(profile?.isMentor)
     );
     let userSavedMode: boolean | null = null;
     try {
-      const stored = localStorage.getItem('shine_peerpath_creator_mode');
+      const stored = localStorage.getItem(`${CREATOR_MODE_KEY}:${me.id}`);
       if (stored !== null) userSavedMode = JSON.parse(stored);
     } catch {}
-    // If the user previously chose Seek Guidance (false) or Mentor (true), honor their selection!
-    const effectiveCreatorMode = userSavedMode !== null ? userSavedMode : isMentor;
-    setIsCreatorMode(effectiveCreatorMode);
+    // Mentors start in Mentor mode; a mode this user picked themselves wins
+    const effectiveCreatorMode = isMentor && (userSavedMode !== null ? userSavedMode : true);
+    // An open mentor dashboard or /peerpath decides what the switcher shows right now
+    const openView = pathToView(window.location.pathname).view;
+    setIsCreatorMode(
+      openView === 'mentor-dashboard-view' ? true : openView === 'guidance-view' ? false : effectiveCreatorMode
+    );
     return { account, profile, effectiveCreatorMode };
   };
 
@@ -975,57 +987,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       return await peerpathApi.sendOtp(email.trim());
     } catch (err) {
-      // In development / local testing, if backend API is not reachable, provide seamless dev OTP fallback
-      const isDev = Boolean((import.meta as any)?.env?.DEV) || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('10.') || window.location.hostname.startsWith('192.168.');
-      if (isDev) {
-        console.warn('[Auth:DevFallback] Backend API unavailable or cold, activating dev OTP challenge (code: 123456)');
-        showToast('Dev Mode: OTP Active', 'Backend offline. Use code 123456 to continue.', 'info');
-        return { requestId: `dev-req-${Date.now()}`, isRegistered: true };
-      }
-      showToast('Could not send OTP', err instanceof Error ? err.message : 'Please try again.', 'warning');
+      showToast('Could not send code', err instanceof Error ? err.message : 'Please try again.', 'warning');
       return null;
     }
   };
 
   const verifyOtp = async (params: { requestId: string; email: string; otp: string; name?: string; mobile?: string }) => {
     let me: AuthUser;
-    const isDev = Boolean((import.meta as any)?.env?.DEV) || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('10.') || window.location.hostname.startsWith('192.168.');
-    const isDevChallenge = params.requestId.startsWith('dev-req-');
-
-    if (isDevChallenge && (params.otp === '123456' || params.otp.length === 6)) {
-      me = {
-        id: `u_${params.email.split('@')[0].replace(/\W/g, '') || 'dev'}`,
-        name: params.name || params.email.split('@')[0],
-        email: params.email.trim(),
-        mobile: params.mobile || '9876543210',
-        avatar: '/brand/android-chrome-192x192.png',
-        creatorId: null,
-        isMentor: false,
-        isMentorEligible: false,
-        isAdmin: false
-      };
-    } else {
-      try {
-        me = await peerpathApi.verifyOtp({ ...params, email: params.email.trim(), otp: params.otp.trim() });
-      } catch (err) {
-        if (isDev && (params.otp === '123456' || params.otp.length === 6)) {
-          console.warn('[Auth:DevFallback] Backend verify failed, signing in with dev mock session');
-          me = {
-            id: `u_${params.email.split('@')[0].replace(/\W/g, '') || 'dev'}`,
-            name: params.name || params.email.split('@')[0],
-            email: params.email.trim(),
-            mobile: params.mobile || '9876543210',
-            avatar: '/brand/android-chrome-192x192.png',
-            creatorId: null,
-            isMentor: false,
-            isMentorEligible: false,
-            isAdmin: false
-          };
-        } else {
-          showToast('Sign in failed', err instanceof Error ? err.message : 'Please try again.', 'warning');
-          return false;
-        }
-      }
+    try {
+      me = await peerpathApi.verifyOtp({ ...params, email: params.email.trim(), otp: params.otp.trim() });
+    } catch (err) {
+      showToast('Sign in failed', err instanceof Error ? err.message : 'Please try again.', 'warning');
+      return false;
     }
     const { account, profile } = await applySession(me);
     setIsLoginModalOpen(false);
@@ -1068,71 +1041,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     showToast(`👋 Welcome, ${account.name || 'there'}!`, `You are now signed in to ${BRAND.name}.`);
-    return true;
-  };
-
-  const devBypassLogin = async (role: 'candidate' | 'mentor' = 'candidate') => {
-    const isMentor = role === 'mentor';
-    const devUser: AuthUser = isMentor ? {
-      id: 'exp-1792143151068',
-      name: 'Prakash Mahto',
-      email: 'prakash.mahto@peerpath.com',
-      mobile: '9876543210',
-      avatar: '/brand/android-chrome-192x192.png',
-      creatorId: 'exp-1792143151068',
-      isMentor: true,
-      isMentorEligible: true,
-      isAdmin: false
-    } : {
-      id: 'candidate-prakash',
-      name: 'Prakash Mahto',
-      email: 'prakash.mahto@peerpath.com',
-      mobile: '9876543210',
-      avatar: '/brand/android-chrome-192x192.png',
-      creatorId: null,
-      isMentor: false,
-      isMentorEligible: false,
-      isAdmin: false
-    };
-
-    const { account } = await applySession(devUser);
-    setIsLoginModalOpen(false);
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const redirectParam = urlParams.get('redirect');
-    const actionParam = urlParams.get('action');
-    if (actionParam === 'unlock') {
-      try {
-        sessionStorage.setItem('peerpath_auto_unlock', '1');
-      } catch {}
-    }
-
-    if (redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//')) {
-      navigate(pathToView(redirectParam).view, redirectParam);
-    } else if (isMentor) {
-      navigate('mentor-dashboard-view', '/mentor');
-    } else {
-      navigate('guidance-view', '/peerpath');
-    }
-
-    showToast(`⚡ Dev Bypass: Signed In!`, `Active as ${isMentor ? 'Verified Mentor (Akash Sen)' : 'Candidate (Prakash Mahto)'} [Development Mode].`, 'info');
-    return true;
-  };
-
-  const adminLogin = async (params: { email: string; password: string }) => {
-    let me: AuthUser;
-    try {
-      me = await peerpathApi.adminLogin({
-        email: params.email.trim(),
-        password: params.password.trim()
-      });
-    } catch (err) {
-      showToast('Admin Sign In Failed', err instanceof Error ? err.message : 'Invalid administrator credentials.', 'warning');
-      return false;
-    }
-    await applySession(me);
-    navigate('admin-dashboard-view', '/admin');
-    showToast('👋 Administrator Authorized', 'PeerPath Operations CRM Console unlocked.');
     return true;
   };
 
@@ -1510,8 +1418,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isAuthLoading,
         requestOtp,
         verifyOtp,
-        devBypassLogin,
-        adminLogin,
         logout,
         experts,
         selectedExpert,

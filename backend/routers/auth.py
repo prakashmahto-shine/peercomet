@@ -8,15 +8,9 @@ from backend.auth.deps import require_user
 from backend.auth.service import AuthError
 from backend.config import SESSION_COOKIE_NAME, SESSION_COOKIE_SECURE, SESSION_TTL_DAYS
 from backend.data.store import store
-from backend.db.engine import db_session
 from backend.db.models import User
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
-
-
-class AdminLoginInput(BaseModel):
-    email: str = Field(max_length=320)
-    password: str = Field(max_length=200)
 
 
 class OtpSendInput(BaseModel):
@@ -34,49 +28,6 @@ class OtpVerifyInput(BaseModel):
 
 def _raise(e: AuthError):
     raise HTTPException(status_code=e.status_code, detail=str(e))
-
-
-@router.post("/admin-login")
-def admin_login(payload: AdminLoginInput, request: Request, response: Response):
-    """Internal administrator login. Restricted to authorized internal staff only."""
-    email_clean = (payload.email or "").strip().lower()
-    password_clean = (payload.password or "").strip()
-
-    if email_clean != "admin@peerpath.com" or password_clean != "admin@shine123":
-        raise HTTPException(
-            status_code=401,
-            detail="Access Denied: Invalid administrator credentials."
-        )
-
-    user = store.get_user_by_email("admin@peerpath.com")
-    if user is None:
-        user = store.create_user(
-            email="admin@peerpath.com",
-            name="PeerPath Admin",
-            mobile="7042653680"
-        )
-    elif not user.name or user.name != "PeerPath Admin" or user.mobile != "7042653680":
-        with db_session() as db:
-            db_user = db.get(User, user.id)
-            if db_user:
-                db_user.name = "PeerPath Admin"
-                db_user.mobile = "7042653680"
-                db.commit()
-
-    store.record_login(user.id)
-    token, _ = store.create_auth_session(user.id)
-
-    is_https = request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
-    response.set_cookie(
-        SESSION_COOKIE_NAME,
-        token,
-        max_age=SESSION_TTL_DAYS * 24 * 3600,
-        httponly=True,
-        secure=SESSION_COOKIE_SECURE and is_https,
-        samesite="lax",
-        path="/",
-    )
-    return {"success": True, "data": auth_service.describe_user(user)}
 
 
 @router.post("/otp/send")

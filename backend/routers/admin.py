@@ -2,8 +2,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from backend.auth.deps import require_user
-from backend.config import ADMIN_USER_IDS
+from backend.auth.deps import require_admin
 from backend.data.store import store
 from backend.db.models import User
 
@@ -18,17 +17,8 @@ class CreatorStatusInput(BaseModel):
     status: str = Field(..., pattern="^(approved|paused|inactive)$")
 
 
-def require_admin_privileges(user: User = Depends(require_user)) -> User:
-    """Verifies that the user has admin rights to manage registrations and mentors."""
-    email_clean = (user.email or "").strip().lower()
-    is_admin = bool(
-        user.id in ADMIN_USER_IDS or
-        email_clean.startswith("admin@") or
-        email_clean in {"admin@shine.com", "admin@peerpath.com"} or
-        "admin" in user.id.lower()
-    )
-    if not is_admin:
-        raise HTTPException(status_code=403, detail="Admin access required")
+def require_admin_privileges(user: User = Depends(require_admin)) -> User:
+    """Admins manage registrations and mentors (ADMIN_EMAILS / ADMIN_USER_IDS on the server)."""
     return user
 
 

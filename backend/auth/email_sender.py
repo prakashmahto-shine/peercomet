@@ -27,7 +27,7 @@ def is_configured() -> bool:
 
 
 def send_email(to: str, subject: str, text: str, html: Optional[str] = None) -> None:
-    if EMAIL_BACKEND == "console" or not (SMTP_HOST and EMAIL_FROM):
+    if EMAIL_BACKEND == "console":
         print(f"[Email:console] To: {to}\nSubject: {subject}\n\n{text}\n")
         return
     if not is_configured():

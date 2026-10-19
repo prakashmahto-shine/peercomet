@@ -1,46 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
-  ShieldCheck, ShieldAlert, AlertCircle, ArrowRight, LogOut, 
-  Mail, Lock, Award, Users, Banknote, Eye, EyeOff 
+  ShieldCheck, ShieldAlert, ArrowRight, LogOut, 
+  Lock, Award, Users, Banknote 
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { PeerpathLogo, PeerpathSymbolSvg } from '../common/PeerpathLogo';
+import { OtpLoginForm } from '../auth/OtpLoginForm';
 
+/**
+ * Admins sign in with the same email code as everyone else. Access comes only from
+ * ADMIN_EMAILS / ADMIN_USER_IDS on the server, never from the email address itself.
+ */
 export const AdminLoginView: React.FC = () => {
-  const { 
-    currentUser, 
-    adminLogin, 
-    logout, 
-    navigate 
-  } = useApp();
-
-  const [adminEmail, setAdminEmail] = useState<string>('admin@peerpath.com');
-  const [adminPassword, setAdminPassword] = useState<string>('');
-  const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [adminAuthError, setAdminAuthError] = useState<string>('');
-  const [isAdminSubmitting, setIsAdminSubmitting] = useState<boolean>(false);
-
-  const handleAdminSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAdminAuthError('');
-    if (!adminEmail.trim()) {
-      setAdminAuthError('Please enter administrator work email.');
-      return;
-    }
-    if (!adminPassword) {
-      setAdminAuthError('Please enter internal security password.');
-      return;
-    }
-    setIsAdminSubmitting(true);
-    const success = await adminLogin({
-      email: adminEmail.trim(),
-      password: adminPassword
-    });
-    setIsAdminSubmitting(false);
-    if (!success) {
-      setAdminAuthError('Access Denied: Invalid administrator credentials.');
-    }
-  };
+  const { currentUser, logout, navigate } = useApp();
 
   return (
     <div className="peerpath-admin-auth-stage">
@@ -171,77 +143,11 @@ export const AdminLoginView: React.FC = () => {
             ) : (
               /* Internal Operations CRM Login */
               <div className="admin-login-form-wrapper">
-                {adminAuthError && (
-                  <div className="admin-error-notice">
-                    <AlertCircle size={15} />
-                    <span>{adminAuthError}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleAdminSubmit} className="admin-form-fields">
-                  <div className="admin-form-group">
-                    <label>Administrator Work Email</label>
-                    <div className="admin-input-wrapper">
-                      <Mail size={16} className="admin-field-icon" />
-                      <input
-                        type="email"
-                        value={adminEmail}
-                        onChange={e => setAdminEmail(e.target.value)}
-                        placeholder="admin@peerpath.com"
-                        className="admin-text-field"
-                        autoFocus
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="admin-form-group">
-                    <label>Internal Security Password</label>
-                    <div className="admin-input-wrapper">
-                      <Lock size={16} className="admin-field-icon" />
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={adminPassword}
-                        onChange={e => setAdminPassword(e.target.value)}
-                        placeholder="Enter password"
-                        className="admin-text-field"
-                        required
-                        style={{ paddingRight: '40px' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(p => !p)}
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
-                        style={{
-                          position: 'absolute',
-                          right: '12px',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: '#94a3b8',
-                          display: 'flex',
-                          alignItems: 'center',
-                          padding: 0
-                        }}
-                      >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="btn-admin-primary"
-                    disabled={isAdminSubmitting}
-                  >
-                    <span>{isAdminSubmitting ? 'Authenticating...' : 'Authorize & Open CRM'}</span>
-                    <ShieldCheck size={16} />
-                  </button>
-                </form>
+                <OtpLoginForm />
 
                 <div className="admin-card-trust-footer">
                   <ShieldCheck size={14} className="text-emerald-600" />
-                  <span>SOC-2 Type II · Internal Operations Access Only</span>
+                  <span>Internal operations access only</span>
                 </div>
 
                 <div className="admin-auth-footer">

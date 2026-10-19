@@ -5,7 +5,7 @@ import {
   Compass, TrendingUp, ShieldCheck, MessageSquare, Trash2, CheckCheck, Eye
 } from 'lucide-react';
 import { ViewType } from '../../types';
-import { useApp } from '../../context/AppContext';
+import { useApp, rememberCreatorMode } from '../../context/AppContext';
 import { PeerpathLogo } from '../common/PeerpathLogo';
 import { BRAND } from '../../config/brand';
 import { isProfileComplete } from '../../utils/profile';
@@ -49,8 +49,9 @@ export const Header: React.FC<HeaderProps> = ({
 
   const isAlreadyMentor = Boolean(
     currentUser && (
-      currentUser?.role === 'mentor' || 
-      userProfile?.isMentor || 
+      currentUser?.role === 'mentor' ||
+      currentUser?.isMentorEligible ||
+      userProfile?.isMentor ||
       Boolean(currentUser?.creatorId)
     )
   );
@@ -147,14 +148,7 @@ export const Header: React.FC<HeaderProps> = ({
                     {upcomingCount > 0 && <span className="flyout-count-pill" style={{ marginLeft: '4px' }}>{upcomingCount}</span>}
                   </button>
 
-                  <button 
-                    className={`myshine-link ${currentView === 'experts-view' ? 'active' : ''}`} 
-                    onClick={() => onNavigate('experts-view')}
-                    title="Browse All Mentors & Peers"
-                  >
-                    <Award size={15} /> Peer Mentors
-                  </button>
-
+                  {/* Mentor mode is about their own practice; other mentors are under Seek Guidance */}
                   <button 
                     className={`myshine-link ${currentView === 'community-view' ? 'active' : ''}`} 
                     onClick={() => onNavigate('community-view')}
@@ -168,7 +162,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <button 
                     className={`myshine-link ${currentView === 'experts-view' ? 'active' : ''}`} 
                     onClick={() => onNavigate('experts-view')}
-                    title="Explore 500+ Mentors Directory"
+                    title="Browse mentors"
                   >
                     <Compass size={15} /> Find Mentors
                   </button>
@@ -242,9 +236,7 @@ export const Header: React.FC<HeaderProps> = ({
                 className={`nrms-tab ${isCreatorMode ? 'is-active-mentor' : 'is-inactive'}`}
                 onClick={() => {
                   setIsCreatorMode(true);
-                  try {
-                    localStorage.setItem('shine_peerpath_creator_mode', 'true');
-                  } catch {}
+                  if (currentUser) rememberCreatorMode(currentUser.id, true);
                   showToast('⚡ Mentor Studio Active', 'Switched to your mentor dashboard & candidate calls.', 'info');
                   onNavigate('mentor-dashboard-view', '/mentor');
                 }}
@@ -260,9 +252,7 @@ export const Header: React.FC<HeaderProps> = ({
                 className={`nrms-tab ${!isCreatorMode ? 'is-active-mentee' : 'is-inactive'}`}
                 onClick={() => {
                   setIsCreatorMode(false);
-                  try {
-                    localStorage.setItem('shine_peerpath_creator_mode', 'false');
-                  } catch {}
+                  if (currentUser) rememberCreatorMode(currentUser.id, false);
                   showToast('👤 Mentee Mode Active', 'Switched to candidate guidance mode. Browse & book 1:1 sessions.', 'info');
                   onNavigate('guidance-view', '/peerpath');
                 }}

@@ -31,7 +31,7 @@ Python dependencies are fully pinned in `requirements.lock`, so rebuilding the s
 All settings are environment variables. `.env.example` is a complete server template.
 
 **No mock or demo behaviour runs on servers.** Outside `APP_ENV=development`:
-- The app refuses to start with `EMAIL_BACKEND=console` (the fixed development code).
+- There is no fixed sign-in code: `EMAIL_BACKEND=console` is ignored and every code is random and emailed.
 - It never loads demo data and has no demo-reset endpoint.
 
 | Variable | Required | Example / default | Notes |
@@ -45,7 +45,8 @@ All settings are environment variables. `.env.example` is a complete server temp
 | `OTP_TTL_MINUTES` | no | `10` | How long a sign-in code is valid |
 | `CORS_ORIGINS` | yes | `https://peerpath.in` | Comma-separated; also used by Socket.IO |
 | `SESSION_TTL_DAYS` | no | `30` | Login session lifetime |
-| `ADMIN_USER_IDS` | no | | PeerPath user ids with admin access |
+| `ADMIN_EMAILS` | no | `ops@peerpath.in` | Comma-separated emails with admin access. Admins sign in with the normal email code at `/admin`. |
+| `ADMIN_USER_IDS` | no | | PeerPath user ids with admin access (alternative to `ADMIN_EMAILS`) |
 | `RECRUITER_USER_IDS` | no | | PeerPath user ids allowed to use recruiter search |
 | `RECORDINGS_STORAGE` | yes | `s3` (recommended) or `local` | See [Storage](#storage) |
 | `S3_BUCKET` | when `s3` | | |
@@ -153,6 +154,26 @@ curl -fsS https://$SITE_DOMAIN/api/ready
 ```
 
 The first start creates the database tables. No demo data is loaded.
+
+**Sign-in emails on staging (Mailpit)**
+
+To test sign-in on staging without a real mail account, run Mailpit, a mail server that keeps
+every email in a web inbox and sends nothing out. The app still creates random codes.
+
+```env
+COMPOSE_PROFILES=mailpit          # plus caddy/turn if used
+SMTP_HOST=mailpit
+SMTP_PORT=1025
+SMTP_SECURITY=none
+SMTP_USERNAME=
+SMTP_PASSWORD=
+EMAIL_FROM=PeerPath <no-reply@peerpath.in>
+MAILPIT_UI_AUTH=team:<long-password>
+MAILPIT_UI_BIND=127.0.0.1         # 0.0.0.0 only on an office network / VPN
+```
+
+Open the inbox with `ssh -L 8025:127.0.0.1:8025 <user>@<server>` and then http://localhost:8025.
+The inbox shows everyone's codes, so keep it private. Use a real SMTP service for production.
 
 **Updating to a new version**
 

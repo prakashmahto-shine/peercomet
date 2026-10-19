@@ -72,7 +72,7 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
     );
   }
 
-  const isSelf = isSelfMentor(expert, currentUser, userProfile);
+  const isSelf = isSelfMentor(expert, currentUser);
 
   // When viewing self profile, always show studio controls and never allow self-booking
   const isSelfInMentorMode = isSelf;

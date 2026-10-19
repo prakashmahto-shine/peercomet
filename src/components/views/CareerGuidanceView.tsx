@@ -317,14 +317,14 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
   // Fallback list of transition mentors derived from platform verified experts
   // Fallback list of transition mentors derived from platform verified experts (excluding self)
   const fallbackMentors: TransitionMentor[] = useMemo(() => {
-    const validExperts = (experts || []).filter(e => !isSelfMentor(e, currentUser, userProfile));
+    const validExperts = (experts || []).filter(e => !isSelfMentor(e, currentUser));
     return validExperts.map((e, idx) => expertToTransitionMentor(e, Math.max(78, 96 - idx * 2)));
   }, [experts, currentUser, userProfile]);
 
   // Derive the 'top' (top 6), 'others' (non-named-domain), per-track counts, and each
   // track's best real match % (shown in the Switch Track badges) from the all-domain match set
   const { topMatches, othersMatches, domainCounts, domainBestMatch } = useMemo(() => {
-    const filteredMatches = allMatches.filter(m => !isSelfMentor(m.creator, currentUser, userProfile));
+    const filteredMatches = allMatches.filter(m => !isSelfMentor(m.creator, currentUser));
     const sorted = [...filteredMatches].sort((a, b) => b.trajectorySimilarityScore - a.trajectorySimilarityScore);
     const others = filteredMatches.filter(m => !NAMED_TRACK_DOMAINS.includes(m.creator.domain));
     const byDomain = {
@@ -381,7 +381,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
           ? othersMatches
           : domainMatches;
 
-    const baseMatches = rawMatches.filter(m => !isSelfMentor(m.creator, currentUser, userProfile));
+    const baseMatches = rawMatches.filter(m => !isSelfMentor(m.creator, currentUser));
     let list: TransitionMentor[] = baseMatches.map(toTransitionMentor);
 
     // If no matches found from trajectory matching, fall back to real verified mentors from database:
@@ -405,7 +405,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
     }
 
     // Explicitly guarantee user never sees their own mentor card in guidance list
-    list = list.filter(m => !isSelfMentor(m, currentUser, userProfile));
+    list = list.filter(m => !isSelfMentor(m, currentUser));
 
     // Company filter
     if (selectedCompany !== 'all') {
@@ -992,7 +992,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                     </div>
 
                     <div className="pm-h-actions-group">
-                      {isSelfMentor(mentor, currentUser, userProfile) ? (
+                      {isSelfMentor(mentor, currentUser) ? (
                         <button
                           type="button"
                           className="btn-pm-profile-view"

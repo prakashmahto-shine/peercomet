@@ -1,6 +1,6 @@
 """
 End-to-end API tests for email-code login, sessions, ownership checks and resume upload.
-Runs against a throwaway SQLite database (and temp file storage) seeded with the demo data.
+Runs against a throwaway SQLite database (and temp file storage) seeded with tests/fixtures/test_data.json.
 
     python3 -m pytest tests/ -q        (or: python3 tests/test_auth_and_ownership.py)
 """
@@ -29,15 +29,18 @@ from backend.routers import (  # noqa: E402
     auth_router, bookings_router, assessment_router, creators_router, candidates_router,
     notifications_router, recruiter_router, analytics_router, community_router, sessions_router, cv_router,
 )
+from backend.routers.admin import router as admin_router  # noqa: E402
+from backend.auth import deps as auth_deps, email_sender, service as auth_service  # noqa: E402
 from backend.data.store import store, SlotTakenError  # noqa: E402
 from backend.models.schemas import MentorshipSession  # noqa: E402
 
 run_migrations()
-seed_demo_data()
+seed_demo_data(Path(__file__).resolve().parent / "fixtures" / "test_data.json")
 
 app = FastAPI()
 for r in (auth_router, creators_router, bookings_router, assessment_router, candidates_router,
-          notifications_router, recruiter_router, analytics_router, community_router, sessions_router, cv_router):
+          notifications_router, recruiter_router, analytics_router, community_router, sessions_router, cv_router,
+          admin_router):
     app.include_router(r)
 
 # Local development sends no email: the code is always DEV_OTP_CODE
@@ -417,6 +420,48 @@ def test_resume_access_is_owner_or_session_mentor():
     assert owner.get(f"/api/cv/sessions/{sid}/candidate-resume").status_code == 403   # candidate isn't the mentor
     assert owner.delete("/api/cv/resume").status_code == 200
     assert mentor.get(f"/api/cv/sessions/{sid}/candidate-resume").status_code == 404
+
+def test_admin_only_from_server_list():
+    # An address that merely looks like an admin gets nothing
+    lookalike = login("admin@lookalike-domain.com", name="Not Admin")
+    assert lookalike.get("/api/auth/me").json()["data"]["isAdmin"] is False
+    assert lookalike.get("/api/admin/overview").status_code == 403
+    assert anon.post("/api/auth/admin-login", json={"email": "a@b.co", "password": "x"}).status_code == 404
+
+    ops = login("ops.team@example.com", name="Ops Team")
+    assert ops.get("/api/admin/overview").status_code == 403
+    auth_deps.ADMIN_EMAILS.add("ops.team@example.com")
+    try:
+        assert ops.get("/api/auth/me").json()["data"]["isAdmin"] is True
+        assert ops.get("/api/admin/overview").status_code == 200
+    finally:
+        auth_deps.ADMIN_EMAILS.discard("ops.team@example.com")
+
+
+def test_servers_send_random_codes_and_never_fall_back():
+    sent = []
+    saved = (auth_service.EMAIL_BACKEND, email_sender.EMAIL_BACKEND, email_sender.SMTP_HOST, auth_service.send_email)
+    auth_service.EMAIL_BACKEND = email_sender.EMAIL_BACKEND = "smtp"
+    try:
+        # Email not configured: sign-in is unavailable, no code is handed out
+        email_sender.SMTP_HOST = ""
+        res = TestClient(app).post("/api/auth/otp/send", json={"email": "no.smtp@example.com"})
+        assert res.status_code == 503, res.text
+
+        # Configured: a random code goes out by email, and only that code works
+        auth_service.send_email = lambda to, subject, text, html=None: sent.append(subject.split()[0])
+        client = TestClient(app)
+        rid = client.post("/api/auth/otp/send", json={"email": "real.code@example.com"}).json()["requestId"]
+        body = {"requestId": rid, "email": "real.code@example.com", "name": "Real Code"}
+        if sent[0] != OTP:
+            assert client.post("/api/auth/otp/verify", json={**body, "otp": OTP}).status_code == 401
+        assert client.post("/api/auth/otp/verify", json={**body, "otp": sent[0]}).status_code == 200
+
+        # Seeded user ids (local development shortcut) aren't accepted instead of an email
+        assert TestClient(app).post("/api/auth/otp/send", json={"email": "diya-joshi"}).status_code == 400
+    finally:
+        auth_service.EMAIL_BACKEND, email_sender.EMAIL_BACKEND, email_sender.SMTP_HOST, auth_service.send_email = saved
+
 
 if __name__ == "__main__":
     failures = 0

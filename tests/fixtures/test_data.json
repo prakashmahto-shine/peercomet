@@ -1,0 +1,171 @@
+{
+  "creators": [
+    {
+      "id": "akash",
+      "name": "Akash Jain",
+      "role": "Lead Product Manager",
+      "company": "Shine (HT Media)",
+      "domain": "Product Management",
+      "experience": "7+ Years Exp.",
+      "rating": 4.9,
+      "reviewsCount": 142,
+      "sessionsCount": 310,
+      "price": 999,
+      "location": "Noida, India",
+      "duration": "01:15",
+      "avatar": "/avatars/akash.jpg",
+      "videoPoster": "/avatars/akash.jpg",
+      "teaserTitle": "Teaser: How to Transition from Engineering to High-Impact Product Management",
+      "skills": [
+        "Product Strategy",
+        "Growth Metrics",
+        "Roadmapping",
+        "PRD & Discovery",
+        "A/B Testing"
+      ],
+      "bio": "Leading core product initiatives at Shine. I mentor engineers and business analysts on product discovery frameworks, metric storytelling, and cracking Tier-1 PM interview case rounds.",
+      "verifiedEmail": "akash.jain@shine.com",
+      "isVerifiedEmployer": true,
+      "trajectory": {
+        "role3YearsAgo": "Senior Backend Software Engineer",
+        "company3YearsAgo": "InfoEdge / Naukri",
+        "salary3YearsAgo": "₹8.8 LPA",
+        "keyJumpSkills": [
+          "PRD Discovery",
+          "Growth Funnel Analytics",
+          "Product Strategy"
+        ],
+        "jumpStory": "Spent 4 years writing APIs before transitioning into technical product management. Now architecting search & candidate trust features."
+      },
+      "availability": {
+        "days": [
+          "Tue",
+          "Thu",
+          "Sat",
+          "Sun"
+        ],
+        "timeSlots": [
+          "10:00 AM - 11:00 AM",
+          "07:00 PM - 08:00 PM"
+        ]
+      }
+    },
+    {
+      "id": "saheli",
+      "name": "Saheli Kanjilal",
+      "role": "Staff Frontend Architect",
+      "company": "Razorpay (FinTech)",
+      "domain": "Full-Stack",
+      "experience": "7+ Years Exp.",
+      "rating": 4.9,
+      "reviewsCount": 178,
+      "sessionsCount": 360,
+      "price": 999,
+      "location": "Bengaluru, India",
+      "duration": "01:15",
+      "avatar": "/avatars/saheli.jpg",
+      "videoPoster": "/avatars/saheli.jpg",
+      "teaserTitle": "Teaser: How I Jumped from ₹6L to ₹26L Staff Frontend Architect",
+      "skills": [
+        "React.js",
+        "TypeScript",
+        "Micro-Frontends",
+        "Module Federation",
+        "Web Vitals",
+        "Next.js"
+      ],
+      "bio": "Staff Frontend Architect at Razorpay. I guide frontend developers on mastering Module Federation, Core Web Vitals, and cracking high-paying Staff & Senior Frontend interview loops.",
+      "verifiedEmail": "saheli.k@razorpay.com",
+      "isVerifiedEmployer": true,
+      "trajectory": {
+        "role3YearsAgo": "Senior Frontend Developer",
+        "company3YearsAgo": "TCS / Mid-tier Services",
+        "salary3YearsAgo": "₹6.2 LPA",
+        "keyJumpSkills": [
+          "Module Federation",
+          "Micro-Frontends",
+          "Web Vitals Performance"
+        ],
+        "jumpStory": "Was writing vanilla React components at an IT services consultancy. Mastered micro-frontends and SSR architecture to break into Tier-1 product engineering."
+      },
+      "availability": {
+        "days": [
+          "Mon",
+          "Wed",
+          "Fri",
+          "Sat"
+        ],
+        "timeSlots": [
+          "06:30 PM - 07:30 PM",
+          "08:00 PM - 09:00 PM"
+        ]
+      }
+    }
+  ],
+  "candidates": [
+    {
+      "id": "diya-joshi",
+      "name": "Diya Joshi",
+      "email": "diya.joshi@example.com",
+      "phone": "+91 9373655977",
+      "headline": "Web Developer • 3 Years • Hyderabad",
+      "experienceYears": "3 Years",
+      "location": "Hyderabad, India",
+      "profileScore": 81,
+      "jobSearchStatus": "Open to Offers (15 Days Notice)",
+      "summary": "Web Developer with 3+ years of experience in Full-Stack. Skilled in TypeScript, System Design, and Redux Toolkit, now targeting Principal Software Engineer roles.",
+      "skills": [
+        "TypeScript",
+        "System Design",
+        "Redux Toolkit",
+        "Kubernetes",
+        "Node.js",
+        "Module Federation",
+        "Go (Golang)"
+      ],
+      "currentCtc": "₹7.7 LPA",
+      "targetCtc": "₹18 - 26 LPA",
+      "targetRole": "Principal Software Engineer",
+      "targetCompany": "PhonePe",
+      "pastCompany": "LTIMindtree",
+      "pastCompanyRole": "Web Developer",
+      "educationDegree": "B.Tech Electronics & Communication",
+      "educationCollege": "NIT Trichy",
+      "domain": "Full-Stack",
+      "badges": [],
+      "recruiterSearchMultiplier": 2.1
+    },
+    {
+      "id": "arjun-reddy",
+      "name": "Arjun Reddy",
+      "email": "arjun.reddy@example.com",
+      "phone": "+91 9387145024",
+      "headline": "Frontend Developer • 5.5 Years • Mumbai",
+      "experienceYears": "5.5 Years",
+      "location": "Mumbai, India",
+      "profileScore": 80,
+      "jobSearchStatus": "Open to Offers (Immediate Joiner)",
+      "summary": "Frontend Developer with 5.5+ years of experience in Full-Stack. Skilled in Go (Golang), Java Spring Boot, and React.js, now targeting Senior Full-Stack Engineer roles.",
+      "skills": [
+        "Go (Golang)",
+        "Java Spring Boot",
+        "React.js",
+        "Node.js",
+        "GraphQL",
+        "Docker",
+        "Web Performance"
+      ],
+      "currentCtc": "₹6.2 LPA",
+      "targetCtc": "₹16 - 24 LPA",
+      "targetRole": "Senior Full-Stack Engineer",
+      "targetCompany": "Meesho",
+      "pastCompany": "TCS (Tata Consultancy Services)",
+      "pastCompanyRole": "Frontend Developer",
+      "educationDegree": "B.E. Computer Science",
+      "educationCollege": "Delhi Technological University",
+      "domain": "Full-Stack",
+      "badges": [],
+      "recruiterSearchMultiplier": 2.2
+    }
+  ]
+}

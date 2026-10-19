@@ -3,7 +3,7 @@ from typing import Optional
 
 from fastapi import Depends, HTTPException, Request
 
-from backend.config import ADMIN_USER_IDS, RECRUITER_USER_IDS, SESSION_COOKIE_NAME
+from backend.config import ADMIN_EMAILS, ADMIN_USER_IDS, RECRUITER_USER_IDS, SESSION_COOKIE_NAME
 from backend.data.store import store
 from backend.db.models import User
 from backend.models.schemas import MentorshipSession
@@ -20,14 +20,19 @@ def require_user(user: Optional[User] = Depends(get_optional_user)) -> User:
     return user
 
 
+def is_admin(user: User) -> bool:
+    """Admins are listed in ADMIN_EMAILS / ADMIN_USER_IDS on the server, nothing else."""
+    return user.id in ADMIN_USER_IDS or (user.email or "").strip().lower() in ADMIN_EMAILS
+
+
 def require_admin(user: User = Depends(require_user)) -> User:
-    if user.id not in ADMIN_USER_IDS:
+    if not is_admin(user):
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
 
 
 def require_recruiter(user: User = Depends(require_user)) -> User:
-    if user.id not in RECRUITER_USER_IDS and user.id not in ADMIN_USER_IDS:
+    if user.id not in RECRUITER_USER_IDS and not is_admin(user):
         raise HTTPException(status_code=403, detail="Recruiter access required")
     return user
 

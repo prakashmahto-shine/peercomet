@@ -13,15 +13,8 @@ from datetime import datetime, timedelta
 from typing import Optional, Tuple
 
 from backend.auth.email_sender import EmailNotConfigured, EmailSendError, send_email
-from backend.config import (
-    ADMIN_USER_IDS,
-    BRAND_NAME,
-    DEV_OTP_CODE,
-    EMAIL_BACKEND,
-    IS_PRODUCTION,
-    OTP_TTL_MINUTES,
-    SMTP_HOST,
-)
+from backend.auth.deps import is_admin
+from backend.config import BRAND_NAME, DEV_OTP_CODE, EMAIL_BACKEND, IS_DEVELOPMENT, OTP_TTL_MINUTES
 from backend.data.store import store
 from backend.db.models import User
 
@@ -58,7 +51,7 @@ def normalize_mobile(raw: Optional[str]) -> Optional[str]:
 
 def _is_dev_demo_id(identifier: str) -> bool:
     """Local development only: a seeded demo user id (e.g. 'akash') instead of an email."""
-    if EMAIL_BACKEND != "console" or "@" in identifier:
+    if not IS_DEVELOPMENT or EMAIL_BACKEND != "console" or "@" in identifier:
         return False
     return bool(store.get_candidate(identifier) or store.get_creator_by_id(identifier))
 
@@ -92,14 +85,11 @@ def send_otp(identifier: str) -> Tuple[str, bool]:
     """Emails a sign-in code. Returns (request_id, is_registered)."""
     email, is_demo = _resolve(identifier)
 
-    # Disallow public OTP requests for internal administrator accounts
-    if email in {"admin@peerpath.com", "admin@shine.com"}:
-        raise AuthError("Administrator accounts must authenticate directly via internal operations portal at /admin.", 403)
-
     if store.count_recent_email_otps(email, datetime.utcnow() - SEND_WINDOW) >= MAX_SENDS_PER_WINDOW:
         raise AuthError("Too many codes requested. Please try again in a few minutes.", 429)
 
-    code = DEV_OTP_CODE if (EMAIL_BACKEND == "console" or not SMTP_HOST) else f"{secrets.randbelow(10 ** 6):06d}"
+    # The fixed code only exists in local development (console email); servers always send a random one
+    code = DEV_OTP_CODE if EMAIL_BACKEND == "console" else f"{secrets.randbelow(10 ** 6):06d}"
     request_id = secrets.token_urlsafe(16)
     store.create_email_otp(request_id, email, _code_hash(request_id, code),
                            datetime.utcnow() + timedelta(minutes=OTP_TTL_MINUTES))
@@ -112,12 +102,10 @@ def send_otp(identifier: str) -> Tuple[str, bool]:
     try:
         send_email(email, subject, text, html)
     except EmailNotConfigured:
-        print(f"[Auth] SMTP not configured. Logged code for '{email}': {code}")
-        return request_id, store.get_user_by_email(email) is not None
+        print("[Auth] Sign-in email not sent: SMTP_HOST / EMAIL_FROM are not configured")
+        raise AuthError("Email sign-in isn't available right now. Please try again later.", 503)
     except EmailSendError as e:
-        print(f"[Auth] Could not send sign-in email: {e}. Fallback code for '{email}': {code}")
-        if not (IS_PRODUCTION and SMTP_HOST):
-            return request_id, store.get_user_by_email(email) is not None
+        print(f"[Auth] Could not send sign-in email: {e}")
         raise AuthError("We couldn't send the email. Please try again.", 502)
 
     return request_id, store.get_user_by_email(email) is not None
@@ -166,13 +154,6 @@ def describe_user(user: User) -> dict:
     creator = store.get_creator_by_owner(user.id)
     cand = store.get_candidate(user.id)
     is_mentor_eligible = bool(creator is not None or (cand and cand.isMentorEligible))
-    email_clean = (user.email or "").strip().lower()
-    is_admin = bool(
-        user.id in ADMIN_USER_IDS or
-        email_clean.startswith("admin@") or
-        email_clean in {"admin@shine.com", "admin@peerpath.com"} or
-        "admin" in user.id.lower()
-    )
     return {
         "id": user.id,
         "name": user.name,
@@ -182,5 +163,5 @@ def describe_user(user: User) -> dict:
         "creatorId": creator.id if creator else None,
         "isMentor": creator is not None,
         "isMentorEligible": is_mentor_eligible,
-        "isAdmin": is_admin,
+        "isAdmin": is_admin(user),
     }

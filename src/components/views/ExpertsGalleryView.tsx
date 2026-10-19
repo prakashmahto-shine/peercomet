@@ -60,7 +60,7 @@ export const ExpertsGalleryView: React.FC<ExpertsGalleryViewProps> = ({
   }, [activeDomain, searchTerm]);
 
   const filteredExperts = creatorsList.filter((exp) => {
-    if (isSelfMentor(exp, currentUser, userProfile)) return false;
+    if (isSelfMentor(exp, currentUser)) return false;
     if (activeDomain !== 'all' && exp.domain.toLowerCase() !== activeDomain.toLowerCase()) return false;
     if (exp.price > priceLimit) return false;
     if (searchTerm) {
@@ -257,13 +257,8 @@ export const ExpertsGalleryView: React.FC<ExpertsGalleryViewProps> = ({
             </div>
           ) : (
             paginatedExperts.map((exp) => {
-              const isSelf = Boolean(
-                currentUser && (
-                  exp.id === currentUser.id ||
-                  (currentUser.username && exp.id.toLowerCase() === currentUser.username.toLowerCase()) ||
-                  (currentUser.name && exp.name.toLowerCase() === currentUser.name.toLowerCase())
-                )
-              );
+              const isSelf = isSelfMentor(exp, currentUser);
+              const enabledServices = (exp.serviceOfferings || []).filter(o => o.isEnabled !== false).length;
 
               return (
                 <div key={exp.id} className={`expert-teaser-card ${isSelf ? 'self-expert-card' : ''}`} id={`card-${exp.id}`}>
@@ -304,9 +299,13 @@ export const ExpertsGalleryView: React.FC<ExpertsGalleryViewProps> = ({
                       <div className="card-footer-meta-row">
                         <div className="card-price-main">
                           <span className="card-price-prefix">Starts at</span>
-                          <strong className="card-price-amount">₹{exp.price || 499}</strong>
+                          <strong className="card-price-amount">₹{exp.price}</strong>
                         </div>
-                        <span className="card-services-badge">4 Services Available</span>
+                        {enabledServices > 0 && (
+                          <span className="card-services-badge">
+                            {enabledServices} Service{enabledServices === 1 ? '' : 's'} Available
+                          </span>
+                        )}
                       </div>
 
                       <div className="card-footer-actions-row">

@@ -57,61 +57,22 @@ export const parseNameAndRole = (rawName?: string, currentDesignation?: string):
 };
 
 /**
- * Accurately determines if an expert/creator card belongs to the currently logged in user,
- * checking creator IDs, user IDs, emails, and normalized clean full names.
+ * True when an expert/creator listing belongs to the signed-in user. Matches ids only:
+ * names and emails are shared by different people, and a false match would hide that
+ * mentor from someone or stop them booking.
  */
 export const isSelfMentor = (
-  expertOrCreator: { id?: string; name?: string; verifiedEmail?: string; ownerUserId?: string; owner_user_id?: string } | null | undefined,
-  currentUser: { id?: string; creatorId?: string | null; name?: string; email?: string } | null | undefined,
-  userProfile?: { name?: string; email?: string; mentorCreatorId?: string } | null | undefined
+  expertOrCreator: { id?: string; ownerUserId?: string; owner_user_id?: string } | null | undefined,
+  currentUser: { id?: string; creatorId?: string | null } | null | undefined
 ): boolean => {
   if (!expertOrCreator || !currentUser) return false;
+  const norm = (v?: string | null) => (v || '').trim().toLowerCase();
 
-  const expertId = (expertOrCreator.id || '').trim().toLowerCase();
-  const currentUserId = (currentUser.id || '').trim().toLowerCase();
-  const creatorId = (currentUser.creatorId || '').trim().toLowerCase();
-  const profileMentorId = (userProfile?.mentorCreatorId || '').trim().toLowerCase();
-  const expertOwnerId = ((expertOrCreator as any).ownerUserId || (expertOrCreator as any).owner_user_id || '').trim().toLowerCase();
+  const expertId = norm(expertOrCreator.id);
+  const ownerId = norm(expertOrCreator.ownerUserId || expertOrCreator.owner_user_id);
+  const userId = norm(currentUser.id);
+  const myCreatorIds = [norm(currentUser.creatorId), userId].filter(Boolean);
 
-  // 1. Direct ID checks
-  if (expertId) {
-    if (currentUserId && expertId === currentUserId) return true;
-    if (creatorId && expertId === creatorId) return true;
-    if (profileMentorId && expertId === profileMentorId) return true;
-  }
-  if (expertOwnerId && currentUserId && expertOwnerId === currentUserId) {
-    return true;
-  }
-
-  // 2. Email matching
-  const expertEmail = (expertOrCreator.verifiedEmail || '').trim().toLowerCase();
-  const userEmail = (currentUser.email || userProfile?.email || '').trim().toLowerCase();
-  if (expertEmail && userEmail) {
-    if (expertEmail === userEmail) return true;
-    const expUserPart = expertEmail.split('@')[0];
-    const userPart = userEmail.split('@')[0];
-    if (expUserPart && userPart && expUserPart === userPart && expUserPart.length > 3) return true;
-  }
-
-  // 3. Name matching with parseNameAndRole
-  const expCleanName = parseNameAndRole(expertOrCreator.name).cleanName.toLowerCase().trim();
-  const userCleanName = parseNameAndRole(userProfile?.name || currentUser.name).cleanName.toLowerCase().trim();
-
-  if (expCleanName && userCleanName) {
-    if (expCleanName === userCleanName) return true;
-    const expTokens = expCleanName.split(/\s+/).filter(t => t.length > 1);
-    const userTokens = userCleanName.split(/\s+/).filter(t => t.length > 1);
-    if (expTokens.length >= 2 && userTokens.length >= 2) {
-      if (expTokens[0] === userTokens[0] && expTokens[expTokens.length - 1] === userTokens[userTokens.length - 1]) {
-        return true;
-      }
-    }
-    if (expCleanName.length > 4 && userCleanName.length > 4) {
-      if (expCleanName.startsWith(userCleanName) || userCleanName.startsWith(expCleanName)) {
-        return true;
-      }
-    }
-  }
-
-  return false;
+  if (expertId && myCreatorIds.includes(expertId)) return true;
+  return Boolean(ownerId && userId && ownerId === userId);
 };

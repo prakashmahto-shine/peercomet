@@ -105,17 +105,6 @@ export const peerpathApi = {
     return json.data;
   },
 
-  async adminLogin(payload: { email: string; password: string }): Promise<AuthUser> {
-    const res = await fetchWithRetry(`${API_BASE}/auth/admin-login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) throw await errorFromResponse(res, 'Invalid administrator credentials');
-    const json = await res.json();
-    return json.data;
-  },
-
   // Returns null when not signed in
   async getMe(): Promise<AuthUser | null> {
     const res = await fetchWithRetry(`${API_BASE}/auth/me`);
