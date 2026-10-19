@@ -437,7 +437,7 @@ export const BecomeMentorLandingView: React.FC = () => {
             <div className="bml-bbc-content">
               <span className="bml-bbc-badge">
                 <Sparkles size={14} className="text-amber-400" />
-                <span>Join 500+ Verified Tech Mentors</span>
+                <span>Join as a Verified Tech Mentor</span>
               </span>
               <h2 className="bml-bbc-title">
                 Ready to Shape Careers & Monetize Your Experience?

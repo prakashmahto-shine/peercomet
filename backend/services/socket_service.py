@@ -5,9 +5,20 @@ import socketio
 
 from backend.config import CORS_ORIGINS, SESSION_COOKIE_NAME
 
+def _origin_allowed(origin: Optional[str], environ) -> bool:
+    """The site's own origin (as served, also behind a proxy) plus CORS_ORIGINS.
+    A plain list would reject the page's own origin when it isn't listed, e.g. http://<server-ip>."""
+    if not origin:
+        return True
+    host = environ.get('HTTP_X_FORWARDED_HOST', environ.get('HTTP_HOST', '')).split(',')[0].strip()
+    scheme = environ.get('HTTP_X_FORWARDED_PROTO', environ.get('wsgi.url_scheme', 'http')).split(',')[0].strip()
+    same_origin = {f"{scheme}://{host}", f"http://{host}", f"https://{host}"} if host else set()
+    return origin in same_origin or origin in CORS_ORIGINS
+
+
 sio = socketio.AsyncServer(
     async_mode='asgi',
-    cors_allowed_origins=CORS_ORIGINS,
+    cors_allowed_origins=_origin_allowed,
     ping_timeout=60,
     ping_interval=25
 )

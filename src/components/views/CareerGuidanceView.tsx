@@ -75,20 +75,21 @@ function toTransitionMentor(match: TrajectoryMatch): TransitionMentor {
     jumpTag: match.isExactMatch ? 'Exact Match' : (traj?.role3YearsAgo ? `${traj.role3YearsAgo} ➔ ${c.role}` : `${c.role} @ ${c.company}`),
     jumpStory: traj?.jumpStory || c.bio || `Senior ${c.role} at ${c.company} helping professionals achieve their target career trajectory.`,
     skills: c.skills || [],
-    matchScore: match.trajectorySimilarityScore || 90,
+    matchScore: match.trajectorySimilarityScore || 0,
     ownerUserId: (c as any).ownerUserId || (c as any).owner_user_id
   };
 }
 
-function expertToTransitionMentor(e: Expert, matchScore = 92): TransitionMentor {
+// Listing without a trajectory match: no match % is shown (matchScore 0)
+function expertToTransitionMentor(e: Expert, matchScore = 0): TransitionMentor {
   return {
     id: e.id,
     name: e.name,
     role: e.role,
     company: e.company,
     domain: e.domain || 'Tech',
-    experience: e.experience || '4+ Years',
-    rating: e.rating && e.reviewsCount ? e.rating : (e.rating || 5.0),
+    experience: e.experience || '',
+    rating: e.reviewsCount ? (e.rating || 0) : 0,
     reviewsCount: e.reviewsCount || 0,
     sessionsCount: e.sessionsCount || 0,
     price: e.price || 999,
@@ -318,7 +319,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
   // Fallback list of transition mentors derived from platform verified experts (excluding self)
   const fallbackMentors: TransitionMentor[] = useMemo(() => {
     const validExperts = (experts || []).filter(e => !isSelfMentor(e, currentUser));
-    return validExperts.map((e, idx) => expertToTransitionMentor(e, Math.max(78, 96 - idx * 2)));
+    return validExperts.map(e => expertToTransitionMentor(e));
   }, [experts, currentUser, userProfile]);
 
   // Derive the 'top' (top 6), 'others' (non-named-domain), per-track counts, and each
@@ -346,13 +347,14 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
     };
 
     const bestMatch: Record<MentorCategoryTab, number> = {
-      top: bestOf(sorted) || (fallbackMentors.length > 0 ? 92 : 0),
-      all: bestOf(filteredMatches) || (fallbackMentors.length > 0 ? 90 : 0),
-      ai: bestOf(byDomain.ai) || (fallbackMentors.some(m => m.domain === 'AI/ML') ? 90 : 0),
-      semi: bestOf(byDomain.semi) || (fallbackMentors.some(m => m.domain === 'Semiconductor') ? 90 : 0),
-      cyber: bestOf(byDomain.cyber) || (fallbackMentors.some(m => m.domain === 'Cybersecurity') ? 90 : 0),
-      fullstack: bestOf(byDomain.fullstack) || (fallbackMentors.some(m => m.domain === 'Full-Stack') ? 90 : 0),
-      others: bestOf(others) || (fallbackMentors.some(m => !NAMED_TRACK_DOMAINS.includes(m.domain)) ? 90 : 0)
+      // Only real trajectory scores; mentors listed without a match show no %
+      top: bestOf(sorted),
+      all: bestOf(filteredMatches),
+      ai: bestOf(byDomain.ai),
+      semi: bestOf(byDomain.semi),
+      cyber: bestOf(byDomain.cyber),
+      fullstack: bestOf(byDomain.fullstack),
+      others: bestOf(others)
     };
 
     return {
@@ -911,9 +913,11 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                     <div className="pm-h-profile-details">
                       <div className="pm-h-name-row">
                         <h4 className="pm-mentor-name" title={mentor.name}>{mentor.name}</h4>
-                        <span className="pm-match-badge">
-                          <Zap size={10} fill="currentColor" /> {matchScore}% Match
-                        </span>
+                        {matchScore > 0 && (
+                          <span className="pm-match-badge">
+                            <Zap size={10} fill="currentColor" /> {matchScore}% Match
+                          </span>
+                        )}
                       </div>
 
                       <p className="pm-role-company">
@@ -927,8 +931,12 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                           <strong>{mentor.reviewsCount > 0 ? mentor.rating.toFixed(1) : 'New'}</strong>
                         </span>
                         <span className="pm-meta-sep">•</span>
-                        <span className="pm-exp-text">{mentor.experience}</span>
-                        <span className="pm-meta-sep">•</span>
+                        {mentor.experience && (
+                          <>
+                            <span className="pm-exp-text">{mentor.experience}</span>
+                            <span className="pm-meta-sep">•</span>
+                          </>
+                        )}
                         <span className="pm-verified-text">
                           <CheckCircle2 size={10.5} className="text-emerald-600" />
                           Verified

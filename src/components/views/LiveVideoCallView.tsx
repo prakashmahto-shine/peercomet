@@ -86,7 +86,17 @@ export const LiveVideoCallView: React.FC = () => {
         // 1. Get local webcam + audio stream
         let stream: MediaStream | null = null;
         try {
-          if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+            // Browsers only allow camera/mic on HTTPS (or localhost)
+            setCameraError(true);
+            showToast(
+              'Camera and mic unavailable',
+              window.isSecureContext
+                ? 'This browser does not support video calls.'
+                : 'Video calls need a secure (HTTPS) connection. Please open the site over https://.',
+              'warning'
+            );
+          } else {
             stream = await navigator.mediaDevices.getUserMedia({
               video: { width: { ideal: 1280 }, height: { ideal: 720 } },
               audio: true

@@ -418,7 +418,7 @@ export const MySessionsView: React.FC = () => {
               <h3>No booked guidance calls scheduled</h3>
               <p>Explore verified industry leaders and book your 1:1 trajectory guidance call today.</p>
               <button className="btn-shine-gold" onClick={() => navigate('experts-view')}>
-                <Plus size={16} /> Explore 500+ Mentors
+                <Plus size={16} /> Explore Mentors
               </button>
             </div>
           ) : (
