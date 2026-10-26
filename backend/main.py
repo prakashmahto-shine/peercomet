@@ -41,27 +41,16 @@ START_TIME = time.time()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("====================================================")
-    print(f"🚀 Initializing {BRAND_NAME} Python Backend, WebRTC Signaling & Milvus...")
-    # Schema migrations must succeed; never start serving against an out-of-date database
     init_database()
     try:
-        # Initialize Milvus connection and collections
         milvus_service.connect()
         creators = store.get_creators()
         candidates = store.get_candidates()
-        print(f"📦 Loaded {len(creators)} mentors and {len(candidates)} candidates from Store.")
-        
-        # Index data into Milvus Vector DB
         milvus_service.sync_creators(creators)
         milvus_service.sync_candidates(candidates)
-        print("🎯 Milvus Vector Indexing ready for Trajectory Matching & Recruiter Neural Search!")
-        print("📹 WebRTC 1:1 Video Calling Signaling Server active via Socket.IO ASGI mount!")
     except Exception as e:
-        print(f"⚠️ Startup warning: {e}")
-    print("====================================================")
+        print(f"Startup warning: {e}")
     yield
-    print("🛑 Shutting down backend...")
     milvus_service.shutdown()
 
 app = FastAPI(
@@ -96,7 +85,7 @@ async def log_requests(request: Request, call_next):
 def health_check():
     return {
         "status": "ok",
-        "service": "shine-peerpath-backend-api-python",
+        "service": "peercomet-backend-api-python",
         "vectorDatabase": "Milvus",
         "embeddingModel": EMBEDDING_MODEL_NAME,
         "signaling": "socket.io-webrtc-active",
@@ -106,8 +95,6 @@ def health_check():
         "version": "2.0.0"
     }
 
-# Readiness: the app can serve traffic only if the database answers (Kubernetes readinessProbe).
-# /api/health above is the liveness check and doesn't touch the database.
 @app.get("/api/ready")
 def readiness_check():
     try:
@@ -118,7 +105,6 @@ def readiness_check():
         return JSONResponse(status_code=503, content={"status": "unavailable", "database": "down"})
     return {"status": "ready", "database": "up"}
 
-# ICE servers for WebRTC calls (TURN credentials stay server-side config, delivered to signed-in users)
 @app.get("/api/webrtc/ice-servers")
 def ice_servers(user=Depends(get_optional_user)):
     servers = [{"urls": STUN_URLS}] if STUN_URLS else []
@@ -126,7 +112,6 @@ def ice_servers(user=Depends(get_optional_user)):
         servers.append({"urls": TURN_URLS, "username": TURN_USERNAME, "credential": TURN_CREDENTIAL})
     return {"success": True, "data": {"iceServers": servers}}
 
-# Register Subsystem Routers
 app.include_router(auth_router)
 app.include_router(cv_router)
 app.include_router(trajectory_router)
@@ -142,7 +127,6 @@ app.include_router(notifications_router)
 app.include_router(sessions_router)
 app.include_router(admin_router)
 
-# Serve static frontend build if dist/ exists
 dist_path = Path(__file__).resolve().parent.parent / "dist"
 if dist_path.exists():
     app.mount("/assets", StaticFiles(directory=str(dist_path / "assets")), name="assets")
@@ -159,11 +143,9 @@ if dist_path.exists():
             return FileResponse(str(index_file))
         return JSONResponse(status_code=200, content={"message": f"{BRAND_NAME} Python Backend running!"})
 
-# Mount Socket.IO on top of FastAPI ASGI app
 socket_app = socketio.ASGIApp(sio, other_asgi_app=app)
 
 if __name__ == "__main__":
     import uvicorn
-    print(f"🚀 Starting Uvicorn + WebRTC Signaling on {HOST}:{PORT}")
     uvicorn.run("backend.main:socket_app", host=HOST, port=PORT, reload=IS_DEVELOPMENT)
 

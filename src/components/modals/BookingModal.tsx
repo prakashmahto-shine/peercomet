@@ -671,7 +671,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <div className="rzp-qr-pane">
                     <div className="rzp-qr-box">
                       <img 
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=upi://pay?pa=shine.peerpath@razorpay&pn=${encodeURIComponent(BRAND.name)}&am=${payableAmount}&cu=INR`} 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=upi://pay?pa=shine.peercomet@razorpay&pn=${encodeURIComponent(BRAND.name)}&am=${payableAmount}&cu=INR`} 
                         alt="Scan UPI QR Code" 
                         className="rzp-qr-img"
                       />

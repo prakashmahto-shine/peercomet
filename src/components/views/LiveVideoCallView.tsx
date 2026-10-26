@@ -7,6 +7,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { WebRTCService, PeerState } from '../../services/webrtcService';
 import { API_BASE, apiFetch } from '../../services/api';
+import { BRAND } from '../../config/brand';
 
 export const LiveVideoCallView: React.FC = () => {
   const { 
@@ -28,7 +29,7 @@ export const LiveVideoCallView: React.FC = () => {
   const candidateRole = activeSession?.candidateRole || 'Senior Frontend Engineer';
 
   const sessionId = activeSession?.id || `sess-${expert.id || 'mentor'}-live`;
-  const roomId = `peerpath-room-${sessionId.replace(/^peerpath-/, '').replace(/^sess-/, '')}`;
+  const roomId = `peercomet-room-${sessionId.replace(/^peercomet-/, '').replace(/^peerpath-/, '').replace(/^sess-/, '')}`;
 
   // Call timer
   const [seconds, setSeconds] = useState<number>(0);
@@ -399,7 +400,7 @@ export const LiveVideoCallView: React.FC = () => {
 
     // 3. Background upload recording to backend
     if (finalBlob && activeSession?.id) {
-      const cleanSessionId = activeSession.id.replace(/^peerpath-/, '').replace(/^sess-/, '');
+      const cleanSessionId = activeSession.id.replace(/^peercomet-/, '').replace(/^peerpath-/, '').replace(/^sess-/, '');
       apiFetch(`${API_BASE}/sessions/${cleanSessionId}/recording`, {
         method: 'POST',
         headers: {
@@ -587,7 +588,7 @@ export const LiveVideoCallView: React.FC = () => {
                 <strong>{candidateName}</strong> • {candidateRole} ➔ Target: {expert.domain}
               </div>
               <div className="rubric-checklist-box">
-                <span className="rubric-subtitle">Mentor Evaluation Rubric (PeerPath AI):</span>
+                <span className="rubric-subtitle">Mentor Evaluation Rubric ({BRAND.name} AI):</span>
                 <label className="rubric-item">
                   <input type="checkbox" defaultChecked />
                   <span>1. Core {expert.domain} discovery & client communication</span>
@@ -616,7 +617,7 @@ export const LiveVideoCallView: React.FC = () => {
               {recordingDownloadUrl && (
                 <a 
                   href={recordingDownloadUrl} 
-                  download={`shine-peerpath-session-${sessionId}.webm`}
+                  download={`shine-peercomet-session-${sessionId}.webm`}
                   className="btn-ghost-sm w-100 mt-2" 
                   style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'rgba(255,255,255,0.06)', color: '#fff', padding: '8px 12px', borderRadius: '6px', textDecoration: 'none', fontSize: '12px' }}
                 >

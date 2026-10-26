@@ -134,12 +134,7 @@ export const CommunityView: React.FC = () => {
     <div className="community-page-wrapper">
       <div className="community-view-container">
         
-        {/* Authentic LinkedIn 3-Column Grid */}
         <div className="community-linkedin-grid">
-          
-          {/* =========================================================================
-              LEFT COLUMN: Candidate/User Profile Snapshot & Topic Navigation
-             ========================================================================= */}
           <aside className="community-left-column">
             
             {/* User Mini Profile Card (LinkedIn Style) */}
@@ -276,9 +271,6 @@ export const CommunityView: React.FC = () => {
 
           </aside>
 
-          {/* =========================================================================
-              CENTER COLUMN: LinkedIn Post Feed & Controls
-             ========================================================================= */}
           <main className="community-center-feed">
             
             {/* LinkedIn-style Composer (for Mentors) */}
@@ -699,9 +691,6 @@ export const CommunityView: React.FC = () => {
 
       </div>
 
-      {/* =========================================================================
-          LINKEDIN-STYLE POST COMPOSER MODAL (FOR MENTORS)
-         ========================================================================= */}
       {composerOpen && (
         <div className="linkedin-modal-backdrop" onClick={() => setComposerOpen(false)}>
           <div className="linkedin-modal-card" onClick={e => e.stopPropagation()}>

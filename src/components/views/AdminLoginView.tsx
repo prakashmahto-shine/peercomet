@@ -6,6 +6,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { PeerpathLogo, PeerpathSymbolSvg } from '../common/PeerpathLogo';
 import { OtpLoginForm } from '../auth/OtpLoginForm';
+import { BRAND } from '../../config/brand';
 
 /**
  * Admins sign in with the same email code as everyone else. Access comes only from
@@ -31,7 +32,7 @@ export const AdminLoginView: React.FC = () => {
         <button
           type="button"
           className="btn-admin-auth-portal-link"
-          onClick={() => navigate('guidance-view', '/peerpath')}
+          onClick={() => navigate('guidance-view', '/peercomet')}
         >
           <span>Candidate Portal</span>
           <ArrowRight size={13} />
@@ -45,11 +46,11 @@ export const AdminLoginView: React.FC = () => {
         <div className="admin-auth-showcase">
           <div className="admin-showcase-badge">
             <ShieldCheck size={14} className="text-amber-500" />
-            <span>PeerPath Enterprise Operations</span>
+            <span>{BRAND.name} Enterprise Operations</span>
           </div>
 
           <h1 className="admin-showcase-title">
-            Unified governance for the <span className="text-gradient-brand">PeerPath</span> 1:1 mentorship marketplace.
+            Unified governance for the <span className="text-gradient-brand">{BRAND.name}</span> 1:1 mentorship marketplace.
           </h1>
 
           <p className="admin-showcase-desc">
@@ -90,7 +91,7 @@ export const AdminLoginView: React.FC = () => {
 
           <div className="admin-showcase-security">
             <Lock size={15} className="text-slate-400" />
-            <span>Restricted Access: PeerPath internal operations &amp; vetted administrators only.</span>
+            <span>Restricted Access: {BRAND.name} internal operations &amp; vetted administrators only.</span>
           </div>
         </div>
 
@@ -102,7 +103,7 @@ export const AdminLoginView: React.FC = () => {
               <div className="admin-card-symbol-badge">
                 <PeerpathSymbolSvg size={28} theme="light" />
               </div>
-              <h2>PeerPath CRM Portal</h2>
+              <h2>{BRAND.name} CRM Portal</h2>
               <p>Enterprise Operations &amp; Mentor Governance</p>
             </div>
 
@@ -115,7 +116,7 @@ export const AdminLoginView: React.FC = () => {
                     <strong>Administrator Privileges Required</strong>
                     <p>
                       You are currently signed in as <strong>{currentUser.email}</strong> (Candidate account). 
-                      This portal is restricted to authorized PeerPath operations administrators.
+                      This portal is restricted to authorized {BRAND.name} operations administrators.
                     </p>
                   </div>
                 </div>
@@ -133,9 +134,9 @@ export const AdminLoginView: React.FC = () => {
                   <button
                     type="button"
                     className="btn-admin-secondary"
-                    onClick={() => navigate('guidance-view', '/peerpath')}
+                    onClick={() => navigate('guidance-view', '/peercomet')}
                   >
-                    <span>Return to Candidate Directory (/peerpath)</span>
+                    <span>Return to Candidate Directory (/peercomet)</span>
                     <ArrowRight size={15} />
                   </button>
                 </div>
@@ -154,9 +155,9 @@ export const AdminLoginView: React.FC = () => {
                   <button
                     type="button"
                     className="btn-admin-exit-link"
-                    onClick={() => navigate('guidance-view', '/peerpath')}
+                    onClick={() => navigate('guidance-view', '/peercomet')}
                   >
-                    ← Return to PeerPath Mentorship Portal
+                    ← Return to {BRAND.name} Mentorship Portal
                   </button>
                 </div>
               </div>

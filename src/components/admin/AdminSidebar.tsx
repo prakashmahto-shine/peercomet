@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { PeerpathLogo } from '../common/PeerpathLogo';
 import { UserAccount } from '../../types';
+import { BRAND } from '../../config/brand';
 
 export type AdminSection = 'overview' | 'candidates' | 'mentors' | 'payments';
 
@@ -92,7 +93,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
           type="button"
           className="btn-crm-candidate-portal-cta"
           onClick={onNavigateCandidatePortal}
-          title="Open PeerPath Candidate Portal"
+          title={`Open ${BRAND.name} Candidate Portal`}
         >
           <span>Candidate Portal</span>
           <ExternalLink size={13} />

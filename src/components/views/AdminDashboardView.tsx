@@ -10,6 +10,7 @@ import { PaymentsTable } from '../admin/PaymentsTable';
 import { AdminOverviewSection } from '../admin/AdminOverviewSection';
 import { CandidateDossierModal } from '../admin/CandidateDossierModal';
 import { AdminLoginView } from './AdminLoginView';
+import { BRAND } from '../../config/brand';
 
 const SECTION_PATH_MAP: Record<AdminSection, string> = {
   overview: '/admin/overview',
@@ -101,7 +102,7 @@ export const AdminDashboardView: React.FC = () => {
     return (
       <div className="admin-crm-loading-screen">
         <div className="admin-crm-loading-spinner"></div>
-        <p>Loading PeerPath Backoffice CRM...</p>
+        <p>Loading {BRAND.name} Backoffice CRM...</p>
       </div>
     );
   }
@@ -178,7 +179,7 @@ export const AdminDashboardView: React.FC = () => {
         paymentCount={bookings.length}
         currentUser={currentUser}
         onLogout={() => logout(true)}
-        onNavigateCandidatePortal={() => navigate('guidance-view', '/peerpath')}
+        onNavigateCandidatePortal={() => navigate('guidance-view', '/peercomet')}
       />
 
       {/* 2. Main CRM Content Workspace */}
@@ -192,7 +193,7 @@ export const AdminDashboardView: React.FC = () => {
               style={{ cursor: 'pointer' }}
               title="Go to Dashboard Overview"
             >
-              PeerPath Admin
+              {BRAND.name} Admin
             </span>
             <span className="crm-crumb-divider">/</span>
             <span className="crm-crumb-current">
@@ -218,7 +219,7 @@ export const AdminDashboardView: React.FC = () => {
             <button
               type="button"
               className="btn-crm-candidate-app"
-              onClick={() => navigate('guidance-view', '/peerpath')}
+              onClick={() => navigate('guidance-view', '/peercomet')}
               title="Open public candidate directory"
             >
               <span>Candidate Portal</span>

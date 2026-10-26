@@ -562,7 +562,7 @@ export const CreatorWizardModal: React.FC = () => {
 
     setIsCreatorMode(true);
     setIsCreatorWizardOpen(false);
-    showToast('🚀 Mentor Profile Published!', 'Your 1:1 mentorship profile is live on Shine PeerPath.', 'success');
+    showToast('🚀 Mentor Profile Published!', `Your 1:1 mentorship profile is live on ${BRAND.name}.`, 'success');
     navigate('mentor-dashboard-view');
   };
 
@@ -1334,7 +1334,7 @@ export const CreatorWizardModal: React.FC = () => {
                     </div>
                     <div className="pmc-recruiter-badge">
                       <ShieldCheck size={13} />
-                      <span>{company ? `${company} Verified Lead` : 'PeerPath Verified Lead'}</span>
+                      <span>{company ? `${company} Verified Lead` : `${BRAND.name} Verified Lead`}</span>
                     </div>
                   </div>
 

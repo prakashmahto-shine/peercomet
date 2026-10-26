@@ -46,7 +46,7 @@ export const PostSessionView: React.FC = () => {
           </div>
           <a
             href={recordingDownloadUrl}
-            download={`shine-peerpath-session-${sessionId}.webm`}
+            download={`shine-peercomet-session-${sessionId}.webm`}
             className="btn-ghost-sm"
             style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#FFFFFF', border: '1px solid #6EE7B7', color: '#065F46', padding: '6px 12px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 700, textDecoration: 'none' }}
           >
@@ -56,7 +56,7 @@ export const PostSessionView: React.FC = () => {
 
         <div className="feedback-header">
           <h2 className="f-title">How was your mentorship with {expert.name}?</h2>
-          <p className="f-subtitle">Your rating helps maintain community trust and high mentorship quality on PeerPath.</p>
+          <p className="f-subtitle">Your rating helps maintain community trust and high mentorship quality on {BRAND.name}.</p>
         </div>
 
         <div className="star-rating-selector">

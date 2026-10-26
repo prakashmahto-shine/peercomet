@@ -25,8 +25,8 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
   {
     id: 'career-guidance',
     name: 'Career Guidance & Skill Gap Analyzer',
-    path: '/peerpath',
-    aliases: ['/', '/guidance', '/career-guidance', '/dashboard'],
+    path: '/peercomet',
+    aliases: ['/', '/peerpath', '/guidance', '/career-guidance', '/dashboard'],
     view: 'guidance-view',
     title: `Career Guidance & Upward Trajectory | ${BRAND.name}`,
     description: 'Personalized AI skill-gap analyzer and career trajectory roadmap',
@@ -119,7 +119,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     id: 'live-call',
     name: 'Live 1:1 Video Call Room',
     path: '/live-call',
-    aliases: ['/call', '/room/peerpath-session', '/room/:id'],
+    aliases: ['/call', '/room/peercomet-session', '/room/peerpath-session', '/room/:id'],
     view: 'live-call-view',
     title: `Live Mentorship Room | ${BRAND.name}`,
     description: 'WebRTC video call with zero-prep cockpit, code sharing, and live recording',
@@ -224,7 +224,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     aliases: ['/terms-of-service', '/terms-and-conditions', '/tos'],
     view: 'terms-view',
     title: `Terms of Service & User Agreement | ${BRAND.name}`,
-    description: 'Terms of Service and user agreement governing mentorship and platform usage on PeerPath.',
+    description: `Terms of Service and user agreement governing mentorship and platform usage on ${BRAND.name}.`,
     category: 'shared'
   },
   {
@@ -234,7 +234,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     aliases: ['/privacy-policy', '/privacy-notice'],
     view: 'privacy-view',
     title: `Privacy Policy & Data Protection | ${BRAND.name}`,
-    description: 'Privacy Policy and candidate data protection practices on PeerPath.',
+    description: `Privacy Policy and candidate data protection practices on ${BRAND.name}.`,
     category: 'shared'
   },
   {
@@ -244,7 +244,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     aliases: ['/cookie-policy'],
     view: 'cookies-view',
     title: `Cookie Policy & Tracking Preferences | ${BRAND.name}`,
-    description: 'Information about how cookies and tracking preferences work on PeerPath.',
+    description: `Information about how cookies and tracking preferences work on ${BRAND.name}.`,
     category: 'shared'
   },
   {
@@ -264,10 +264,12 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     aliases: ['/support', '/help', '/contact-us'],
     view: 'contact-view',
     title: `Contact & Support Helpdesk | ${BRAND.name}`,
-    description: 'Official support, contact channels, and helpdesk for PeerPath.',
+    description: `Official support, contact channels, and helpdesk for ${BRAND.name}.`,
     category: 'shared'
   }
 ];
+
+export const PEERCOMET_ROUTES = PEERPATH_ROUTES;
 
 /**
  * Universal Path-to-View Matcher for browser URL routing
@@ -314,7 +316,7 @@ export function viewToPath(view: ViewType, params?: { expertId?: string }): stri
     return `/expert/${params.expertId}`;
   }
   const route = PEERPATH_ROUTES.find(r => r.view === view);
-  return route ? route.path : '/peerpath';
+  return route ? route.path : '/peercomet';
 }
 
 /**

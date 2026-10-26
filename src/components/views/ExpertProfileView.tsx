@@ -208,12 +208,7 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
         </div>
       )}
       
-      {/* 🌟 2-Column Unified Layout */}
       <div className="up-layout-grid">
-        
-        {/* ====================================================================
-            LEFT COLUMN: Sticky Mentor Identity & Social Proof Card (35%)
-           ==================================================================== */}
         <aside className="up-mentor-sidebar">
           <div className="up-mentor-card">
             
@@ -361,9 +356,6 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
           </div>
         </aside>
 
-        {/* ====================================================================
-            RIGHT COLUMN: Main Content & Services Area (65%)
-           ==================================================================== */}
         <main className="up-main-content">
           
           {/* Tabs Bar (3 Clean Focused Tabs) */}

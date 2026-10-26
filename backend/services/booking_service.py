@@ -113,7 +113,7 @@ class BookingService:
             random_suffix = hex(random.randint(1000, 9999))[2:]
             transaction_id = f"pay_shine_{timestamp}_{random_suffix}"
             session_id = f"sess-{timestamp}-{uuid.uuid4().hex[:8]}"
-            meeting_link = f"https://meet.shine.com/room/peerpath-{expert.id}-{str(timestamp)[-5:]}"
+            meeting_link = f"https://peercomet.com/room/peercomet-{expert.id}-{str(timestamp)[-5:]}"
 
             new_session = MentorshipSession(
                 id=session_id,

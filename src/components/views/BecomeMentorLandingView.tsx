@@ -42,7 +42,7 @@ export const BecomeMentorLandingView: React.FC = () => {
       a: "As little or as much as you prefer! Most mentors host between 2 to 4 sessions per week (on weekends or weekday evenings). You set your own availability days and time slots directly in your profile."
     },
     {
-      q: "Does PeerPath take any commission from my session fees?",
+      q: `Does ${BRAND.name} take any commission from my session fees?`,
       a: "Zero percent (0%) platform commission! You keep 100% of your listed session price. For example, if you list a 45-minute 1:1 call for ₹1,499, you receive the full ₹1,499."
     },
     {
@@ -51,7 +51,7 @@ export const BecomeMentorLandingView: React.FC = () => {
     },
     {
       q: "Do I need to prepare lesson plans or slide decks before calls?",
-      a: "No! PeerPath is designed for focused 1:1 guidance. Before every call, you can review the candidate's verified resume, current experience, target company goals, and specific career questions directly in your dashboard."
+      a: `No! ${BRAND.name} is designed for focused 1:1 guidance. Before every call, you can review the candidate's verified resume, current experience, target company goals, and specific career questions directly in your dashboard.`
     },
     {
       q: "Can I update my availability anytime?",
@@ -70,7 +70,7 @@ export const BecomeMentorLandingView: React.FC = () => {
           {/* Top Launch Pill */}
           <div className="bml-pill-badge">
             <Sparkles size={14} className="text-amber-400" />
-            <span>PeerPath Mentor Network • 0% Platform Commission • Backed by Shine</span>
+            <span>{BRAND.name} Mentor Network • 0% Platform Commission • Backed by Shine</span>
           </div>
 
           <h1 className="bml-hero-headline">
@@ -138,7 +138,7 @@ export const BecomeMentorLandingView: React.FC = () => {
               <span className="bml-metric-icon">🛡️</span>
               <div className="bml-metric-text">
                 <strong>Verified Profile</strong>
-                <small>PeerPath Mentor Badge</small>
+                <small>{BRAND.name} Mentor Badge</small>
               </div>
             </div>
           </div>
@@ -151,10 +151,10 @@ export const BecomeMentorLandingView: React.FC = () => {
         <div className="bml-calc-container">
           <div className="bml-calc-header">
             <span className="bml-calc-tag">SIMULATE YOUR REVENUE</span>
-            <h2 className="bml-calc-title">How Much Can You Earn as a PeerPath Mentor?</h2>
+            <h2 className="bml-calc-title">How Much Can You Earn as a {BRAND.name} Mentor?</h2>
             <p className="bml-calc-desc">
               Choose how many sessions you'd like to host per week and your preferred hourly rate. 
-              Top mentors on PeerPath earn upwards of ₹1,00,000 every month on weekend hours alone.
+              Top mentors on {BRAND.name} earn upwards of ₹1,00,000 every month on weekend hours alone.
             </p>
           </div>
 
@@ -280,12 +280,12 @@ export const BecomeMentorLandingView: React.FC = () => {
       </section>
 
 
-      {/* 3. Why Leading Engineers Mentor on PeerPath (4 Key Value Pillars) */}
+      {/* 3. Why Leading Engineers Mentor on PeerComet (4 Key Value Pillars) */}
       <section className="bml-pillars-section">
         <div className="bml-container">
           <div className="bml-section-header-center">
             <span className="bml-section-kicker">BUILT FOR TECH PROFESSIONALS</span>
-            <h2 className="bml-section-heading">Why India’s Top Engineers Mentor on PeerPath</h2>
+            <h2 className="bml-section-heading">Why India’s Top Engineers Mentor on {BRAND.name}</h2>
             <p className="bml-section-sub">
               We took away all the hassle of freelance mentoring — no endless LinkedIn DM scheduling, no chasing payment receipts, and no awkward candidate prep.
             </p>
@@ -321,7 +321,7 @@ export const BecomeMentorLandingView: React.FC = () => {
               </div>
               <h3 className="bml-pillar-title">Built-In 1:1 Video Calls</h3>
               <p className="bml-pillar-desc">
-                Host live 1:1 video mentorship sessions directly inside the PeerPath platform in your browser. 
+                Host live 1:1 video mentorship sessions directly inside the {BRAND.name} platform in your browser. 
                 Complete with video, audio, and screen sharing without needing third-party meeting downloads.
               </p>
             </div>
@@ -401,7 +401,7 @@ export const BecomeMentorLandingView: React.FC = () => {
           <div className="bml-section-header-center">
             <span className="bml-section-kicker">QUESTIONS & ANSWERS</span>
             <h2 className="bml-section-heading">Frequently Asked Questions</h2>
-            <p className="bml-section-sub">Everything you need to know about becoming a mentor on PeerPath.</p>
+            <p className="bml-section-sub">Everything you need to know about becoming a mentor on {BRAND.name}.</p>
           </div>
 
           <div className="bml-faq-list">

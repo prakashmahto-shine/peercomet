@@ -192,3 +192,6 @@ export const PeerpathLogo: React.FC<PeerpathLogoProps> = ({
 };
 
 export default PeerpathLogo;
+
+export const PeercometLogo = PeerpathLogo;
+export const PeercometSymbolSvg = PeerpathSymbolSvg;

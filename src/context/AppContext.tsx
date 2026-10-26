@@ -962,7 +962,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (effectiveCreatorMode && isMentorUser && currentPath === '/' && !window.location.search.includes('redirect')) {
             navigate('mentor-dashboard-view', '/mentor');
           } else if (!effectiveCreatorMode && currentPath === '/') {
-            navigate('guidance-view', '/peerpath');
+            navigate('guidance-view', '/peercomet');
           }
         } else {
           const currentPath = window.location.pathname;
@@ -1036,8 +1036,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } else if (isMentorUser && !utmSource && !campaign) {
       navigate('mentor-dashboard-view', '/mentor');
     } else {
-      // Normal candidate login always directs to /peerpath
-      navigate('guidance-view', '/peerpath');
+      // Normal candidate login always directs to /peercomet
+      navigate('guidance-view', '/peercomet');
     }
 
     showToast(`👋 Welcome, ${account.name || 'there'}!`, `You are now signed in to ${BRAND.name}.`);

@@ -17,7 +17,7 @@ CHUNK_SIZE = 64 * 1024
 
 def _authorized_key(session_id: str, user: User) -> str:
     """Validates the id, checks the caller is a participant, and returns the storage key."""
-    clean_id = session_id.replace("peerpath-", "").replace("sess-", "")
+    clean_id = session_id.replace("peercomet-", "").replace("peerpath-", "").replace("sess-", "")
     if not SAFE_ID_RE.match(clean_id):
         raise HTTPException(status_code=400, detail="Invalid session id")
     # Only the session's candidate and mentor may upload or watch its recording

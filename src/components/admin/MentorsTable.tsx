@@ -4,6 +4,7 @@ import {
   Building2, Eye, X, CheckCircle2, SlidersHorizontal 
 } from 'lucide-react';
 import { AdminUserData } from '../../types';
+import { BRAND } from '../../config/brand';
 
 interface MentorsTableProps {
   users: AdminUserData[];
@@ -72,7 +73,7 @@ export const MentorsTable: React.FC<MentorsTableProps> = ({
         <div>
           <h2>Mentors Roster</h2>
           <p>
-            Vetted mentors authorized by PeerPath Admin. Users appear here once mentor rights are granted from the candidate pool.
+            Vetted mentors authorized by {BRAND.name} Admin. Users appear here once mentor rights are granted from the candidate pool.
           </p>
         </div>
         <div className="crm-header-metric-pill highlight">

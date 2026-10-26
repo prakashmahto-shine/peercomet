@@ -408,12 +408,12 @@ export const peerpathApi = {
   getRecordingUrl(sessionId: string): string {
     if (!sessionId) return '';
     if (sessionId.startsWith('http://') || sessionId.startsWith('https://')) return sessionId;
-    const cleanId = (sessionId || '').replace(/^.*\/sessions\//, '').replace(/\/recording$/, '').replace(/^peerpath-/, '').replace(/^sess-/, '');
+    const cleanId = (sessionId || '').replace(/^.*\/sessions\//, '').replace(/\/recording$/, '').replace(/^peercomet-/, '').replace(/^peerpath-/, '').replace(/^sess-/, '');
     return `${API_BASE}/sessions/${cleanId}/recording`;
   },
 
   async uploadSessionRecording(sessionId: string, blob: Blob): Promise<{ success: boolean; recordingUrl: string; sessionId: string }> {
-    const cleanId = (sessionId || '').replace(/^peerpath-/, '').replace(/^sess-/, '');
+    const cleanId = (sessionId || '').replace(/^peercomet-/, '').replace(/^peerpath-/, '').replace(/^sess-/, '');
     const res = await fetchWithRetry(`${API_BASE}/sessions/${cleanId}/recording`, {
       method: 'POST',
       headers: {
@@ -672,3 +672,5 @@ export const peerpathApi = {
     return res.json();
   }
 };
+
+export const peercometApi = peerpathApi;

@@ -254,7 +254,7 @@ export const Header: React.FC<HeaderProps> = ({
                   setIsCreatorMode(false);
                   if (currentUser) rememberCreatorMode(currentUser.id, false);
                   showToast('👤 Mentee Mode Active', 'Switched to candidate guidance mode. Browse & book 1:1 sessions.', 'info');
-                  onNavigate('guidance-view', '/peerpath');
+                  onNavigate('guidance-view', '/peercomet');
                 }}
                 title="Need 1:1 guidance for yourself? Switch to Mentee Mode to book sessions"
               >
@@ -272,7 +272,7 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               className={`header-bell-btn ${currentView === 'admin-dashboard-view' ? 'active' : ''}`}
               onClick={() => onNavigate('admin-dashboard-view')}
-              title="Shine PeerPath Admin Control Center"
+              title={`${BRAND.name} Admin Control Center`}
               style={{
                 background: currentView === 'admin-dashboard-view' ? '#f5f3ff' : 'transparent',
                 color: currentView === 'admin-dashboard-view' ? '#7c3aed' : '#64748b',
@@ -608,12 +608,12 @@ export const Header: React.FC<HeaderProps> = ({
                       </a>
 
                       <a 
-                        href="/peerpath" 
+                        href="/peercomet" 
                         className={`flyout-item ${currentView === 'guidance-view' ? 'flyout-item-active' : ''}`} 
                         onClick={(e) => { 
                           e.preventDefault(); 
                           setIsUserMenuOpen(false); 
-                          onNavigate('guidance-view', '/peerpath'); 
+                          onNavigate('guidance-view', '/peercomet'); 
                         }}
                       >
                         <Sparkles size={15} className="text-purple-600" /> 
@@ -704,7 +704,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button 
               type="button"
               className="btn-header-login-gold"
-              onClick={() => onNavigate('login-view', '/login?redirect=/peerpath&action=unlock')}
+              onClick={() => onNavigate('login-view', '/login?redirect=/peercomet&action=unlock')}
             >
               <User size={14} />
               <span>Login / Register</span>

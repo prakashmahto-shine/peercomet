@@ -4,6 +4,7 @@ import {
   Sparkles, SlidersHorizontal, X 
 } from 'lucide-react';
 import { AdminBookingData, AdminOverviewStats } from '../../types';
+import { BRAND } from '../../config/brand';
 
 interface PaymentsTableProps {
   bookings: AdminBookingData[];
@@ -46,7 +47,7 @@ export const PaymentsTable: React.FC<PaymentsTableProps> = ({
         <div>
           <h2>Payments, Bookings &amp; GMV Clearing</h2>
           <p>
-            Track 1:1 mentorship bookings, escrow settlements, 15% PeerPath platform commission, and mentor payouts.
+            Track 1:1 mentorship bookings, escrow settlements, 15% {BRAND.name} platform commission, and mentor payouts.
           </p>
         </div>
       </div>
@@ -69,7 +70,7 @@ export const PaymentsTable: React.FC<PaymentsTableProps> = ({
             <TrendingUp size={22} />
           </div>
           <div>
-            <span className="crm-fin-label">PeerPath Commission (15%)</span>
+            <span className="crm-fin-label">{BRAND.name} Commission (15%)</span>
             <strong className="crm-fin-value text-emerald-600">₹{platformRevenue.toLocaleString('en-IN')}</strong>
             <span className="crm-fin-sub">Platform net revenue</span>
           </div>
@@ -148,7 +149,7 @@ export const PaymentsTable: React.FC<PaymentsTableProps> = ({
               <th>Verified Mentor</th>
               <th>Date &amp; Time Slot</th>
               <th>Gross Fee</th>
-              <th>PeerPath Take (15%)</th>
+              <th>{BRAND.name} Take (15%)</th>
               <th>Mentor Share (85%)</th>
               <th>Status</th>
             </tr>
@@ -178,7 +179,7 @@ export const PaymentsTable: React.FC<PaymentsTableProps> = ({
                     </td>
                     <td>
                       <div className="font-semibold">{b.expertName || 'Mentor'}</div>
-                      <div className="text-xs text-slate-500">🏢 {b.expertCompany || 'PeerPath Mentor'}</div>
+                      <div className="text-xs text-slate-500">🏢 {b.expertCompany || `${BRAND.name} Mentor`}</div>
                     </td>
                     <td>
                       <div className="font-medium text-slate-800">📅 {b.date || 'TBD'}</div>

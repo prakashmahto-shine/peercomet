@@ -7,6 +7,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { PeerpathLogo } from '../common/PeerpathLogo';
 import { OtpLoginForm } from '../auth/OtpLoginForm';
+import { BRAND } from '../../config/brand';
 
 export const LoginView: React.FC = () => {
   const { navigate } = useApp();
@@ -41,12 +42,7 @@ export const LoginView: React.FC = () => {
           </div>
         </header>
 
-        {/* Main Content Split: Left (Story + Center Mentors) & Right (Frosted Glass Form) */}
         <main className="login-main-stage">
-          
-          {/* =========================================================================
-              LEFT STAGE: Value Story + Center Floating Mentors
-             ========================================================================= */}
           <div className="stage-left-content">
             
             {/* Left Story Column */}
@@ -189,9 +185,6 @@ export const LoginView: React.FC = () => {
 
           </div>
 
-          {/* =========================================================================
-              RIGHT STAGE: High-End Frosted Glass Sign-In Box
-             ========================================================================= */}
           <div className="stage-right-form">
             
             <div className="frosted-glass-sign-in-box">
@@ -200,7 +193,7 @@ export const LoginView: React.FC = () => {
               {actionParam === 'unlock' ? (
                 <div className="fgb-campaign-pill unlock" style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FCD34D' }}>
                   <Sparkles size={13} className="text-amber-600 flex-shrink-0" />
-                  <span>Unlock PeerPath • Sign in to set goal &amp; find mentors</span>
+                  <span>Unlock {BRAND.name} • Sign in to set goal &amp; find mentors</span>
                 </div>
               ) : utmSource === 'whatsapp' ? (
                 <div className="fgb-campaign-pill whatsapp">
@@ -221,7 +214,7 @@ export const LoginView: React.FC = () => {
 
               {/* Box Header */}
               <div className="fgb-header">
-                <h2 className="fgb-title">{actionParam === 'unlock' ? 'Unlock PeerPath 🚀' : 'Welcome 👋'}</h2>
+                <h2 className="fgb-title">{actionParam === 'unlock' ? `Unlock ${BRAND.name} 🚀` : 'Welcome 👋'}</h2>
                 <p className="fgb-subtitle">
                   {actionParam === 'unlock' 
                     ? 'Sign in or create your account to calibrate goal and match with mentors'
@@ -245,9 +238,6 @@ export const LoginView: React.FC = () => {
 
         </main>
 
-        {/* =========================================================================
-            BOTTOM TRUST STRIP: Top Tech Company Mentors + Minimal SaaS Footer
-           ========================================================================= */}
         <footer className="login-canvas-footer">
           <div className="lcf-trust-strip">
             <span className="lcf-trust-label">MENTORS FROM LEADING TECH TEAMS</span>
@@ -274,7 +264,7 @@ export const LoginView: React.FC = () => {
           </div>
 
           <div className="lcf-bottom-bar">
-            <span>© {new Date().getFullYear()} PeerPath • Backed by 4.5Cr+ Candidate Network by Shine.com</span>
+            <span>© {new Date().getFullYear()} {BRAND.name} • Backed by 4.5Cr+ Candidate Network by Shine.com</span>
             <div className="lcf-links">
               <a href="/privacy" onClick={(e) => { e.preventDefault(); navigate('privacy-view'); }}>Privacy Policy</a>
               <span className="lcf-divider">•</span>

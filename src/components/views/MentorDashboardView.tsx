@@ -648,12 +648,7 @@ export const MentorDashboardView: React.FC = () => {
         style={{ display: 'none' }}
       />
 
-      {/* 🌟 2-COLUMN UNIFIED DASHBOARD GRID */}
       <div className="md-layout-grid">
-        
-        {/* ====================================================================
-            LEFT COLUMN: Sticky Mentor Profile, Identity, Controls & Analytics
-           ==================================================================== */}
         <aside className="md-mentor-sidebar">
           <div className="md-mentor-card">
             
@@ -668,7 +663,7 @@ export const MentorDashboardView: React.FC = () => {
                   alt={mentorName} 
                   className="md-avatar-img"
                 />
-                <span className="md-verified-check" title="Verified Lead Mentor on PeerPath">
+                <span className="md-verified-check" title={`Verified Lead Mentor on ${BRAND.name}`}>
                   <CheckCircle2 size={15} />
                 </span>
               </div>
@@ -812,16 +807,9 @@ export const MentorDashboardView: React.FC = () => {
           </div>
         </aside>
 
-        {/* ====================================================================
-            RIGHT COLUMN: Main Studio Workspace with Navigation Tabs
-           ==================================================================== */}
         <main className="md-main-content">
-          
-          {/* 🌟 MAIN NAVIGATION TABS (Sleek 4-Grid Bar) */}
           <div className="clean-studio-nav-bar">
             <div className="clean-tab-segment-group">
-              
-              {/* TAB 1: SESSIONS */}
               <button 
                 type="button"
                 className={`cs-tab-btn ${activeTab === 'bookings' ? 'active' : ''}`}
@@ -867,9 +855,6 @@ export const MentorDashboardView: React.FC = () => {
             </div>
           </div>
 
-      {/* ========================================================================= */}
-      {/* TAB 1: SESSIONS & CALLS (DIRECT BOOKINGS & CALLS VIEW) */}
-      {/* ========================================================================= */}
       {activeTab === 'bookings' && (
         <div className="mentor-cards-stack">
 
@@ -1104,9 +1089,6 @@ export const MentorDashboardView: React.FC = () => {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* TAB 2: CANDIDATE REVIEWS & RATINGS (FEEDBACK FEED) */}
-      {/* ========================================================================= */}
       {activeTab === 'reviews' && (
         <div className="mentor-cards-stack">
           
@@ -1294,9 +1276,6 @@ export const MentorDashboardView: React.FC = () => {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* TAB 3: AVAILABILITY & SLOTS SCHEDULER */}
-      {/* ========================================================================= */}
       {activeTab === 'availability' && (
         <div className="mentor-settings-panel-card">
           <div className="msp-section-header">
@@ -1495,9 +1474,6 @@ export const MentorDashboardView: React.FC = () => {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* TAB 3: UNIFIED PROFILE, TEASER VIDEO & PRICING SETTINGS */}
-      {/* ========================================================================= */}
       {activeTab === 'profile-settings' && (
         <div className="mentor-profile-pricing-wrapper">
           {/* Top Bar Header */}
@@ -1511,7 +1487,7 @@ export const MentorDashboardView: React.FC = () => {
                   </span>
                 ) : (
                   <span className="mpp-badge-live">
-                    <Check size={13} /> Live on PeerPath
+                    <Check size={13} /> Live on {BRAND.name}
                   </span>
                 )}
               </div>
@@ -1996,7 +1972,7 @@ export const MentorDashboardView: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="mpp-card-title">Direct Payouts & Settlement</h3>
-                  <p className="mpp-card-subtitle">Automated direct bank or UPI transfer. PeerPath charges 0% commission.</p>
+                  <p className="mpp-card-subtitle">Automated direct bank or UPI transfer. {BRAND.name} charges 0% commission.</p>
                 </div>
               </div>
 
@@ -2125,9 +2101,6 @@ export const MentorDashboardView: React.FC = () => {
         </main>
       </div>
 
-      {/* ========================================================================= */}
-      {/* ZERO-PREP DOSSIER MODAL */}
-      {/* ========================================================================= */}
       {isDossierModalOpen && (
         <div className="modal-backdrop">
           <div className="modal-container-dossier" style={{ maxWidth: '680px', width: '90%', background: '#FFFFFF', borderRadius: '16px', padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', maxHeight: '90vh', overflowY: 'auto' }}>

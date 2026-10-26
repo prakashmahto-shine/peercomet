@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { AdminOverviewStats, AdminUserData, AdminBookingData } from '../../types';
 import { AdminSection } from './AdminSidebar';
+import { BRAND } from '../../config/brand';
 
 interface AdminOverviewSectionProps {
   overview: AdminOverviewStats | null;
@@ -88,7 +89,7 @@ export const AdminOverviewSection: React.FC<AdminOverviewSectionProps> = ({
           <div className="admin-kpi-data">
             <span className="admin-kpi-title">Platform GMV</span>
             <strong className="admin-kpi-value">₹{totalGmv.toLocaleString('en-IN')}</strong>
-            <span className="admin-kpi-subtext">PeerPath Cut: ₹{platformRevenue.toLocaleString('en-IN')} →</span>
+            <span className="admin-kpi-subtext">{BRAND.name} Cut: ₹{platformRevenue.toLocaleString('en-IN')} →</span>
           </div>
         </div>
       </div>
@@ -182,7 +183,7 @@ export const AdminOverviewSection: React.FC<AdminOverviewSectionProps> = ({
             <div className="crm-op-stat-box">
               <div className="crm-op-stat-left">
                 <span className="crm-op-label">Platform Take Rate</span>
-                <span className="crm-op-sub">PeerPath revenue share</span>
+                <span className="crm-op-sub">{BRAND.name} revenue share</span>
               </div>
               <strong className="crm-op-number text-emerald-600">15.0%</strong>
             </div>

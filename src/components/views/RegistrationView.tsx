@@ -13,12 +13,12 @@ export const RegistrationView: React.FC = () => {
 
   const handleSaved = () => {
     showToast('Profile saved', 'Now tell us your career goal to see matching mentors.', 'success');
-    navigate('guidance-view', '/peerpath');
+    navigate('guidance-view', '/peercomet');
   };
 
   const handleSkip = () => {
     showToast('Profile pending', 'You can complete your profile anytime from the top banner.', 'info');
-    navigate('guidance-view', '/peerpath');
+    navigate('guidance-view', '/peercomet');
   };
 
   return (

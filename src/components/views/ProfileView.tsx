@@ -715,10 +715,6 @@ export const ProfileView: React.FC = () => {
 
       </div>
 
-      {/* =========================================================================
-          MODALS
-         ========================================================================= */}
-      
 
       {/* 2. Official Shine Job Search Status Modal */}
       {showJobStatusModal && (

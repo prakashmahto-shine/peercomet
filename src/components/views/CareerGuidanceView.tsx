@@ -62,7 +62,7 @@ function toTransitionMentor(match: TrajectoryMatch): TransitionMentor {
     company: c.company,
     domain: c.domain || 'Tech',
     experience: c.experience || '4+ Years',
-    rating: c.rating && c.reviewsCount ? c.rating : (c.rating || 5.0),
+    rating: c.reviewsCount ? (c.rating || 0) : 0,
     reviewsCount: c.reviewsCount || 0,
     sessionsCount: c.sessionsCount || 0,
     price: c.price || 999,
@@ -517,7 +517,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
     if (e) e.stopPropagation();
     if (!currentUser) {
       sessionStorage.setItem('peerpath_auto_unlock', '1');
-      navigate('login-view', '/login?redirect=/peerpath&action=unlock');
+      navigate('login-view', '/login?redirect=/peercomet&action=unlock');
     } else {
       setIsCalibrationModalOpen(true);
     }
@@ -526,7 +526,6 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
   return (
     <div className="content-wrapper peerpath-guidance-page">
 
-      {/* Sticky Campaign Unlock Banner when Peerpath is Locked */}
       {isGoalLocked && (
         <div 
           className="peerpath-locked-unlock-banner"
@@ -559,12 +558,10 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
         </div>
       )}
 
-      {/* Main Peerpath Content Flow */}
       <div 
         className={`peerpath-main-content-flow ${isGoalLocked ? 'peerpath-locked-blur' : ''}`}
       >
 
-        {/* Peerpath Top Sub-Nav View Switcher (Candidate Mode Only) */}
         {!isCreatorMode && (
           <div className="peerpath-top-nav-switcher">
             <div className="ptn-left-group">
@@ -598,7 +595,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                 type="button"
                 className="ptn-become-mentor-btn"
                 onClick={() => setIsCreatorWizardOpen(true)}
-                title="Register as a verified mentor on PeerPath (0% Platform Fee)"
+                title={`Register as a verified mentor on ${BRAND.name} (0% Platform Fee)`}
               >
                 <span className="ptn-bm-sparkle-pill">
                   <Sparkles size={13} className="ptn-bm-sparkle-icon" />
@@ -611,19 +608,15 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
           </div>
         )}
 
-        {/* 1. Official Shine Peerpath Hero Banner (Clean 2-Column with Profile Card) */}
         <div className="peerpath-hero-banner-card">
           <div className="phb-flex-layout">
             
-            {/* Left Column: Heading, Subtitle & Value Metrics */}
             <div className="phb-left">
-              {/* Ecosystem Trust Badge (Primary Brand: PeerPath, Parent Trust: Shine) */}
               <div className="peerpath-ecosystem-trust-badge">
                 <span className="petb-dot"></span>
                 <span><strong>{BRAND.name}</strong> • Backed by Shine's 4.5Cr+ Candidate Network</span>
               </div>
 
-              {/* Main Heading & Candidate Subtitle */}
               <h1 className="phb-title">
                 {currentUser && (userProfile.name || currentUser?.name)
                   ? `Targeted Mentors for ${userProfile.name || currentUser?.name}`
@@ -640,13 +633,11 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                 </span>
               </div>
 
-              {/* Description */}
               <p className="phb-desc">
                 Connect directly with verified leaders &amp; engineers who made the exact career jump.
               </p>
             </div>
 
-            {/* Right Column: Clean, Minimalist Profile Avatar Showcase */}
             {currentUser && goalSet ? (
               <div className="phb-right-avatar-showcase">
                 <div className="phb-avatar-showcase-ring">
@@ -680,10 +671,10 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                   type="button"
                   className="btn-phb-edit-goal-pill btn-phb-unlock-pill"
                   onClick={handleUnlockClick}
-                  title="Unlock PeerPath to calibrate career trajectory"
+                  title={`Unlock ${BRAND.name} to calibrate career trajectory`}
                 >
                   <Sparkles size={12} />
-                  <span>Unlock PeerPath</span>
+                  <span>Unlock {BRAND.name}</span>
                 </button>
               </div>
             )}
@@ -692,10 +683,8 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
         </div>
 
 
-        {/* 2. Mentors Showcase Section with Minimalist Header Controls */}
         <div className="peerpath-mentors-showcase-section" id="mentorsShowcaseSection">
 
-          {/* Streamlined 1-Row Header with Track Selector & Search */}
           <div className="pms-section-header-compact">
             <div className="pms-compact-title-wrap">
               <h2 className="pms-compact-heading">
@@ -707,10 +696,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
               </h2>
             </div>
 
-            {/* Right Controls: Integrated Dropdown Track Selector + Compact Search */}
             <div className="pms-header-controls-wrap">
-              
-              {/* Dropdown Track Selector */}
               <div className="pms-track-dropdown-container">
                 <button
                   type="button"
@@ -826,7 +812,6 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                 )}
               </div>
 
-              {/* Compact Search Bar */}
               <div className="pms-compact-search">
                 <Search size={13} className="pms-csearch-icon" />
                 <input
@@ -851,7 +836,6 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
             </div>
           </div>
           
-          {/* Mentors Horizontal List, Loading, Error, or Clean Empty State */}
           {(isLoadingActiveTab || isSwitchingMode) ? (
             <div className="peerpath-mentors-loading-state">
               <Loader2 size={30} className="animate-spin text-purple-600 mb-3" style={{ margin: '0 auto' }} />
@@ -903,7 +887,6 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                 return (
                   <div key={mentor.id} className="pm-mentor-card-h">
                   
-                  {/* Left Column: Avatar + Identity + Rating + Skills */}
                   <div className="pm-h-col-left">
                     <div className="pm-avatar-container">
                       <img src={mentor.avatar} alt={mentor.name} className="pm-avatar-img" />
@@ -943,7 +926,6 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                         </span>
                       </div>
 
-                      {/* Skills Chips */}
                       <div className="pm-skills-row mt-1">
                         {mentor.skills.slice(0, 3).map((skill, sIdx) => (
                           <span key={sIdx} className="pm-skill-chip">{skill}</span>
@@ -955,7 +937,6 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Middle Column: Career Transition Box */}
                   <div className="pm-h-col-center">
                     <div className="pm-h-transition-card">
                       <div className="pm-h-transition-header">
@@ -989,7 +970,6 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Right Column: Pricing & Quick Actions */}
                   <div className="pm-h-col-right">
                     <div className="pm-h-price-wrap">
                       <div className="pm-h-price-main">

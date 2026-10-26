@@ -77,7 +77,7 @@ export const StaticPageView: React.FC<StaticPageViewProps> = ({ initialTab = 'te
       <section className="slp-hero-header">
         <div className="content-wrapper slp-hero-content">
           <div className="slp-breadcrumbs">
-            <button type="button" className="slp-crumb-link" onClick={() => navigate('guidance-view', '/peerpath')}>
+            <button type="button" className="slp-crumb-link" onClick={() => navigate('guidance-view', '/peercomet')}>
               <ArrowLeft size={14} /> Back to Home
             </button>
             <span className="slp-crumb-sep">/</span>
@@ -106,7 +106,7 @@ export const StaticPageView: React.FC<StaticPageViewProps> = ({ initialTab = 'te
             </span>
             <span className="slp-meta-dot">•</span>
             <span className="slp-meta-item">
-              <strong>Entity:</strong> HT Media Group • peerpath.com
+              <strong>Entity:</strong> HT Media Group • {BRAND.domain}
             </span>
             <button type="button" className="slp-btn-copy" onClick={handleCopyLink} title="Copy page link">
               {copiedLink ? <CheckCircle2 size={13} className="text-emerald-400" /> : <Copy size={13} />}
@@ -221,19 +221,14 @@ export const StaticPageView: React.FC<StaticPageViewProps> = ({ initialTab = 'te
           </div>
         </aside>
 
-        {/* Right Content Area */}
         <main className="slp-article-container">
-          
-          {/* =========================================================================
-              TAB 1: TERMS OF SERVICE
-             ========================================================================= */}
           {activeTab === 'terms' && (
             <article className="slp-article">
               <div className="slp-article-header">
                 <span className="slp-article-kicker">USER AGREEMENT</span>
                 <h2>Terms of Service</h2>
                 <p className="slp-lead-para">
-                  Welcome to {BRAND.name}. By accessing or using the {BRAND.name} platform (a specialized 1:1 career transition, skill-gap analysis, and verified peer mentorship service operated as an initiative under HT Media Limited / peerpath.com), you agree to be bound by these Terms of Service.
+                  Welcome to {BRAND.name}. By accessing or using the {BRAND.name} platform (a specialized 1:1 career transition, skill-gap analysis, and verified peer mentorship service operated as an initiative under HT Media Limited / {BRAND.domain}), you agree to be bound by these Terms of Service.
                 </p>
               </div>
 
@@ -284,7 +279,7 @@ export const StaticPageView: React.FC<StaticPageViewProps> = ({ initialTab = 'te
                     <strong>Mentor No-Show:</strong> If a mentor fails to join a confirmed session within 15 minutes of the start time, the candidate is entitled to an immediate 100% full refund or a free reschedule.
                   </li>
                   <li>
-                    <strong>Quality Discontent:</strong> If a session suffers from severe technical disruption or falls fundamentally short of the stated scope, candidates may request a review within 48 hours of completion by emailing <a href="mailto:support@peerpath.com">support@peerpath.com</a>. Valid claims are refunded in full.
+                    <strong>Quality Discontent:</strong> If a session suffers from severe technical disruption or falls fundamentally short of the stated scope, candidates may request a review within 48 hours of completion by emailing <a href={`mailto:support@${BRAND.domain}`}>support@{BRAND.domain}</a>. Valid claims are refunded in full.
                   </li>
                   <li>
                     <strong>Candidate Cancellation:</strong> Sessions may be rescheduled or cancelled with full credit up to 12 hours prior to the scheduled slot. Cancellations within 12 hours may be subject to a nominal mentor retention fee.
@@ -308,9 +303,6 @@ export const StaticPageView: React.FC<StaticPageViewProps> = ({ initialTab = 'te
             </article>
           )}
 
-          {/* =========================================================================
-              TAB 2: PRIVACY POLICY
-             ========================================================================= */}
           {activeTab === 'privacy' && (
             <article className="slp-article">
               <div className="slp-article-header">
@@ -363,7 +355,7 @@ export const StaticPageView: React.FC<StaticPageViewProps> = ({ initialTab = 'te
                 <ul>
                   <li><strong>Right to Access &amp; Summary:</strong> View all stored profile data and booking history at any time.</li>
                   <li><strong>Right to Correction:</strong> Update or modify your career profile details via the Candidate Profile Editor.</li>
-                  <li><strong>Right to Erasure:</strong> Request permanent deletion of your profile, badges, and session logs by writing to <a href="mailto:privacy@peerpath.com">privacy@peerpath.com</a>.</li>
+                  <li><strong>Right to Erasure:</strong> Request permanent deletion of your profile, badges, and session logs by writing to <a href={`mailto:privacy@${BRAND.domain}`}>privacy@{BRAND.domain}</a>.</li>
                 </ul>
               </div>
 
@@ -374,16 +366,13 @@ export const StaticPageView: React.FC<StaticPageViewProps> = ({ initialTab = 'te
                 </p>
                 <div className="slp-info-callout">
                   <strong>Grievance &amp; Privacy Officer:</strong> HT Media Limited / {BRAND.name}<br />
-                  <strong>Email:</strong> <a href="mailto:privacy@peerpath.com">privacy@peerpath.com</a> / <a href="mailto:compliance@peerpath.com">compliance@peerpath.com</a><br />
+                  <strong>Email:</strong> <a href={`mailto:privacy@${BRAND.domain}`}>privacy@{BRAND.domain}</a> / <a href={`mailto:compliance@${BRAND.domain}`}>compliance@{BRAND.domain}</a><br />
                   <strong>Address:</strong> Unitech Cyber Park, Tower C, 9th Floor, Sector 39, Gurugram, Haryana 122001
                 </div>
               </div>
             </article>
           )}
 
-          {/* =========================================================================
-              TAB 3: COOKIE POLICY
-             ========================================================================= */}
           {activeTab === 'cookies' && (
             <article className="slp-article">
               <div className="slp-article-header">
@@ -442,9 +431,6 @@ export const StaticPageView: React.FC<StaticPageViewProps> = ({ initialTab = 'te
             </article>
           )}
 
-          {/* =========================================================================
-              TAB 4: SECURITY & FRAUD ALERT
-             ========================================================================= */}
           {activeTab === 'security' && (
             <article className="slp-article">
               <div className="slp-article-header">
@@ -466,7 +452,7 @@ export const StaticPageView: React.FC<StaticPageViewProps> = ({ initialTab = 'te
                     <strong>{BRAND.name} NEVER asks candidates or job seekers for money, security deposits, or upfront fees in exchange for guaranteed interview calls, appointment letters, or mentorship placements.</strong>
                   </p>
                   <p>
-                    Anyone soliciting funds promising confirmed jobs at reputed companies while impersonating {BRAND.name} is a fraudulent actor. Please report such solicitations immediately to <a href="mailto:compliance@peerpath.com">compliance@peerpath.com</a>.
+                    Anyone soliciting funds promising confirmed jobs at reputed companies while impersonating {BRAND.name} is a fraudulent actor. Please report such solicitations immediately to <a href={`mailto:compliance@${BRAND.domain}`}>compliance@{BRAND.domain}</a>.
                   </p>
                 </div>
               </div>
@@ -475,9 +461,9 @@ export const StaticPageView: React.FC<StaticPageViewProps> = ({ initialTab = 'te
                 <h3>1. Official Communications Verification</h3>
                 <p>To protect yourself against phishing and email spoofing, verify that communications originate solely from authorized domains:</p>
                 <ul>
-                  <li><strong>Official Email Domains:</strong> <code>@peerpath.com</code> and <code>@htmedia.in</code>.</li>
+                  <li><strong>Official Email Domains:</strong> <code>@{BRAND.domain}</code> and <code>@htmedia.in</code>.</li>
                   <li><strong>Official Helpline:</strong> <code>080-10062222</code> / <code>080-47105151</code> (9:00 AM – 7:00 PM IST).</li>
-                  <li><strong>Official Website:</strong> <code>https://peerpath.com</code>.</li>
+                  <li><strong>Official Website:</strong> <code>https://{BRAND.domain}</code>.</li>
                 </ul>
               </div>
 
@@ -502,9 +488,6 @@ export const StaticPageView: React.FC<StaticPageViewProps> = ({ initialTab = 'te
             </article>
           )}
 
-          {/* =========================================================================
-              TAB 5: CONTACT & SUPPORT
-             ========================================================================= */}
           {activeTab === 'contact' && (
             <article className="slp-article">
               <div className="slp-article-header">
@@ -523,8 +506,8 @@ export const StaticPageView: React.FC<StaticPageViewProps> = ({ initialTab = 'te
                   </div>
                   <h4>Candidate &amp; Mentor Support</h4>
                   <p>Inquiries about session bookings, rescheduling, and roadmap guidance.</p>
-                  <a href="mailto:support@peerpath.com" className="scc-action-link">
-                    support@peerpath.com ↗
+                  <a href={`mailto:support@${BRAND.domain}`} className="scc-action-link">
+                    support@{BRAND.domain} ↗
                   </a>
                   <span className="scc-response-time">Average response: &lt; 4 hours</span>
                 </div>
@@ -535,8 +518,8 @@ export const StaticPageView: React.FC<StaticPageViewProps> = ({ initialTab = 'te
                   </div>
                   <h4>Trust, Safety &amp; Compliance</h4>
                   <p>Report suspicious calls, fake recruiters, or policy violations.</p>
-                  <a href="mailto:compliance@peerpath.com" className="scc-action-link">
-                    compliance@peerpath.com ↗
+                  <a href={`mailto:compliance@${BRAND.domain}`} className="scc-action-link">
+                    compliance@{BRAND.domain} ↗
                   </a>
                   <span className="scc-response-time">Urgent triage: &lt; 2 hours</span>
                 </div>

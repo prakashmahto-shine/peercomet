@@ -6,6 +6,7 @@ import {
 import confetti from 'canvas-confetti';
 import { useApp } from '../../context/AppContext';
 import { isResumeRecent } from '../../utils/resume';
+import { BRAND } from '../../config/brand';
 
 export const ConfirmedView: React.FC = () => {
   const { bookingDraft, navigate, userProfile, setIsCvSyncModalOpen, selectedExpert, currentUser } = useApp();
@@ -110,7 +111,7 @@ export const ConfirmedView: React.FC = () => {
           <ol>
             <li>Your candidate profile and Trajectory Gap Report have been automatically pre-loaded for {expert.name || 'your mentor'}.</li>
             <li>You will receive a WhatsApp reminder 15 minutes before the call starts.</li>
-            <li>Post-session, your mentor will review and approve your <strong>PeerPath Verified Peer Badge</strong>.</li>
+            <li>Post-session, your mentor will review and approve your <strong>{BRAND.name} Verified Peer Badge</strong>.</li>
           </ol>
         </div>
 

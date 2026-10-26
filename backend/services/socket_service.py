@@ -50,8 +50,8 @@ def _user_id_from_environ(environ) -> Optional[str]:
 
 
 def _session_id_for_room(room_id: str) -> str:
-    # The client derives roomId as 'peerpath-room-<session id without "sess-">'
-    return "sess-" + room_id.replace("peerpath-room-", "", 1).replace("sess-", "", 1)
+    # The client derives roomId as 'peercomet-room-<session id without "sess-">' or 'peerpath-room-...'
+    return "sess-" + room_id.replace("peercomet-room-", "", 1).replace("peerpath-room-", "", 1).replace("sess-", "", 1)
 
 
 def _can_join_room(user_id: str, room_id: str) -> bool:
