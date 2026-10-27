@@ -183,7 +183,33 @@ export const Header: React.FC<HeaderProps> = ({
                     <MessageSquare size={15} /> Community
                   </button>
                 </>
-              ) : null
+              ) : (
+                <>
+                  <button 
+                    className={`myshine-link ${currentView === 'guidance-view' || currentView === 'experts-view' ? 'active' : ''}`} 
+                    onClick={() => onNavigate('guidance-view', '/peercomet')}
+                    title="Find & Browse Verified Mentors"
+                  >
+                    <Compass size={15} /> Find Mentors
+                  </button>
+
+                  <button 
+                    className={`myshine-link ${currentView === 'become-mentor-view' ? 'active' : ''}`} 
+                    onClick={() => onNavigate('become-mentor-view', '/become-a-mentor')}
+                    title="Apply as a Mentor on PeerComet"
+                  >
+                    <Sparkles size={15} /> Become a Mentor
+                  </button>
+
+                  <button 
+                    className={`myshine-link ${currentView === 'community-view' ? 'active' : ''}`} 
+                    onClick={() => onNavigate('community-view', '/community')}
+                    title="Mentor Insights & Discussions"
+                  >
+                    <MessageSquare size={15} /> Community
+                  </button>
+                </>
+              )
             ) : (
               /* Shine Jobs Portal Navigation */
               <>
@@ -705,8 +731,9 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               className="btn-header-login-gold"
               onClick={() => onNavigate('login-view', '/login?redirect=/peercomet&action=unlock')}
+              title="Sign in or register with your email"
             >
-              <User size={14} />
+              <User size={14} className="bhlg-user-icon" />
               <span>Login / Register</span>
             </button>
           )}
