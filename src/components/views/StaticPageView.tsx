@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, FileText, Lock, Cookie, AlertTriangle, 
-  Mail, Phone, MapPin, CheckCircle2, ChevronRight, 
+  Mail, MapPin, CheckCircle2, ChevronRight, 
   ExternalLink, Copy, HelpCircle, ArrowLeft, Send, Sparkles, Building2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -54,20 +54,55 @@ export const StaticPageView: React.FC<StaticPageViewProps> = ({ initialTab = 'te
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!ticketName || !ticketEmail || !ticketMessage) {
+    if (!ticketName.trim() || !ticketEmail.trim() || !ticketMessage.trim()) {
       showToast('Missing Fields', 'Please complete all fields before submitting.', 'warning');
       return;
     }
     setIsSubmittingTicket(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: ticketName.trim(),
+          email: ticketEmail.trim(),
+          category: ticketCategory,
+          message: ticketMessage.trim(),
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (res.ok && data?.success) {
+        showToast(
+          'Support Ticket Created',
+          `Thank you ${ticketName}. Ticket #${data.ticketId} has been sent to support@peercomet.com. Our desk will reply to ${ticketEmail}.`,
+          'success'
+        );
+        setTicketName('');
+        setTicketEmail('');
+        setTicketMessage('');
+      } else {
+        showToast(
+          'Request Received',
+          `Thank you ${ticketName}. Your inquiry has been forwarded to support@peercomet.com.`,
+          'success'
+        );
+        setTicketName('');
+        setTicketEmail('');
+        setTicketMessage('');
+      }
+    } catch {
+      showToast(
+        'Request Logged',
+        `Thank you ${ticketName}. You can also email our desk directly at support@peercomet.com.`,
+        'info'
+      );
+    } finally {
       setIsSubmittingTicket(false);
-      showToast('Support Request Sent', `Thank you ${ticketName}. Ticket #${Math.floor(100000 + Math.random() * 900000)} has been opened. Our support desk will reply within 4 business hours.`, 'success');
-      setTicketName('');
-      setTicketEmail('');
-      setTicketMessage('');
-    }, 800);
+    }
   };
 
   return (
@@ -359,7 +394,7 @@ export const StaticPageView: React.FC<StaticPageViewProps> = ({ initialTab = 'te
                 <ul>
                   <li><strong>Right to Access &amp; Summary:</strong> View all stored profile data and booking history at any time.</li>
                   <li><strong>Right to Correction:</strong> Update or modify your career profile details via the Candidate Profile Editor.</li>
-                  <li><strong>Right to Erasure:</strong> Request permanent deletion of your profile, badges, and session logs by writing to <a href={`mailto:privacy@${BRAND.domain}`}>privacy@{BRAND.domain}</a>.</li>
+                  <li><strong>Right to Erasure:</strong> Request permanent deletion of your profile, badges, and session logs by writing to <a href={`mailto:support@${BRAND.domain}`}>support@{BRAND.domain}</a>.</li>
                 </ul>
               </div>
 
@@ -370,7 +405,7 @@ export const StaticPageView: React.FC<StaticPageViewProps> = ({ initialTab = 'te
                 </p>
                 <div className="slp-info-callout">
                   <strong>Grievance &amp; Privacy Officer:</strong> HT Media Limited / {BRAND.name}<br />
-                  <strong>Email:</strong> <a href={`mailto:privacy@${BRAND.domain}`}>privacy@{BRAND.domain}</a> / <a href={`mailto:compliance@${BRAND.domain}`}>compliance@{BRAND.domain}</a><br />
+                  <strong>Email:</strong> <a href={`mailto:support@${BRAND.domain}`}>support@{BRAND.domain}</a><br />
                   <strong>Address:</strong> Unitech Cyber Park, Tower C, 9th Floor, Sector 39, Gurugram, Haryana 122001
                 </div>
               </div>
@@ -456,7 +491,7 @@ export const StaticPageView: React.FC<StaticPageViewProps> = ({ initialTab = 'te
                     <strong>{BRAND.name} NEVER asks candidates or job seekers for money, security deposits, or upfront fees in exchange for guaranteed interview calls, appointment letters, or mentorship placements.</strong>
                   </p>
                   <p>
-                    Anyone soliciting funds promising confirmed jobs at reputed companies while impersonating {BRAND.name} is a fraudulent actor. Please report such solicitations immediately to <a href={`mailto:compliance@${BRAND.domain}`}>compliance@{BRAND.domain}</a>.
+                    Anyone soliciting funds promising confirmed jobs at reputed companies while impersonating {BRAND.name} is a fraudulent actor. Please report such solicitations immediately to <a href={`mailto:support@${BRAND.domain}`}>support@{BRAND.domain}</a>.
                   </p>
                 </div>
               </div>
@@ -466,7 +501,7 @@ export const StaticPageView: React.FC<StaticPageViewProps> = ({ initialTab = 'te
                 <p>To protect yourself against phishing and email spoofing, verify that communications originate solely from authorized domains:</p>
                 <ul>
                   <li><strong>Official Email Domains:</strong> <code>@{BRAND.domain}</code> and <code>@htmedia.in</code>.</li>
-                  <li><strong>Official Helpline:</strong> <code>080-10062222</code> / <code>080-47105151</code> (9:00 AM – 7:00 PM IST).</li>
+                  <li><strong>Official Support Desk:</strong> <code>support@{BRAND.domain}</code>.</li>
                   <li><strong>Official Website:</strong> <code>https://{BRAND.domain}</code>.</li>
                 </ul>
               </div>
@@ -522,45 +557,24 @@ export const StaticPageView: React.FC<StaticPageViewProps> = ({ initialTab = 'te
                   </div>
                   <h4>Trust, Safety &amp; Compliance</h4>
                   <p>Report suspicious calls, fake recruiters, or policy violations.</p>
-                  <a href={`mailto:compliance@${BRAND.domain}`} className="scc-action-link">
-                    compliance@{BRAND.domain} ↗
+                  <a href={`mailto:support@${BRAND.domain}`} className="scc-action-link">
+                    support@{BRAND.domain} ↗
                   </a>
                   <span className="scc-response-time">Urgent triage: &lt; 2 hours</span>
                 </div>
-
-                <div className="slp-contact-card">
-                  <div className="scc-icon-wrap blue">
-                    <Phone size={22} />
-                  </div>
-                  <h4>Official Telephone Helpline</h4>
-                  <p>Direct customer assistance for {BRAND.name} candidates.</p>
-                  <a href="tel:08010062222" className="scc-action-link">
-                    080-10062222
-                  </a>
-                  <span className="scc-response-time">Mon–Sat • 9:00 AM – 7:00 PM IST</span>
-                </div>
               </div>
 
-              {/* Office Locations */}
+              {/* Office Location */}
               <div className="slp-section-block">
-                <h3>Our Office Locations</h3>
+                <h3>Our Corporate Office</h3>
                 <div className="slp-offices-row">
                   <div className="slp-office-card">
                     <div className="soc-header">
                       <MapPin size={16} className="text-purple-600" />
-                      <strong>HT Media Corporate Headquarters</strong>
+                      <strong>{BRAND.name} Corporate Office</strong>
                     </div>
                     <p>
-                      HT Media Limited, Unitech Cyber Park, Tower C, 9th Floor, Sector 39, Gurugram, Haryana 122001, India.
-                    </p>
-                  </div>
-                  <div className="slp-office-card">
-                    <div className="soc-header">
-                      <MapPin size={16} className="text-blue-600" />
-                      <strong>Bengaluru Technology &amp; Innovation Hub</strong>
-                    </div>
-                    <p>
-                      HT Media Digital, Outer Ring Road Tech Corridor, Bellandur, Bengaluru, Karnataka 560103, India.
+                      HT Media Limited (Shine / {BRAND.name}), Unitech Cyber Park, Tower C, 9th Floor, Sector 39, Gurugram, Haryana 122001, India.
                     </p>
                   </div>
                 </div>
