@@ -21,7 +21,8 @@ export const CommunityView: React.FC = () => {
     addPostComment, 
     togglePostLike, 
     toggleCommentLike,
-    followedMentorIds, 
+    followedMentorIds,
+    sessions, 
     toggleFollowMentor, 
     isFollowingMentor,
     navigate,
@@ -33,8 +34,6 @@ export const CommunityView: React.FC = () => {
   // Filters: 'following' vs 'all' vs 'my-posts'
   const [feedFilter, setFeedFilter] = useState<'all' | 'following' | 'my-posts'>('following');
   const [selectedTag, setSelectedTag] = useState<string>('all');
-  const [selectedPostForAnalytics, setSelectedPostForAnalytics] = useState<CommunityPost | null>(null);
-  const [analyticsTab, setAnalyticsTab] = useState<'overview' | 'audience' | 'conversions'>('overview');
   
   // Mentor composer modal state
   const [composerOpen, setComposerOpen] = useState<boolean>(false);
@@ -46,24 +45,23 @@ export const CommunityView: React.FC = () => {
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   
   // Expanded comments per post: { [postId]: boolean }
-  const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({
-    'post-1': true,
-    'post-2': true,
-    'post-3': true,
-    'post-4': true
-  });
+  const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
 
   const isMentorRole = currentUser?.role === 'mentor' || isCreatorMode;
 
   const myPosts = communityPosts.filter(post => 
-    post.mentorId === currentUser?.id || post.mentorId === 'akash'
+    post.mentorId === currentUser?.id || (currentUser?.creatorId && post.mentorId === currentUser.creatorId)
   );
+
+  // Only what the platform records today: posts, reactions and comments
+  const myTotalReactions = myPosts.reduce((acc, p) => acc + (p.likesCount || 0), 0);
+  const myTotalComments = myPosts.reduce((acc, p) => acc + (p.commentsCount || p.comments?.length || 0), 0);
 
   // Filter posts
   const filteredPosts = communityPosts.filter(post => {
     // My Posts filter
     if (feedFilter === 'my-posts') {
-      const isMine = post.mentorId === currentUser?.id || post.mentorId === 'akash';
+      const isMine = post.mentorId === currentUser?.id || (currentUser?.creatorId && post.mentorId === currentUser.creatorId);
       if (!isMine) return false;
     } else if (feedFilter === 'following') {
       // Following filter
@@ -136,12 +134,7 @@ export const CommunityView: React.FC = () => {
     <div className="community-page-wrapper">
       <div className="community-view-container">
         
-        {/* Authentic LinkedIn 3-Column Grid */}
         <div className="community-linkedin-grid">
-          
-          {/* =========================================================================
-              LEFT COLUMN: Candidate/User Profile Snapshot & Topic Navigation
-             ========================================================================= */}
           <aside className="community-left-column">
             
             {/* User Mini Profile Card (LinkedIn Style) */}
@@ -149,21 +142,21 @@ export const CommunityView: React.FC = () => {
               <div className="lpc-banner" />
               <div className="lpc-avatar-container">
                 <img 
-                  src={currentUser?.avatar || userProfile.avatar || '/avatars/prakash.jpg'} 
+                  src={currentUser?.avatar || userProfile.avatar || '/brand/android-chrome-192x192.png'} 
                   alt={currentUser?.name || userProfile.name || 'User'} 
                   className="lpc-avatar" 
                 />
               </div>
 
               <div className="lpc-body">
-                <h4 className="lpc-name">{currentUser?.name || userProfile.name || 'Prakash Mahto'}</h4>
+                <h4 className="lpc-name">{currentUser?.name || userProfile.name || 'Community Member'}</h4>
                 <p className="lpc-headline">
-                  {userProfile.headline || currentUser?.headline || 'Senior Frontend Engineer | React.js, TypeScript, Next.js UI Architect'}
+                  {userProfile.headline || currentUser?.headline || 'Tech Professional'}
                 </p>
                 <div className="lpc-company-loc">
-                  <span>🏢 {userProfile.currentCompany || 'TCS'}</span>
-                  <span>•</span>
-                  <span>📍 {userProfile.location || 'Bengaluru'}</span>
+                  {userProfile.currentCompany && <span>🏢 {userProfile.currentCompany}</span>}
+                  {userProfile.currentCompany && userProfile.location && <span>•</span>}
+                  {userProfile.location && <span>📍 {userProfile.location}</span>}
                 </div>
               </div>
 
@@ -195,28 +188,28 @@ export const CommunityView: React.FC = () => {
                   <div 
                     className="lpc-creator-analytics-box" 
                     onClick={() => setFeedFilter('my-posts')}
-                    title="Click to view your post reach and engagement analytics"
+                    title="View your posts"
                   >
                     <div className="lpc-ca-header">
                       <BarChart2 size={13} className="text-purple" />
-                      <span>Post Analytics & Reach</span>
+                      <span>My Posts</span>
                     </div>
                     <div className="lpc-ca-stats-row">
                       <div className="lpc-ca-stat">
-                        <span className="ca-val">14.8k</span>
-                        <span className="ca-lbl">Reach</span>
+                        <span className="ca-val">{myPosts.length}</span>
+                        <span className="ca-lbl">Posts</span>
                       </div>
                       <div className="lpc-ca-stat">
-                        <span className="ca-val">890</span>
-                        <span className="ca-lbl">Engaged</span>
+                        <span className="ca-val">{myTotalReactions}</span>
+                        <span className="ca-lbl">Reactions</span>
                       </div>
                       <div className="lpc-ca-stat">
-                        <span className="ca-val">18</span>
-                        <span className="ca-lbl">Bookings</span>
+                        <span className="ca-val">{myTotalComments}</span>
+                        <span className="ca-lbl">Comments</span>
                       </div>
                     </div>
                     <div className="lpc-ca-action-text">
-                      View My Posts Analytics →
+                      View My Posts →
                     </div>
                   </div>
                 </>
@@ -230,7 +223,7 @@ export const CommunityView: React.FC = () => {
               >
                 <Bookmark size={14} className="lpc-bookmark-icon" />
                 <span>My {BRAND.name} Bookings</span>
-                <span className="lpc-bookings-badge">3</span>
+                <span className="lpc-bookings-badge">{sessions.filter(s => s.status === 'upcoming').length}</span>
               </div>
             </div>
 
@@ -241,26 +234,28 @@ export const CommunityView: React.FC = () => {
                   <Briefcase size={14} className="text-purple" />
                   <span className="lcc-title">Career & Target Sync</span>
                 </div>
-                <span className="lcc-status-pill">
-                  <span className="lcc-green-dot" /> Actively Looking
-                </span>
+                {userProfile.jobSearchStatus && (
+                  <span className="lcc-status-pill">
+                    <span className="lcc-green-dot" /> {userProfile.jobSearchStatus}
+                  </span>
+                )}
               </div>
 
               <div className="lcc-metric-box">
                 <span className="lcc-m-label">Total Experience</span>
-                <span className="lcc-m-val">{userProfile.experienceYears || '4+ Years'}</span>
+                <span className="lcc-m-val">{userProfile.experienceYears || 'Not added'}</span>
               </div>
 
               {/* Verified Skills */}
               <div className="lcc-skills-section">
                 <span className="lcc-skills-label">Key Verified Skills</span>
                 <div className="lcc-skills-chips">
-                  {(userProfile.skills && userProfile.skills.length > 0 
-                    ? userProfile.skills.slice(0, 5) 
-                    : ['React.js', 'TypeScript', 'Next.js', 'REST APIs', 'Redux']
-                  ).map(s => (
+                  {(userProfile.skills || []).slice(0, 5).map(s => (
                     <span key={s} className="lcc-skill-chip">{s}</span>
                   ))}
+                  {(!userProfile.skills || userProfile.skills.length === 0) && (
+                    <span className="lcc-skills-label">No skills added yet</span>
+                  )}
                 </div>
               </div>
 
@@ -269,16 +264,13 @@ export const CommunityView: React.FC = () => {
                 className="btn-lcc-view-full"
                 onClick={() => navigate('profile-view')}
               >
-                <span>View Full Shine Profile</span>
+                <span>View Full Profile</span>
                 <ArrowRight size={13} />
               </button>
             </div>
 
           </aside>
 
-          {/* =========================================================================
-              CENTER COLUMN: LinkedIn Post Feed & Controls
-             ========================================================================= */}
           <main className="community-center-feed">
             
             {/* LinkedIn-style Composer (for Mentors) */}
@@ -286,7 +278,7 @@ export const CommunityView: React.FC = () => {
               <div className="linkedin-composer-box">
                 <div className="lcb-top-row">
                   <img 
-                    src={currentUser?.avatar || '/avatars/akash.jpg'} 
+                    src={currentUser?.avatar || '/brand/android-chrome-192x192.png'} 
                     alt={currentUser?.name || 'Mentor'} 
                     className="lcb-avatar" 
                   />
@@ -339,7 +331,7 @@ export const CommunityView: React.FC = () => {
                     onClick={() => setFeedFilter('my-posts')}
                   >
                     <BarChart2 size={13} />
-                    My Posts & Analytics
+                    My Posts
                     <span className="lff-badge lff-badge-purple">{myPosts.length}</span>
                   </button>
                 )}
@@ -364,25 +356,11 @@ export const CommunityView: React.FC = () => {
               <div className="mentor-posts-analytics-hero">
                 <div className="mpah-top-row">
                   <div className="mpah-title-group">
-                    <span className="mpah-badge"><Sparkles size={11} /> Mentor Studio Analytics</span>
-                    <h3>Your Community Content Reach</h3>
-                    <p>Track how your technical insights drive candidate discussions and convert into paid 1:1 bookings.</p>
+                    <span className="mpah-badge"><Sparkles size={11} /> Your posts</span>
+                    <h3>Your Community Posts</h3>
+                    <p>Reactions and comments on the insights you've shared with candidates.</p>
                   </div>
                   <div className="mpah-actions-group">
-                    <button 
-                      type="button" 
-                      className="btn-open-global-analytics"
-                      onClick={() => {
-                        const firstPost = communityPosts[0];
-                        if (firstPost) {
-                          setSelectedPostForAnalytics(firstPost);
-                          setAnalyticsTab('overview');
-                        }
-                      }}
-                      title="View detailed performance breakdown across all posts"
-                    >
-                      <BarChart2 size={13} /> Full Breakdown
-                    </button>
                     <button 
                       type="button" 
                       className="btn-create-new-post-hero"
@@ -394,91 +372,33 @@ export const CommunityView: React.FC = () => {
                 </div>
 
                 <div className="mpah-metrics-grid">
-                  <div 
-                    className="mpah-stat-card card-purple"
-                    onClick={() => {
-                      const firstPost = communityPosts[0];
-                      if (firstPost) {
-                        setSelectedPostForAnalytics(firstPost);
-                        setAnalyticsTab('overview');
-                      }
-                    }}
-                    title="Click to view reach breakdown"
-                  >
+                  <div className="mpah-stat-card card-purple">
                     <div className="mpah-card-header">
-                      <div className="mpah-icon-box bg-purple"><Eye size={15} /></div>
-                      <span className="mpah-badge-pill pill-purple"><TrendingUp size={10} /> +24%</span>
+                      <div className="mpah-icon-box bg-purple"><FileText size={15} /></div>
                     </div>
                     <div className="mpah-card-body">
-                      <span className="mpah-val">14,820</span>
-                      <span className="mpah-lbl">Total Impressions</span>
-                      <span className="mpah-subtext">Feed candidate reach</span>
+                      <span className="mpah-val">{myPosts.length}</span>
+                      <span className="mpah-lbl">Posts Published</span>
                     </div>
                   </div>
 
-                  <div 
-                    className="mpah-stat-card card-blue"
-                    onClick={() => {
-                      const firstPost = communityPosts[0];
-                      if (firstPost) {
-                        setSelectedPostForAnalytics(firstPost);
-                        setAnalyticsTab('overview');
-                      }
-                    }}
-                    title="Click to view discussion breakdown"
-                  >
+                  <div className="mpah-stat-card card-emerald">
+                    <div className="mpah-card-header">
+                      <div className="mpah-icon-box bg-emerald"><ThumbsUp size={15} /></div>
+                    </div>
+                    <div className="mpah-card-body">
+                      <span className="mpah-val">{myTotalReactions}</span>
+                      <span className="mpah-lbl">Reactions</span>
+                    </div>
+                  </div>
+
+                  <div className="mpah-stat-card card-blue">
                     <div className="mpah-card-header">
                       <div className="mpah-icon-box bg-blue"><MessageSquare size={15} /></div>
-                      <span className="mpah-badge-pill pill-blue">96% Reply</span>
                     </div>
                     <div className="mpah-card-body">
-                      <span className="mpah-val">890</span>
+                      <span className="mpah-val">{myTotalComments}</span>
                       <span className="mpah-lbl">Comments & Replies</span>
-                      <span className="mpah-subtext">Active discussions</span>
-                    </div>
-                  </div>
-
-                  <div 
-                    className="mpah-stat-card card-emerald"
-                    onClick={() => {
-                      const firstPost = communityPosts[0];
-                      if (firstPost) {
-                        setSelectedPostForAnalytics(firstPost);
-                        setAnalyticsTab('audience');
-                      }
-                    }}
-                    title="Click to view candidate audience demographics"
-                  >
-                    <div className="mpah-card-header">
-                      <div className="mpah-icon-box bg-emerald"><Users size={15} /></div>
-                      <span className="mpah-badge-pill pill-emerald">Direct</span>
-                    </div>
-                    <div className="mpah-card-body">
-                      <span className="mpah-val">340</span>
-                      <span className="mpah-lbl">Profile Visits</span>
-                      <span className="mpah-subtext">From post hooks</span>
-                    </div>
-                  </div>
-
-                  <div 
-                    className="mpah-stat-card card-amber"
-                    onClick={() => {
-                      const firstPost = communityPosts[0];
-                      if (firstPost) {
-                        setSelectedPostForAnalytics(firstPost);
-                        setAnalyticsTab('conversions');
-                      }
-                    }}
-                    title="Click to view 1:1 bookings & revenue funnel"
-                  >
-                    <div className="mpah-card-header">
-                      <div className="mpah-icon-box bg-amber"><Calendar size={15} /></div>
-                      <span className="mpah-badge-pill pill-amber">₹16.2K</span>
-                    </div>
-                    <div className="mpah-card-body">
-                      <span className="mpah-val val-amber">18</span>
-                      <span className="mpah-lbl">1:1 Bookings</span>
-                      <span className="mpah-subtext text-gold">Direct earnings</span>
                     </div>
                   </div>
                 </div>
@@ -617,39 +537,6 @@ export const CommunityView: React.FC = () => {
                         )}
                       </div>
 
-                      {/* LinkedIn-Style Post Analytics Bar (ONLY visible to the Mentor on their own posts under "My Posts & Analytics" tab) */}
-                      {feedFilter === 'my-posts' && (
-                        <div className="post-analytics-inline-strip">
-                          <div className="pais-left">
-                            <div className="pais-icon-wrap" title="Post Reach & Performance">
-                              <BarChart2 size={13} />
-                            </div>
-                            <div className="pais-stats">
-                              <span className="pais-metric">
-                                <Eye size={12} /> <strong>{(post.analytics?.impressions || 3420).toLocaleString()}</strong> impressions
-                              </span>
-                              <span className="pais-dot">•</span>
-                              <span className="pais-metric">
-                                <MessageSquare size={12} /> <strong>{post.commentsCount}</strong> comments
-                              </span>
-                            </div>
-                          </div>
-
-                          <button 
-                            type="button" 
-                            className="btn-open-post-analytics"
-                            onClick={() => {
-                              setSelectedPostForAnalytics(post);
-                              setAnalyticsTab('overview');
-                            }}
-                            title="Open detailed creator performance and conversion analytics"
-                          >
-                            <span>View analytics</span>
-                            <ArrowRight size={11} />
-                          </button>
-                        </div>
-                      )}
-
                       {/* LinkedIn-style Social Stats Row */}
                       <div className="post-social-counts-row">
                         <div className="post-reactions-summary">
@@ -708,7 +595,7 @@ export const CommunityView: React.FC = () => {
                           {/* New Comment Input */}
                           <div className="comment-composer-row">
                             <img 
-                              src={currentUser?.avatar || '/avatars/prakash.jpg'} 
+                              src={currentUser?.avatar || userProfile.avatar || '/brand/android-chrome-192x192.png'} 
                               alt={currentUser?.name || 'User'} 
                               className="comment-user-avatar" 
                             />
@@ -804,9 +691,6 @@ export const CommunityView: React.FC = () => {
 
       </div>
 
-      {/* =========================================================================
-          LINKEDIN-STYLE POST COMPOSER MODAL (FOR MENTORS)
-         ========================================================================= */}
       {composerOpen && (
         <div className="linkedin-modal-backdrop" onClick={() => setComposerOpen(false)}>
           <div className="linkedin-modal-card" onClick={e => e.stopPropagation()}>
@@ -822,14 +706,14 @@ export const CommunityView: React.FC = () => {
 
             <div className="lmc-author-strip">
               <img 
-                src={currentUser?.avatar || '/avatars/akash.jpg'} 
+                src={currentUser?.avatar || '/brand/android-chrome-192x192.png'} 
                 alt={currentUser?.name || 'Mentor'} 
                 className="lmc-author-avatar" 
               />
               <div className="lmc-author-meta">
                 <strong>{currentUser?.name || 'Mentor'}</strong>
                 <span className="lmc-privacy-tag">
-                  <Globe size={11} /> Anyone • {followedMentorIds.length * 140 + 380} followers notified
+                  <Globe size={11} /> Anyone • {followedMentorIds.length} followers notified
                 </span>
               </div>
             </div>
@@ -883,316 +767,6 @@ export const CommunityView: React.FC = () => {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          LINKEDIN-STYLE POST ANALYTICS MODAL (FOR MENTORS)
-         ========================================================================= */}
-      {selectedPostForAnalytics && (
-        <div className="analytics-modal-backdrop" onClick={() => setSelectedPostForAnalytics(null)}>
-          <div className="analytics-modal-card" onClick={e => e.stopPropagation()}>
-            
-            {/* Modal Header */}
-            <div className="amc-header">
-              <div className="amc-header-left">
-                <div className="amc-header-icon">
-                  <BarChart2 size={20} />
-                </div>
-                <div>
-                  <h3>Post Performance & Reach Analytics</h3>
-                  <p>Published {selectedPostForAnalytics.createdAt} by {selectedPostForAnalytics.mentorName} • Public to all candidates</p>
-                </div>
-              </div>
-              <button 
-                type="button" 
-                className="amc-close-btn"
-                onClick={() => setSelectedPostForAnalytics(null)}
-                aria-label="Close Analytics"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Post Excerpt Snippet */}
-            <div className="amc-post-snippet">
-              <div className="amc-ps-author">
-                <img src={selectedPostForAnalytics.mentorAvatar} alt="" className="amc-ps-avatar" />
-                <div>
-                  <strong>{selectedPostForAnalytics.mentorName}</strong>
-                  <span>{selectedPostForAnalytics.mentorRole} @ {selectedPostForAnalytics.mentorCompany}</span>
-                </div>
-              </div>
-              <p className="amc-ps-title">{selectedPostForAnalytics.title}</p>
-            </div>
-
-            {/* Modal Tabs: Overview | Audience & Companies | 1:1 Conversions */}
-            <div className="amc-tabs-bar">
-              <button
-                type="button"
-                className={`amc-tab-btn ${analyticsTab === 'overview' ? 'active' : ''}`}
-                onClick={() => setAnalyticsTab('overview')}
-              >
-                <BarChart2 size={14} /> Performance Overview
-              </button>
-              <button
-                type="button"
-                className={`amc-tab-btn ${analyticsTab === 'audience' ? 'active' : ''}`}
-                onClick={() => setAnalyticsTab('audience')}
-              >
-                <Users size={14} /> Audience & Companies
-              </button>
-              <button
-                type="button"
-                className={`amc-tab-btn ${analyticsTab === 'conversions' ? 'active' : ''}`}
-                onClick={() => setAnalyticsTab('conversions')}
-              >
-                <Target size={14} /> 1:1 Mentorship Conversions
-              </button>
-            </div>
-
-            <div className="amc-body">
-              {analyticsTab === 'overview' && (
-                <div className="amc-tab-pane">
-                  {/* 4 Top Highlight Metric Cards */}
-                  <div className="amc-kpi-grid">
-                    <div className="amc-kpi-card">
-                      <div className="amc-kpi-icon-wrap kpi-purple">
-                        <Eye size={18} />
-                      </div>
-                      <div className="amc-kpi-content">
-                        <span className="amc-kpi-val">{(selectedPostForAnalytics.analytics?.impressions || 3420).toLocaleString()}</span>
-                        <span className="amc-kpi-lbl">Total Impressions</span>
-                        <span className="amc-kpi-sub"><TrendingUp size={11} /> +24% vs avg post</span>
-                      </div>
-                    </div>
-
-                    <div className="amc-kpi-card">
-                      <div className="amc-kpi-icon-wrap kpi-blue">
-                        <Users size={18} />
-                      </div>
-                      <div className="amc-kpi-content">
-                        <span className="amc-kpi-val">{(selectedPostForAnalytics.analytics?.reach || 2180).toLocaleString()}</span>
-                        <span className="amc-kpi-lbl">Unique Members Reached</span>
-                        <span className="amc-kpi-sub">Engineers & candidates</span>
-                      </div>
-                    </div>
-
-                    <div className="amc-kpi-card">
-                      <div className="amc-kpi-icon-wrap kpi-emerald">
-                        <MessageSquare size={18} />
-                      </div>
-                      <div className="amc-kpi-content">
-                        <span className="amc-kpi-val">{selectedPostForAnalytics.analytics?.engagementRate || '4.8%'}</span>
-                        <span className="amc-kpi-lbl">Engagement Rate</span>
-                        <span className="amc-kpi-sub">Top 5% in tech community</span>
-                      </div>
-                    </div>
-
-                    <div className="amc-kpi-card">
-                      <div className="amc-kpi-icon-wrap kpi-amber">
-                        <Calendar size={18} />
-                      </div>
-                      <div className="amc-kpi-content">
-                        <span className="amc-kpi-val">{selectedPostForAnalytics.analytics?.bookingsGenerated || 4}</span>
-                        <span className="amc-kpi-lbl">1:1 Sessions Booked</span>
-                        <span className="amc-kpi-sub revenue-text">₹{(selectedPostForAnalytics.analytics?.revenueGenerated || 3596).toLocaleString()} Revenue</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Interactions Breakdown & Discussion Health */}
-                  <div className="amc-two-col-row">
-                    <div className="amc-panel-card">
-                      <h4 className="amc-panel-title">Engagements & Discussions</h4>
-                      <div className="amc-eng-breakdown-list">
-                        <div className="amc-eng-item">
-                          <span className="amc-ei-label"><ThumbsUp size={14} className="text-blue" /> Reactions</span>
-                          <span className="amc-ei-val">{selectedPostForAnalytics.likesCount}</span>
-                        </div>
-                        <div className="amc-eng-item">
-                          <span className="amc-ei-label"><MessageSquare size={14} className="text-emerald" /> Comments</span>
-                          <span className="amc-ei-val">{selectedPostForAnalytics.commentsCount}</span>
-                        </div>
-                        <div className="amc-eng-item">
-                          <span className="amc-ei-label"><CheckCircle size={14} className="text-purple" /> Mentor Replies Given</span>
-                          <span className="amc-ei-val">{selectedPostForAnalytics.analytics?.repliesCount || 1}</span>
-                        </div>
-                        <div className="amc-eng-item">
-                          <span className="amc-ei-label"><Share2 size={14} className="text-amber" /> Reposts & Shares</span>
-                          <span className="amc-ei-val">{selectedPostForAnalytics.analytics?.sharesCount || 12}</span>
-                        </div>
-                        <div className="amc-eng-item highlight">
-                          <span className="amc-ei-label"><Eye size={14} /> Profile Clicks from Post</span>
-                          <span className="amc-ei-val">{selectedPostForAnalytics.analytics?.profileClicks || 64}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="amc-panel-card">
-                      <h4 className="amc-panel-title">Discussion & Mentor Responsiveness</h4>
-                      <div className="amc-response-box">
-                        <div className="amc-response-ring">
-                          <span className="ring-val">100%</span>
-                          <span className="ring-lbl">Query Response</span>
-                        </div>
-                        <div className="amc-response-text">
-                          <strong>Active Engagement Signal</strong>
-                          <p>All candidate queries received high-signal technical answers. Fast mentor responses increase 1:1 session bookings by 3.2x.</p>
-                          <div className="amc-resp-time-badge">
-                            <Clock size={12} /> Avg. reply time: 24 mins
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {analyticsTab === 'audience' && (
-                <div className="amc-tab-pane">
-                  {/* Demographics by Job Title */}
-                  <div className="amc-panel-card mb-4">
-                    <h4 className="amc-panel-title">Who Viewed Your Post (By Seniority & Role)</h4>
-                    <div className="amc-progress-bars-stack">
-                      {(selectedPostForAnalytics.analytics?.topAudienceTitles || [
-                        { title: 'Senior Software Engineer', percentage: 42 },
-                        { title: 'Backend / Cloud Architect', percentage: 28 },
-                        { title: 'Fullstack Engineer', percentage: 18 },
-                        { title: 'Tech Lead / Engineering Manager', percentage: 12 }
-                      ]).map((item, idx) => (
-                        <div key={idx} className="amc-pb-row">
-                          <span className="amc-pb-label">{item.title}</span>
-                          <div className="amc-pb-track">
-                            <div className="amc-pb-fill" style={{ width: `${item.percentage}%` }}></div>
-                          </div>
-                          <span className="amc-pb-pct">{item.percentage}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Top Companies & Top Locations */}
-                  <div className="amc-two-col-row">
-                    <div className="amc-panel-card">
-                      <h4 className="amc-panel-title"><Building2 size={15} /> Top Companies of Viewers</h4>
-                      <div className="amc-chips-cloud">
-                        {(selectedPostForAnalytics.analytics?.topAudienceCompanies || [
-                          { company: 'Amazon', percentage: 22 },
-                          { company: 'Swiggy', percentage: 18 },
-                          { company: 'Razorpay', percentage: 16 },
-                          { company: 'TCS', percentage: 14 },
-                          { company: 'Microsoft', percentage: 12 }
-                        ]).map((comp, idx) => (
-                          <div key={idx} className="amc-company-pill">
-                            <span className="comp-name">{comp.company}</span>
-                            <span className="comp-pct">{comp.percentage}%</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="amc-panel-card">
-                      <h4 className="amc-panel-title"><MapPin size={15} /> Top Locations</h4>
-                      <div className="amc-chips-cloud">
-                        {(selectedPostForAnalytics.analytics?.topLocations || [
-                          { city: 'Bengaluru', percentage: 48 },
-                          { city: 'Hyderabad', percentage: 24 },
-                          { city: 'Pune', percentage: 16 },
-                          { city: 'Delhi NCR', percentage: 12 }
-                        ]).map((loc, idx) => (
-                          <div key={idx} className="amc-location-pill">
-                            <span className="loc-name">{loc.city}</span>
-                            <span className="loc-pct">{loc.percentage}%</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {analyticsTab === 'conversions' && (
-                <div className="amc-tab-pane">
-                  {/* 1:1 Booking Funnel */}
-                  <div className="amc-panel-card">
-                    <h4 className="amc-panel-title">{BRAND.name} Content-to-Booking Funnel</h4>
-                    <p className="amc-panel-sub">See how your technical post converted candidates from feed readers into paying 1:1 mentees.</p>
-                    
-                    <div className="amc-funnel-steps">
-                      <div className="amc-funnel-step">
-                        <div className="funnel-step-num">1</div>
-                        <div className="funnel-step-info">
-                          <span className="fsi-val">{(selectedPostForAnalytics.analytics?.impressions || 3420).toLocaleString()}</span>
-                          <span className="fsi-lbl">Feed Impressions</span>
-                          <span className="fsi-sub">Candidates saw post in feed</span>
-                        </div>
-                      </div>
-
-                      <div className="funnel-arrow">➔</div>
-
-                      <div className="amc-funnel-step">
-                        <div className="funnel-step-num">2</div>
-                        <div className="funnel-step-info">
-                          <span className="fsi-val">{Math.round((selectedPostForAnalytics.analytics?.impressions || 3420) * 0.36).toLocaleString()}</span>
-                          <span className="fsi-lbl">Deep Reads</span>
-                          <span className="fsi-sub">Expanded post & read thread (36%)</span>
-                        </div>
-                      </div>
-
-                      <div className="funnel-arrow">➔</div>
-
-                      <div className="amc-funnel-step">
-                        <div className="funnel-step-num">3</div>
-                        <div className="funnel-step-info">
-                          <span className="fsi-val">{selectedPostForAnalytics.analytics?.profileClicks || 64}</span>
-                          <span className="fsi-lbl">Profile Clicks</span>
-                          <span className="fsi-sub">Visited your mentor profile (5.1%)</span>
-                        </div>
-                      </div>
-
-                      <div className="funnel-arrow">➔</div>
-
-                      <div className="amc-funnel-step highlight">
-                        <div className="funnel-step-num">4</div>
-                        <div className="funnel-step-info">
-                          <span className="fsi-val">{selectedPostForAnalytics.analytics?.bookingsGenerated || 4}</span>
-                          <span className="fsi-lbl">1:1 Bookings Confirmed</span>
-                          <span className="fsi-sub">6.25% conversion from profile visit</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="amc-revenue-badge-row">
-                      <div className="amc-rev-box">
-                        <span className="rev-box-lbl">Mentor Revenue Generated from this Post</span>
-                        <strong className="rev-box-val">₹{(selectedPostForAnalytics.analytics?.revenueGenerated || 3596).toLocaleString()}</strong>
-                      </div>
-                      <div className="amc-tip-box">
-                        <Sparkles size={16} className="text-amber" />
-                        <span><strong>Creator Pro Tip:</strong> Adding actionable architecture takeaways and inviting doubts in comments boosts 1:1 booking conversions by 3.4x!</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="amc-footer">
-              <span className="amc-footer-note">
-                <ShieldCheck size={14} className="text-emerald" /> Metrics update in real-time based on candidate interactions
-              </span>
-              <button 
-                type="button" 
-                className="btn-amc-close"
-                onClick={() => setSelectedPostForAnalytics(null)}
-              >
-                Close Analytics
-              </button>
-            </div>
-
           </div>
         </div>
       )}

@@ -3,6 +3,7 @@ import { Search, Play, ShieldCheck, Star, ChevronLeft, ChevronRight, SearchX, Co
 import { Expert, ViewType } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { peerpathApi } from '../../services/api';
+import { isSelfMentor } from '../../utils/profile';
 
 const DOMAIN_OPTIONS = [
   'Full-Stack',
@@ -59,6 +60,7 @@ export const ExpertsGalleryView: React.FC<ExpertsGalleryViewProps> = ({
   }, [activeDomain, searchTerm]);
 
   const filteredExperts = creatorsList.filter((exp) => {
+    if (isSelfMentor(exp, currentUser)) return false;
     if (activeDomain !== 'all' && exp.domain.toLowerCase() !== activeDomain.toLowerCase()) return false;
     if (exp.price > priceLimit) return false;
     if (searchTerm) {
@@ -97,6 +99,10 @@ export const ExpertsGalleryView: React.FC<ExpertsGalleryViewProps> = ({
     }
     return 0;
   });
+
+  const PAGE_SIZE = 9;
+  const totalPages = Math.ceil(filteredExperts.length / PAGE_SIZE);
+  const paginatedExperts = filteredExperts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const handleCardClick = (id: string) => {
     onSelectExpert(id);
@@ -250,14 +256,9 @@ export const ExpertsGalleryView: React.FC<ExpertsGalleryViewProps> = ({
               <p style={{ color: '#64748b', fontSize: '13px' }}>Try resetting filters or adjusting search terms.</p>
             </div>
           ) : (
-            filteredExperts.map((exp) => {
-              const isSelf = Boolean(
-                currentUser && (
-                  exp.id === currentUser.id ||
-                  (currentUser.username && exp.id.toLowerCase() === currentUser.username.toLowerCase()) ||
-                  (currentUser.name && exp.name.toLowerCase() === currentUser.name.toLowerCase())
-                )
-              );
+            paginatedExperts.map((exp) => {
+              const isSelf = isSelfMentor(exp, currentUser);
+              const enabledServices = (exp.serviceOfferings || []).filter(o => o.isEnabled !== false).length;
 
               return (
                 <div key={exp.id} className={`expert-teaser-card ${isSelf ? 'self-expert-card' : ''}`} id={`card-${exp.id}`}>
@@ -298,9 +299,13 @@ export const ExpertsGalleryView: React.FC<ExpertsGalleryViewProps> = ({
                       <div className="card-footer-meta-row">
                         <div className="card-price-main">
                           <span className="card-price-prefix">Starts at</span>
-                          <strong className="card-price-amount">₹{exp.price || 499}</strong>
+                          <strong className="card-price-amount">₹{exp.price}</strong>
                         </div>
-                        <span className="card-services-badge">4 Services Available</span>
+                        {enabledServices > 0 && (
+                          <span className="card-services-badge">
+                            {enabledServices} Service{enabledServices === 1 ? '' : 's'} Available
+                          </span>
+                        )}
                       </div>
 
                       <div className="card-footer-actions-row">
@@ -344,81 +349,51 @@ export const ExpertsGalleryView: React.FC<ExpertsGalleryViewProps> = ({
       </div>
 
       {/* Centered Modern Shine Pagination */}
-      <div className="gallery-pagination">
-        <button 
-          type="button" 
-          className="pg-btn" 
-          disabled={currentPage === 1}
-          onClick={() => {
-            if (currentPage > 1) {
-              setCurrentPage(currentPage - 1);
-              window.scrollTo({ top: 180, behavior: 'smooth' });
-            }
-          }}
-        >
-          <ChevronLeft size={16} />
-        </button>
-        
-        <button 
-          type="button" 
-          className={`pg-btn ${currentPage === 1 ? 'active' : ''}`}
-          onClick={() => {
-            setCurrentPage(1);
-            window.scrollTo({ top: 180, behavior: 'smooth' });
-          }}
-        >
-          1
-        </button>
-        
-        <button 
-          type="button" 
-          className={`pg-btn ${currentPage === 2 ? 'active' : ''}`}
-          onClick={() => {
-            setCurrentPage(2);
-            window.scrollTo({ top: 180, behavior: 'smooth' });
-          }}
-        >
-          2
-        </button>
-        
-        <button 
-          type="button" 
-          className={`pg-btn ${currentPage === 3 ? 'active' : ''}`}
-          onClick={() => {
-            setCurrentPage(3);
-            window.scrollTo({ top: 180, behavior: 'smooth' });
-          }}
-        >
-          3
-        </button>
-        
-        <span className="pg-dots">...</span>
-        
-        <button 
-          type="button" 
-          className={`pg-btn ${currentPage === 8 ? 'active' : ''}`}
-          onClick={() => {
-            setCurrentPage(8);
-            window.scrollTo({ top: 180, behavior: 'smooth' });
-          }}
-        >
-          8
-        </button>
-        
-        <button 
-          type="button" 
-          className="pg-btn"
-          disabled={currentPage === 8}
-          onClick={() => {
-            if (currentPage < 8) {
-              setCurrentPage(currentPage + 1);
-              window.scrollTo({ top: 180, behavior: 'smooth' });
-            }
-          }}
-        >
-          <ChevronRight size={16} />
-        </button>
-      </div>
+      {totalPages > 1 && (
+        <div className="gallery-pagination">
+          <button 
+            type="button" 
+            className="pg-btn" 
+            disabled={currentPage === 1}
+            onClick={() => {
+              if (currentPage > 1) {
+                setCurrentPage(currentPage - 1);
+                window.scrollTo({ top: 180, behavior: 'smooth' });
+              }
+            }}
+          >
+            <ChevronLeft size={16} />
+          </button>
+          
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+            <button 
+              key={pageNum}
+              type="button" 
+              className={`pg-btn ${currentPage === pageNum ? 'active' : ''}`}
+              onClick={() => {
+                setCurrentPage(pageNum);
+                window.scrollTo({ top: 180, behavior: 'smooth' });
+              }}
+            >
+              {pageNum}
+            </button>
+          ))}
+          
+          <button 
+            type="button" 
+            className="pg-btn"
+            disabled={currentPage === totalPages}
+            onClick={() => {
+              if (currentPage < totalPages) {
+                setCurrentPage(currentPage + 1);
+                window.scrollTo({ top: 180, behavior: 'smooth' });
+              }
+            }}
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
 
     </div>
   );

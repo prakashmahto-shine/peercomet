@@ -10,6 +10,7 @@ import { useApp } from '../../context/AppContext';
 import { peerpathApi } from '../../services/api';
 import { upcomingBookableDates } from '../../utils/bookingDates';
 import { BRAND } from '../../config/brand';
+import { isResumeRecent } from '../../utils/resume';
 
 export const MySessionsView: React.FC = () => {
   const { 
@@ -24,7 +25,6 @@ export const MySessionsView: React.FC = () => {
     setAssessmentDraftSession,
     setIsAssessmentModalOpen,
     isCreatorMode,
-    updateCandidateResume,
     removeCandidateResume,
     setIsCvSyncModalOpen
   } = useApp();
@@ -52,6 +52,18 @@ export const MySessionsView: React.FC = () => {
   const displayUpcoming = isMentor ? mentorHostedUpcoming : candidateBookedUpcoming;
   const displayCompleted = isMentor ? mentorHostedCompleted : candidateBookedCompleted;
 
+  const mentorTotalEarnings = userProfile.mentorEarnings !== undefined && userProfile.mentorEarnings > 0
+    ? userProfile.mentorEarnings
+    : mentorHostedCompleted.reduce((sum, s) => sum + (s.amountPaid ?? s.expert.price ?? 0), 0);
+
+  const mentorTotalSessions = userProfile.mentorSessionsCount !== undefined && userProfile.mentorSessionsCount > 0
+    ? userProfile.mentorSessionsCount
+    : mentorHostedCompleted.length;
+
+  const candidateSkillBadgesCount = candidateBookedCompleted.filter(
+    s => Boolean(s.badgeAwarded)
+  ).length;
+
   const [activeTab, setActiveTab] = useState<'hosted' | 'upcoming' | 'completed'>(
     isMentor ? 'hosted' : 'upcoming'
   );
@@ -76,11 +88,8 @@ export const MySessionsView: React.FC = () => {
   const [preJoinCheckSession, setPreJoinCheckSession] = useState<typeof sessions[0] | null>(null);
   const [selectedRecordingSession, setSelectedRecordingSession] = useState<typeof sessions[0] | null>(null);
 
-  const isCandidateCvSynced = Boolean(
-    userProfile?.resumeLastUpdated && 
-    (userProfile.resumeLastUpdated.includes('Just now') || userProfile.resumeLastUpdated.includes('Synced')) &&
-    userProfile?.resumeFileName
-  );
+  // A resume uploaded in the last 30 days counts as up to date for the mentor
+  const isCandidateCvSynced = isResumeRecent(userProfile);
 
   const handleJoinCall = (session: typeof sessions[0]) => {
     if (!isMentor && !isCandidateCvSynced) {
@@ -99,8 +108,6 @@ export const MySessionsView: React.FC = () => {
 
   return (
     <div className="content-wrapper sessions-fullwidth-wrapper">
-      
-      {/* Top Header Navigation Row */}
       <div className="sessions-top-nav-bar" style={{ justifyContent: 'flex-end' }}>
 
         <div style={{ display: 'flex', gap: '10px' }}>
@@ -136,7 +143,6 @@ export const MySessionsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Hero Header & Quick Stats Row */}
       <div className="sessions-hero-card">
         <div className="sessions-hero-content">
           <div className="sessions-hero-badge">
@@ -153,7 +159,6 @@ export const MySessionsView: React.FC = () => {
           </p>
         </div>
 
-        {/* Quick Stats Grid */}
         <div className="sessions-hero-stats-grid">
           {isMentor ? (
             <>
@@ -168,7 +173,7 @@ export const MySessionsView: React.FC = () => {
               <div className="sh-stat-card">
                 <div className="sh-stat-icon-wrap icon-emerald"><DollarSign size={16} /></div>
                 <div>
-                  <strong className="sh-stat-num">₹{(userProfile.mentorEarnings || 47952).toLocaleString('en-IN')}</strong>
+                  <strong className="sh-stat-num">₹{mentorTotalEarnings.toLocaleString('en-IN')}</strong>
                   <span className="sh-stat-label">Total Earned</span>
                 </div>
               </div>
@@ -176,8 +181,10 @@ export const MySessionsView: React.FC = () => {
               <div className="sh-stat-card">
                 <div className="sh-stat-icon-wrap icon-amber"><ShieldCheck size={16} /></div>
                 <div>
-                  <strong className="sh-stat-num">{userProfile.mentorSessionsCount || 48}</strong>
-                  <span className="sh-stat-label">Mentored ({userProfile.mentorRating || 4.9}★)</span>
+                  <strong className="sh-stat-num">{mentorTotalSessions}</strong>
+                  <span className="sh-stat-label">
+                    {userProfile.mentorRating ? `Mentored (${userProfile.mentorRating}★)` : 'Completed'}
+                  </span>
                 </div>
               </div>
             </>
@@ -202,8 +209,8 @@ export const MySessionsView: React.FC = () => {
               <div className="sh-stat-card">
                 <div className="sh-stat-icon-wrap icon-amber"><ShieldCheck size={16} /></div>
                 <div>
-                  <strong className="sh-stat-num">1</strong>
-                  <span className="sh-stat-label">Skill Badge</span>
+                  <strong className="sh-stat-num">{candidateSkillBadgesCount}</strong>
+                  <span className="sh-stat-label">Skill Badges</span>
                 </div>
               </div>
             </>
@@ -211,7 +218,6 @@ export const MySessionsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Tab Navigation */}
       <div className="sessions-tabs-container">
         <div className="sessions-tab-btn-group">
           {isMentor ? (
@@ -272,7 +278,6 @@ export const MySessionsView: React.FC = () => {
         </div>
       </div>
 
-      {/* MENTOR TAB 1: Candidate Calls Hosted (for Akash / Mentor) */}
       {isMentor && activeTab === 'hosted' && (
         <div className="sessions-cards-stream">
           {mentorHostedUpcoming.length === 0 ? (
@@ -287,12 +292,10 @@ export const MySessionsView: React.FC = () => {
           ) : (
             mentorHostedUpcoming.map((sess) => (
               <div key={sess.id} className="session-card-compact" style={{ borderLeft: '3px solid #8B5CF6' }}>
-                
-                {/* Row 1: Candidate Info + Schedule + Host Room CTA */}
                 <div className="scc-main-row">
                   <div className="scc-mentor-profile">
                     <div className="scc-avatar-wrap">
-                      <img src={sess.candidateAvatar || '/avatars/prakash.jpg'} alt={sess.candidateName} className="scc-avatar" />
+                      <img src={sess.candidateAvatar || '/brand/android-chrome-192x192.png'} alt={sess.candidateName} className="scc-avatar" />
                       <span className="scc-verified-check" style={{ background: '#3B82F6' }}><User size={10} color="#fff" /></span>
                     </div>
 
@@ -332,10 +335,9 @@ export const MySessionsView: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Row 2: Secondary Bar */}
                 <div className="scc-secondary-bar">
                   <span className="scc-fee-tag">
-                    💰 Session Fee: <strong>₹{userProfile.mentorRate || 499}</strong> ({userProfile.mentorDuration || 30} mins)
+                    Session Fee: <strong>₹{(sess.amountPaid ?? sess.expert.price ?? userProfile.mentorRate ?? 0).toLocaleString('en-IN')}</strong> ({userProfile.mentorDuration || 30} mins)
                   </span>
 
                   <div className="scc-secondary-actions">
@@ -349,7 +351,6 @@ export const MySessionsView: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Inline Reschedule Drawer */}
                 {reschedulingId === sess.id && (
                   <div className="reschedule-drawer-card">
                     <div className="rd-header">
@@ -412,7 +413,6 @@ export const MySessionsView: React.FC = () => {
         </div>
       )}
 
-      {/* CANDIDATE TAB 1: Upcoming Mentorship Sessions (where user is Candidate) */}
       {activeTab === 'upcoming' && (
         <div className="sessions-cards-stream">
           {candidateBookedUpcoming.length === 0 ? (
@@ -421,14 +421,12 @@ export const MySessionsView: React.FC = () => {
               <h3>No booked guidance calls scheduled</h3>
               <p>Explore verified industry leaders and book your 1:1 trajectory guidance call today.</p>
               <button className="btn-shine-gold" onClick={() => navigate('experts-view')}>
-                <Plus size={16} /> Explore 500+ Mentors
+                <Plus size={16} /> Explore Mentors
               </button>
             </div>
           ) : (
             candidateBookedUpcoming.map((sess) => (
               <div key={sess.id} className="session-card-compact">
-                
-                {/* Row 1: Mentor Profile + Schedule Badge + Join Room Action */}
                 <div className="scc-main-row">
                   <div className="scc-mentor-profile">
                     <div className="scc-avatar-wrap">
@@ -451,7 +449,6 @@ export const MySessionsView: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Clean Schedule Pill */}
                   <div className="scc-schedule-pill">
                     <div className="scc-sched-item">
                       <Calendar size={13} className="text-blue-600" />
@@ -464,7 +461,6 @@ export const MySessionsView: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Primary CTA */}
                   <div className="scc-action-cta">
                     <button 
                       type="button" 
@@ -478,13 +474,12 @@ export const MySessionsView: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Row 2: Slim CV Readiness Strip + Secondary Actions */}
                 <div className="scc-secondary-bar">
                   <div className="scc-cv-status-box">
                     {isCandidateCvSynced ? (
                       <div className="scc-cv-synced-pill">
                         <CheckCircle2 size={12} className="text-emerald-600 flex-shrink-0" />
-                        <span><strong>CV Attached:</strong> {userProfile.resumeFileName || 'Resume.pdf'} (Synced for {sess.expert.name})</span>
+                        <span><strong>CV Attached:</strong> {userProfile.resumeFileName} (shared with {sess.expert.name})</span>
                         <button type="button" className="btn-scc-cv-link" onClick={() => setIsCvSyncModalOpen(true)}>Change</button>
                       </div>
                     ) : (
@@ -521,7 +516,6 @@ export const MySessionsView: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Inline Reschedule Drawer */}
                 {reschedulingId === sess.id && (
                   <div className="reschedule-drawer-card">
                     <div className="rd-header">
@@ -584,7 +578,6 @@ export const MySessionsView: React.FC = () => {
         </div>
       )}
 
-      {/* TAB: Completed Sessions */}
       {activeTab === 'completed' && (
         <div className="sessions-cards-stream">
           {(isMentor ? mentorHostedCompleted : candidateBookedCompleted).length === 0 ? (
@@ -600,7 +593,7 @@ export const MySessionsView: React.FC = () => {
                   <div className="scc-mentor-profile">
                     <div className="scc-avatar-wrap">
                       <img 
-                        src={isMentor ? (sess.candidateAvatar || '/avatars/prakash.jpg') : sess.expert.avatar} 
+                        src={isMentor ? (sess.candidateAvatar || '/brand/android-chrome-192x192.png') : sess.expert.avatar} 
                         alt={isMentor ? sess.candidateName : sess.expert.name} 
                         className="scc-avatar" 
                       />
@@ -670,7 +663,6 @@ export const MySessionsView: React.FC = () => {
         </div>
       )}
 
-      {/* Pre-Call Zero-Prep CV Check Modal */}
       {preJoinCheckSession && (
         <div className="app-modal-backdrop open">
           <div className="app-modal-card prejoin-modal-card">
@@ -706,13 +698,9 @@ export const MySessionsView: React.FC = () => {
                   type="button" 
                   className="btn-shine-gold-lg btn-prejoin-sync"
                   onClick={() => {
-                    if (updateCandidateResume) {
-                      updateCandidateResume('Prakash_Mahto_LeadFrontend_Updated.pdf', ['Next.js 15', 'React 19', 'Micro-Frontends', 'UI Architecture'], '₹24L - ₹30 LPA');
-                    }
-                    const target = preJoinCheckSession;
+                    // Upload a real, current resume first; the user joins again afterwards
                     setPreJoinCheckSession(null);
-                    setActiveSession(target);
-                    navigate('live-call-view');
+                    setIsCvSyncModalOpen(true);
                   }}
                 >
                   <Sparkles size={16} />
@@ -737,7 +725,6 @@ export const MySessionsView: React.FC = () => {
         </div>
       )}
 
-      {/* Session Recording Video Player Modal */}
       {selectedRecordingSession && (
         <div className="app-modal-backdrop open" onClick={() => setSelectedRecordingSession(null)}>
           <div 
@@ -745,7 +732,6 @@ export const MySessionsView: React.FC = () => {
             style={{ maxWidth: '680px', width: '92%', borderRadius: '16px', overflow: 'hidden', padding: '0', background: '#0F172A', color: '#FFFFFF', border: '1px solid #334155' }}
             onClick={e => e.stopPropagation()}
           >
-            {/* Modal Header */}
             <div style={{ padding: '16px 20px', background: '#1E293B', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #334155' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -770,7 +756,6 @@ export const MySessionsView: React.FC = () => {
               </button>
             </div>
 
-            {/* Video Player Box */}
             <div style={{ background: '#000000', position: 'relative', width: '100%', minHeight: '340px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <video
                 controls
@@ -784,7 +769,6 @@ export const MySessionsView: React.FC = () => {
               </video>
             </div>
 
-            {/* Modal Footer with Actions & Metadata */}
             <div style={{ padding: '16px 20px', background: '#1E293B', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
               <div>
                 <span style={{ fontSize: '12.5px', color: '#10B981', fontWeight: 700, display: 'block' }}>
@@ -797,7 +781,7 @@ export const MySessionsView: React.FC = () => {
 
               <a
                 href={selectedRecordingSession.recordingUrl || peerpathApi.getRecordingUrl(selectedRecordingSession.id)}
-                download={`shine-peerpath-${selectedRecordingSession.id}.webm`}
+                download={`shine-peercomet-${selectedRecordingSession.id}.webm`}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#2563EB', color: '#fff', padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, textDecoration: 'none' }}
               >
                 <Download size={14} /> Download (.webm)

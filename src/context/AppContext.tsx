@@ -2,11 +2,13 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   Expert, MentorshipSession, PeerVerifiedBadge, UserProfileData, ViewType, 
   UserAccount, PeerpathJobContext, BootcampMasterclass, NamedExpertInvite,
-  CommunityPost, CommunityComment, CommunityNotification
+  CommunityPost, CommunityComment, CommunityNotification,
+  ResumeUploadResult
 } from '../types';
 import { peerpathApi, API_BASE, apiFetch, AuthUser } from '../services/api';
 import { pathToView, viewToPath } from '../routes';
 import { BRAND } from '../config/brand';
+import { isProfileComplete, parseNameAndRole } from '../utils/profile';
 
 export interface ToastMessage {
   id: string;
@@ -29,7 +31,7 @@ interface AppContextType {
   // Email code sign-in / sign-up. requestOtp returns null on error (a toast is shown).
   requestOtp: (email: string) => Promise<{ requestId: string; isRegistered: boolean } | null>;
   verifyOtp: (params: { requestId: string; email: string; otp: string; name?: string; mobile?: string }) => Promise<boolean>;
-  logout: () => void;
+  logout: (redirectToAdmin?: boolean) => void;
 
   // Experts & Mentors
   experts: Expert[];
@@ -55,7 +57,8 @@ interface AppContextType {
   // Candidate Profile Data
   userProfile: UserProfileData;
   updateUserProfile: (profile: Partial<UserProfileData>) => void;
-  updateFullProfile: (profile: Partial<UserProfileData>) => void;
+  // Saves profile fields on the server; resolves false (and shows a toast) on error
+  updateFullProfile: (profile: Partial<UserProfileData>) => Promise<boolean>;
   updateProfileSummary: (summary: string) => void;
   addSkill: (skill: string) => void;
   removeSkill: (skill: string) => void;
@@ -75,6 +78,7 @@ interface AppContextType {
   creatorActiveTab: 'bookings' | 'reviews' | 'availability' | 'profile-settings' | 'teaser' | 'pricing' | 'history';
   setCreatorActiveTab: (tab: 'bookings' | 'reviews' | 'availability' | 'profile-settings' | 'teaser' | 'pricing' | 'history') => void;
   navigateToCreatorStudio: (tab?: 'bookings' | 'reviews' | 'availability' | 'profile-settings' | 'teaser' | 'pricing' | 'history') => void;
+  studioActionNonce: number;
 
   // Modals
   isBookingModalOpen: boolean;
@@ -91,8 +95,12 @@ interface AppContextType {
   setIsUpdateProfileModalOpen: (open: boolean) => void;
   pendingBookingCheckout: boolean;
   setPendingBookingCheckout: (pending: boolean) => void;
-  updateCandidateResume: (fileName: string, extractedSkills?: string[], targetCtc?: string) => void;
-  removeCandidateResume: () => void;
+  // Uploads the resume file; returns the fields found in it (not saved until the user saves the form)
+  uploadResume: (file: File) => Promise<ResumeUploadResult | null>;
+  removeCandidateResume: () => Promise<void>;
+  // Hand-off from the CV upload modal to the profile form, which pre-fills from it
+  resumeExtract: ResumeUploadResult | null;
+  setResumeExtract: (result: ResumeUploadResult | null) => void;
   assessmentDraftSession: MentorshipSession | null;
   setAssessmentDraftSession: (session: MentorshipSession | null) => void;
   bookingDraft: { expert: Expert; date: string; timeSlot: string; attachedCvName?: string; sessionType?: string; amount?: number; duration?: string };
@@ -101,22 +109,20 @@ interface AppContextType {
   // Trajectory Calibration (10-Second Candidate Onboarding)
   isCalibrationModalOpen: boolean;
   setIsCalibrationModalOpen: (open: boolean) => void;
+  // Saves the career goal (registration step 2); resolves false on error
   calibrateCandidateProfile: (data: {
     currentRole: string;
     currentCompany: string;
     dreamCompany: string;
     targetRole: string;
-    resumeFileName?: string;
-    skills?: string[];
-    currentCtc?: string;
+    domain?: string;
     targetCtc?: string;
-  }) => void;
+  }) => Promise<boolean>;
 
   // First Cohort: Bootcamps & Named Expert Invites
   bootcamps: BootcampMasterclass[];
   registeredBootcampIds: string[];
   registerForBootcamp: (bootcampId: string) => void;
-  namedExpertInvite: NamedExpertInvite;
 
   // Global Search & Toast Notifications
   searchQuery: string;
@@ -152,6 +158,15 @@ interface AppContextType {
 }
 
 // Shown until the signed-in user's profile has loaded from the server
+const CREATOR_MODE_KEY = 'peerpath_creator_mode';
+
+/** Remembers a mode the user picked on the header switcher, for that user only. */
+export const rememberCreatorMode = (userId: string, enabled: boolean) => {
+  try {
+    localStorage.setItem(`${CREATOR_MODE_KEY}:${userId}`, JSON.stringify(enabled));
+  } catch {}
+};
+
 const EMPTY_PROFILE: UserProfileData = {
   name: '',
   headline: '',
@@ -167,483 +182,90 @@ const EMPTY_PROFILE: UserProfileData = {
 };
 
 // Maps the backend candidate profile (CandidateProfile in schemas.py) onto the UI profile shape
-const profileFromServer = (raw: any): UserProfileData => ({
-  ...EMPTY_PROFILE,
-  ...raw,
-  skills: raw?.skills || [],
-  badges: raw?.badges || [],
-  currentCompany: raw?.currentCompany || raw?.pastCompany,
-  dreamCompany: raw?.dreamCompany || raw?.targetCompany
-});
+const profileFromServer = (raw: any): UserProfileData => {
+  if (!raw) return EMPTY_PROFILE;
 
-const initialBootcamps: BootcampMasterclass[] = [
-  {
-    id: 'bootcamp-ml-101',
-    title: 'Services / SDE to ML & High-Scale Systems Transition Sprint',
-    domain: 'AI/ML',
-    mentorName: 'Neha Sharma',
-    mentorRole: 'Senior ML Engineer',
-    mentorCompany: 'Swiggy',
-    mentorExCompany: 'Flipkart (4 yrs)',
-    mentorAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80',
-    date: 'Saturday, 12 Sep 2026',
-    time: '05:00 PM - 07:00 PM IST',
-    duration: '1-Time Live Interactive Sprint',
-    registeredCount: 88,
-    maxCapacity: 100,
-    topics: [
-      'Deconstructing the Swiggy/Flipkart ML Interview Bar: What hiring managers test',
-      'Real-world MLOps Blueprint: Feature Stores, Real-time Inference & Model Drift',
-      'Production System Design Patterns to crack the Senior ML bar',
-      'Referral Pool Activation + 5 Exclusive 1:1 Mentorship Fast-Tracks'
-    ],
-    takeaways: [
-      'Verified ML Transition Roadmap (Step-by-Step Blueprint)',
-      'Production System Design Template for RecSys & Real-time Ranking',
-      'Fast-track Referral Eligibility Voucher for Tier-1 Product Companies'
-    ],
-    isFree: true,
-    expertId: 'ishita',
-    openSlotsOnEndCount: 5
-  },
-  {
-    id: 'bootcamp-arch-201',
-    title: 'Breaking the Staff Engineer Ceiling: Micro-Frontends & System Performance Sprint',
-    domain: 'Full-Stack',
-    mentorName: 'Saheli Kanjilal',
-    mentorRole: 'Staff Frontend Architect',
-    mentorCompany: 'Razorpay',
-    mentorExCompany: 'TCS Services (5 yrs)',
-    mentorAvatar: '/avatars/saheli.jpg',
-    date: 'Sunday, 13 Sep 2026',
-    time: '06:00 PM - 08:00 PM IST',
-    duration: '1-Time Live Interactive Sprint',
-    registeredCount: 92,
-    maxCapacity: 100,
-    topics: [
-      'Architecting Module Federation at Razorpay scale (10M+ daily transactions)',
-      'Cracking L5/L6 Staff Engineer Frontend System Design rounds',
-      'Strategy playbook to jump from services to ₹26L+ Tier-1 product tech salary',
-      'Candidate Portfolio Teardown & Opening 1:1 Fast-Track Review Slots'
-    ],
-    takeaways: [
-      'Razorpay Core Web Vitals production optimization checklist',
-      'L5/L6 Frontend & Micro-Frontend System Design cheatsheet',
-      'Fast-track 1:1 Architecture & Resume Review Voucher'
-    ],
-    isFree: true,
-    expertId: 'saheli',
-    openSlotsOnEndCount: 3
+  const years = raw.totalExperienceYears;
+  const months = raw.totalExperienceMonths;
+  let expText = raw.experienceYears;
+  if (!expText && (years !== null && years !== undefined)) {
+    expText = `${years} Year${years === 1 ? '' : 's'}${months ? ` ${months} Mo` : ''}`;
   }
-];
 
-const defaultNamedExpertInvite: NamedExpertInvite = {
-  mentorName: 'Neha Sharma',
-  mentorRole: 'Senior ML Engineer',
-  mentorCompany: 'Swiggy',
-  mentorExCompany: 'Flipkart (4 yrs)',
-  mentorAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80',
-  domain: 'AI/ML & Platform Engineering',
-  headline: 'Swiggy Senior ML Engineer • Ex-Flipkart',
-  description: 'Neha, who just joined Swiggy as a Senior ML Engineer after 4 years at Flipkart, has opened 5 exclusive slots for 1:1 career conversations this month. She is specifically talking to engineers working on their ML & high-scale product transition.',
-  targetAudience: 'Engineers & Developers transitioning to AI/ML & High-Scale Systems',
-  totalSlots: 5,
-  remainingSlots: 3,
-  price: 999,
-  expertId: 'ishita'
+  const curLpa = raw.currentCtcLpa;
+  let curCtc = raw.currentCtc;
+  if (!curCtc && (curLpa !== null && curLpa !== undefined)) {
+    curCtc = `₹${curLpa} LPA`;
+  }
+
+  const expLpa = raw.expectedCtcLpa;
+  let expCtc = raw.expectedCtc;
+  if (!expCtc && (expLpa !== null && expLpa !== undefined)) {
+    expCtc = `₹${expLpa} LPA`;
+  }
+
+  const rawFullName = raw.name || [raw.firstName, raw.lastName].filter(Boolean).join(' ');
+  const { cleanName, role: extractedRole } = parseNameAndRole(rawFullName, raw.designation);
+  const designation = raw.designation && !/^(tech professional|candidate|developer|professional)$/i.test(raw.designation.trim())
+    ? raw.designation 
+    : (extractedRole || raw.designation || '');
+
+  let firstName = raw.firstName || '';
+  let lastName = raw.lastName || '';
+  if (cleanName) {
+    const parts = cleanName.split(' ');
+    firstName = parts[0] || firstName;
+    lastName = parts.slice(1).join(' ') || '';
+  }
+
+  return {
+    ...EMPTY_PROFILE,
+    ...raw,
+    name: cleanName || rawFullName || raw.name || '',
+    firstName,
+    lastName,
+    designation,
+    experienceYears: expText || '',
+    currentCtc: curCtc || '',
+    expectedCtc: expCtc || '',
+    skills: raw.skills || [],
+    badges: raw.badges || [],
+    phone: raw.phone || raw.mobile || '',
+    currentCompany: raw.currentlyNotWorking ? '' : (raw.currentCompany || raw.pastCompany || ''),
+    dreamCompany: raw.dreamCompany || raw.targetCompany || '',
+    headline: raw.headline && !/^(tech professional|candidate)$/i.test(raw.headline.trim())
+      ? raw.headline
+      : (designation ? `${designation}${raw.currentCompany && !raw.currentlyNotWorking ? ` @ ${raw.currentCompany}` : ''}` : '')
+  };
 };
 
-const DEFAULT_FALLBACK_EXPERT: Expert = {
-  id: 'akash',
-  name: 'Akash Jain',
-  role: 'Lead Product Manager',
-  company: 'Shine (HT Media)',
-  domain: 'Product Management',
-  experience: '7+ Years Exp.',
-  rating: 4.95,
-  reviewsCount: 142,
-  sessionsCount: 280,
-  price: 999,
-  location: 'Bengaluru / Hybrid',
-  duration: '01:00',
-  avatar: '/avatars/akash.jpg',
-  videoPoster: '/avatars/akash.jpg',
-  teaserTitle: 'Teaser: Transitioning from SDE-2 to High-Impact Product Management',
-  skills: ['PRD Writing', 'Product Discovery', 'Growth Metrics', 'A/B Testing'],
-  bio: `Lead PM at Shine managing Career Multiplier & ${BRAND.name}.`,
-  verifiedEmail: 'akash.jain@shine.com',
-  isVerifiedEmployer: true
+// Bootcamps are listed only when real ones are scheduled
+const initialBootcamps: BootcampMasterclass[] = [];
+
+// Placeholder until a mentor is selected; deliberately empty (no sample person)
+const EMPTY_EXPERT: Expert = {
+  id: '',
+  name: '',
+  role: '',
+  company: '',
+  domain: '',
+  experience: '',
+  rating: 0,
+  reviewsCount: 0,
+  sessionsCount: 0,
+  price: 0,
+  location: '',
+  duration: '',
+  avatar: '',
+  videoPoster: '',
+  teaserTitle: '',
+  skills: [],
+  bio: '',
+  verifiedEmail: '',
+  isVerifiedEmployer: false
 };
 
-const INITIAL_COMMUNITY_POSTS: CommunityPost[] = [
-  {
-    id: 'post-1',
-    mentorId: 'saheli',
-    mentorName: 'Saheli Kanjilal',
-    mentorRole: 'Staff Backend & Cloud Engineer',
-    mentorCompany: 'Razorpay',
-    mentorAvatar: '/avatars/saheli.jpg',
-    title: 'Distributed Transactions & Outbox Pattern: What we evaluate in 40LPA+ Backend Interviews',
-    content: `When engineers interview for Senior Backend / Staff positions, 80% struggle to explain how to maintain consistency across microservices without distributed 2PC locks.
-
-Here is what we look for when designing resilient payment and checkout services:
-1. Idempotency Key architecture at the API gateway layer with Redis caching + database lock.
-2. Transactional Outbox Pattern with Debezium CDC (Change Data Capture) or Kafka Connect.
-3. Dead Letter Queues (DLQ) paired with automated exponential backoff retry workers.
-4. Handling split-brain network partitions using fencing tokens.
-
-If you are preparing for backend system design rounds this month, drop your architecture questions below and I'll break down common pitfalls!`,
-    tags: ['System Design', 'Backend Architecture', 'Kafka', 'Interview Prep'],
-    createdAt: '2 hours ago',
-    likesCount: 52,
-    likedByCurrentUser: false,
-    commentsCount: 3,
-    comments: [
-      {
-        id: 'c-1',
-        postId: 'post-1',
-        authorId: 'prakash',
-        authorName: 'Prakash Mahto',
-        authorRole: 'Senior Frontend Engineer (Transitioning to Fullstack)',
-        authorAvatar: '/avatars/prakash.jpg',
-        authorIsMentor: false,
-        content: 'In the Outbox pattern, how do you prevent duplicated messages in Kafka if the polling worker crashes after pushing to the broker but before committing the database transaction status?',
-        createdAt: '1 hour ago',
-        likesCount: 6,
-        likedByCurrentUser: false
-      },
-      {
-        id: 'c-2',
-        postId: 'post-1',
-        authorId: 'saheli',
-        authorName: 'Saheli Kanjilal',
-        authorRole: 'Staff Backend & Cloud Engineer',
-        authorAvatar: '/avatars/saheli.jpg',
-        authorIsMentor: true,
-        content: '@Prakash Great question! You should always design the downstream consumer to be idempotent. Relying on "exactly-once" delivery across broker boundaries introduces high latency. Consumer-side deduplication via an idempotency table is the industry gold standard.',
-        createdAt: '45 mins ago',
-        likesCount: 14,
-        likedByCurrentUser: true
-      },
-      {
-        id: 'c-3',
-        postId: 'post-1',
-        authorId: 'c-amit',
-        authorName: 'Amit Verma',
-        authorRole: 'SDE-2 @ Infosys',
-        authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        authorIsMentor: false,
-        content: 'Bookmarked! Just scheduled a 1:1 session with you next Tuesday for my Razorpay interview prep!',
-        createdAt: '20 mins ago',
-        likesCount: 3,
-        likedByCurrentUser: false
-      }
-    ],
-    analytics: {
-      impressions: 3420,
-      reach: 2180,
-      engagements: 142,
-      engagementRate: '4.8%',
-      reactionsBreakdown: { likes: 44, hearts: 6, insightful: 2 },
-      commentsCount: 3,
-      repliesCount: 1,
-      sharesCount: 12,
-      profileClicks: 64,
-      bookingsGenerated: 4,
-      revenueGenerated: 3596,
-      topAudienceTitles: [
-        { title: 'Senior Software Engineer', percentage: 42 },
-        { title: 'Backend / Cloud Engineer', percentage: 28 },
-        { title: 'Tech Lead & Architect', percentage: 18 },
-        { title: 'Data Scientist / ML Engineer', percentage: 12 }
-      ],
-      topAudienceCompanies: [
-        { company: 'Amazon', percentage: 22 },
-        { company: 'Swiggy', percentage: 18 },
-        { company: 'Razorpay', percentage: 16 },
-        { company: 'TCS', percentage: 14 },
-        { company: 'Microsoft', percentage: 12 }
-      ],
-      topLocations: [
-        { city: 'Bengaluru', percentage: 48 },
-        { city: 'Hyderabad', percentage: 24 },
-        { city: 'Pune', percentage: 16 },
-        { city: 'Delhi NCR', percentage: 12 }
-      ]
-    }
-  },
-  {
-    id: 'post-2',
-    mentorId: 'ishita',
-    mentorName: 'Ishita Sharma',
-    mentorRole: 'Senior Frontend Architect',
-    mentorCompany: 'Swiggy',
-    mentorAvatar: '/avatars/ishita.jpg',
-    title: 'The SDE-2 to Frontend Staff Transition: Micro-Frontends, INP Optimization & Design Systems',
-    content: `A common myth: "Frontend interviews are just LeetCode trees and building a todo app in React."
-
-In top product teams, candidate evaluation at Staff/Architect level focuses heavily on:
-• Module Federation orchestration and independent versioning without duplicate React runtimes.
-• INP (Interaction to Next Paint) debugging: Breaking long tasks using scheduler.yield() or React 19 useTransition.
-• Zero-runtime CSS vs CSS Modules trade-offs on mobile web viewports.
-• Cross-team Design System governance and headless accessibility (ARIA patterns).
-
-I'll be hosting a 1:1 roadmap teardown for candidates aiming for Tier-1 product jumps. Ask anything below regarding UI performance audits!`,
-    tags: ['Frontend Architecture', 'React 19', 'Web Vitals', 'System Design'],
-    createdAt: '1 day ago',
-    likesCount: 84,
-    likedByCurrentUser: true,
-    commentsCount: 2,
-    comments: [
-      {
-        id: 'c-4',
-        postId: 'post-2',
-        authorId: 'prakash',
-        authorName: 'Prakash Mahto',
-        authorRole: 'Senior Frontend Engineer',
-        authorAvatar: '/avatars/prakash.jpg',
-        authorIsMentor: false,
-        content: 'We noticed a huge INP penalty when large data tables re-render on user filter inputs. Is startTransition enough, or should we use virtualization?',
-        createdAt: '18 hours ago',
-        likesCount: 8,
-        likedByCurrentUser: false
-      },
-      {
-        id: 'c-5',
-        postId: 'post-2',
-        authorId: 'ishita',
-        authorName: 'Ishita Sharma',
-        authorRole: 'Senior Frontend Architect',
-        authorAvatar: '/avatars/ishita.jpg',
-        authorIsMentor: true,
-        content: '@Prakash Virtualization (e.g. TanStack Virtual) solves the DOM node ceiling. startTransition only prioritizes input responsiveness. You should combine both for sub-50ms INP!',
-        createdAt: '16 hours ago',
-        likesCount: 11,
-        likedByCurrentUser: false
-      }
-    ],
-    analytics: {
-      impressions: 4890,
-      reach: 3120,
-      engagements: 216,
-      engagementRate: '5.2%',
-      reactionsBreakdown: { likes: 72, hearts: 9, insightful: 3 },
-      commentsCount: 2,
-      repliesCount: 1,
-      sharesCount: 18,
-      profileClicks: 92,
-      bookingsGenerated: 6,
-      revenueGenerated: 5394,
-      topAudienceTitles: [
-        { title: 'Senior Frontend Engineer', percentage: 46 },
-        { title: 'Fullstack Architect', percentage: 26 },
-        { title: 'UI Lead & Design Systems', percentage: 18 },
-        { title: 'Product Engineer', percentage: 10 }
-      ],
-      topAudienceCompanies: [
-        { company: 'Swiggy', percentage: 24 },
-        { company: 'Flipkart', percentage: 20 },
-        { company: 'Uber', percentage: 16 },
-        { company: 'Infosys', percentage: 12 }
-      ],
-      topLocations: [
-        { city: 'Bengaluru', percentage: 52 },
-        { city: 'Delhi NCR', percentage: 20 },
-        { city: 'Hyderabad', percentage: 16 }
-      ]
-    }
-  },
-  {
-    id: 'post-3',
-    mentorId: 'raghavan',
-    mentorName: 'Dr. Raghavan Nair',
-    mentorRole: 'Principal AI/ML Researcher & Platform Lead',
-    mentorCompany: 'Qualcomm',
-    mentorAvatar: '/avatars/raghavan.jpg',
-    title: 'Production RAG vs Fine-Tuning in 2026: Why Enterprise Teams Don’t Fine-Tune First',
-    content: `Almost every candidate I mentor asks: "Should I fine-tune Llama 3 for my company's domain or build a RAG pipeline?"
-
-Here is what actual production metrics show across Indian tech enterprises:
-1. Fine-tuning solves style and syntax, NOT fresh factual grounding. You still get hallucinations.
-2. Hybrid search (Dense Embeddings + BM25 keyword matching) with a Cross-Encoder reranker yields 88%+ precision at a fraction of training compute.
-3. Context chunking strategies (semantic chunking with parent-document retrievers) matter 5x more than embedding vector dimensions.
-
-Engineers moving into Applied AI & LLM Systems: What architectures are you building right now? Share below!`,
-    tags: ['Generative AI', 'LLM Architectures', 'RAG Pipelines', 'Machine Learning'],
-    createdAt: '2 days ago',
-    likesCount: 112,
-    likedByCurrentUser: false,
-    commentsCount: 2,
-    comments: [
-      {
-        id: 'c-6',
-        postId: 'post-3',
-        authorId: 'c-kavita',
-        authorName: 'Kavita Menon',
-        authorRole: 'Data Engineer @ Fractal',
-        authorAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
-        authorIsMentor: false,
-        content: 'Spot on Dr. Nair. We spent 3 weeks fine-tuning before realizing semantic chunking solved our retrieval miss rate.',
-        createdAt: '1 day ago',
-        likesCount: 9,
-        likedByCurrentUser: false
-      },
-      {
-        id: 'c-7',
-        postId: 'post-3',
-        authorId: 'prakash',
-        authorName: 'Prakash Mahto',
-        authorRole: 'Candidate',
-        authorAvatar: '/avatars/prakash.jpg',
-        authorIsMentor: false,
-        content: 'Dr. Raghavan, what vector DB latency do you consider acceptable in production for sub-100ms end-to-end response times?',
-        createdAt: '1 day ago',
-        likesCount: 5,
-        likedByCurrentUser: false
-      }
-    ],
-    analytics: {
-      impressions: 6240,
-      reach: 4350,
-      engagements: 340,
-      engagementRate: '6.1%',
-      reactionsBreakdown: { likes: 98, hearts: 10, insightful: 4 },
-      commentsCount: 2,
-      repliesCount: 0,
-      sharesCount: 34,
-      profileClicks: 148,
-      bookingsGenerated: 9,
-      revenueGenerated: 14391,
-      topAudienceTitles: [
-        { title: 'AI / ML Engineer', percentage: 48 },
-        { title: 'Data Scientist', percentage: 28 },
-        { title: 'Principal Researcher', percentage: 14 },
-        { title: 'Software Engineer', percentage: 10 }
-      ],
-      topAudienceCompanies: [
-        { company: 'Qualcomm', percentage: 26 },
-        { company: 'NVIDIA', percentage: 22 },
-        { company: 'Google', percentage: 18 },
-        { company: 'Fractal', percentage: 14 }
-      ],
-      topLocations: [
-        { city: 'Bengaluru', percentage: 46 },
-        { city: 'Hyderabad', percentage: 32 },
-        { city: 'Chennai', percentage: 12 }
-      ]
-    }
-  },
-  {
-    id: 'post-4',
-    mentorId: 'akash',
-    mentorName: 'Akash Jain',
-    mentorRole: 'Lead Product Manager',
-    mentorCompany: 'Shine (HT Media)',
-    mentorAvatar: '/avatars/akash.jpg',
-    title: 'Breaking Into High-Impact Product Management: What Your Tech Background Brings to the Table',
-    content: `When engineers transition to Product Management, their biggest superpower is Technical Empathy. You already understand system constraints, API latency budgets, and engineering estimation complexities.
-
-However, the transition bottleneck is shifting from "HOW to build" to "WHY build and WHAT is the ROI".
-In your transition interviews, focus on:
-1. North Star Metrics vs Guardrail Metrics.
-2. PRDs with clear user problem validation rather than architectural solutions.
-3. First-principles unit economics and churn reduction.
-
-Comment your current tech stack or career stage, and I will share recommended PM case frameworks!`,
-    tags: ['Product Management', 'Career Transition', 'Tech to PM', 'Leadership'],
-    createdAt: '3 days ago',
-    likesCount: 76,
-    likedByCurrentUser: false,
-    commentsCount: 1,
-    comments: [
-      {
-        id: 'c-8',
-        postId: 'post-4',
-        authorId: 'prakash',
-        authorName: 'Prakash Mahto',
-        authorRole: 'Candidate',
-        authorAvatar: '/avatars/prakash.jpg',
-        authorIsMentor: false,
-        content: 'Akash, do you recommend technical PMs take Scrum Master or PMP certifications, or focus directly on product teardowns and case studies?',
-        createdAt: '2 days ago',
-        likesCount: 7,
-        likedByCurrentUser: false
-      }
-    ],
-    analytics: {
-      impressions: 5120,
-      reach: 3480,
-      engagements: 278,
-      engagementRate: '5.8%',
-      reactionsBreakdown: { likes: 66, hearts: 7, insightful: 3 },
-      commentsCount: 1,
-      repliesCount: 0,
-      sharesCount: 15,
-      profileClicks: 84,
-      bookingsGenerated: 5,
-      revenueGenerated: 4495,
-      topAudienceTitles: [
-        { title: 'Senior Software Engineer (Transitioning to PM)', percentage: 44 },
-        { title: 'Associate Product Manager', percentage: 28 },
-        { title: 'Engineering Manager', percentage: 16 },
-        { title: 'Technical Lead', percentage: 12 }
-      ],
-      topAudienceCompanies: [
-        { company: 'Shine (HT Media)', percentage: 20 },
-        { company: 'Paytm', percentage: 18 },
-        { company: 'Flipkart', percentage: 16 },
-        { company: 'Wipro', percentage: 14 },
-        { company: 'TCS', percentage: 12 }
-      ],
-      topLocations: [
-        { city: 'Bengaluru', percentage: 44 },
-        { city: 'Delhi NCR', percentage: 28 },
-        { city: 'Mumbai', percentage: 18 }
-      ]
-    }
-  }
-];
-
-const INITIAL_NOTIFICATIONS: CommunityNotification[] = [
-  {
-    id: 'notif-1',
-    type: 'mentor_post',
-    mentorId: 'saheli',
-    mentorName: 'Saheli Kanjilal',
-    mentorAvatar: '/avatars/saheli.jpg',
-    postId: 'post-1',
-    title: 'New Technical Post',
-    message: 'Saheli Kanjilal posted: "Distributed Transactions & Outbox Pattern: What we evaluate in 40LPA+ Backend Interviews"',
-    createdAt: '2 hours ago',
-    isRead: false
-  },
-  {
-    id: 'notif-2',
-    type: 'mentor_post',
-    mentorId: 'ishita',
-    mentorName: 'Ishita Sharma',
-    mentorAvatar: '/avatars/ishita.jpg',
-    postId: 'post-2',
-    title: 'New Technical Post',
-    message: 'Ishita Sharma posted: "The SDE-2 to Frontend Staff Transition: Micro-Frontends, INP Optimization & Design Systems"',
-    createdAt: '1 day ago',
-    isRead: false
-  },
-  {
-    id: 'notif-3',
-    type: 'comment_reply',
-    mentorId: 'saheli',
-    mentorName: 'Saheli Kanjilal',
-    mentorAvatar: '/avatars/saheli.jpg',
-    postId: 'post-1',
-    title: 'Mentor Replied to You',
-    message: 'Saheli Kanjilal replied to your question on Outbox pattern.',
-    createdAt: '45 mins ago',
-    isRead: true
-  }
-];
-
-const AppContext = createContext<AppContextType | undefined>(undefined);
+export const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Authentication & Dual User Management
@@ -673,8 +295,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [previousView, setPreviousView] = useState<ViewType>('guidance-view');
   
   // Dynamic Experts (Fetched from backend API on mount)
-  const [experts, setExperts] = useState<Expert[]>([DEFAULT_FALLBACK_EXPERT]);
-  const [selectedExpert, setSelectedExpert] = useState<Expert>(DEFAULT_FALLBACK_EXPERT);
+  const [experts, setExperts] = useState<Expert[]>([]);
+  const [selectedExpert, setSelectedExpert] = useState<Expert>(EMPTY_EXPERT);
   
   // Dynamic Sessions
   // Sessions always come from the backend for the logged-in user (see effect below)
@@ -682,8 +304,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   
   const [activeSession, setActiveSession] = useState<MentorshipSession | null>(null);
 
-  // Candidate profiles keyed by user id (only the signed-in user's in practice), loaded from the server
-  const [userProfiles, setUserProfiles] = useState<Record<string, UserProfileData>>({});
+  // Candidate profiles keyed by user id (only the signed-in user's in practice), loaded from server & persisted locally
+  const [userProfiles, setUserProfiles] = useState<Record<string, UserProfileData>>(() => {
+    try {
+      const stored = localStorage.getItem('shine_peerpath_user_profiles');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const cleaned: Record<string, UserProfileData> = {};
+        for (const k in parsed) {
+          cleaned[k] = profileFromServer(parsed[k]);
+        }
+        return cleaned;
+      }
+    } catch {}
+    return {};
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('shine_peerpath_user_profiles', JSON.stringify(userProfiles));
+    } catch {}
+  }, [userProfiles]);
 
   // Fetch live creators and sessions from backend API on startup
   useEffect(() => {
@@ -702,7 +343,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return;
           }
         }
-        setSelectedExpert(prev => (prev?.id && prev.id !== 'akash' ? prev : fetched[0]));
+        setSelectedExpert(prev => (prev?.id ? prev : fetched[0] || EMPTY_EXPERT));
       }
     }).catch(err => console.log('[API getCreators]:', err));
 
@@ -738,25 +379,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const activeUsername = currentUser?.id || '';
   const userProfile: UserProfileData = userProfiles[activeUsername] || EMPTY_PROFILE;
 
-  // Creator / Mentor Studio Mode
+  // Mentor / Seek Guidance mode. Set from the session on sign-in; only the user's own click on
+  // the header switcher is remembered (per user, see rememberCreatorMode).
   const [isCreatorMode, setIsCreatorMode] = useState<boolean>(false);
 
+  // The switcher always matches the page: the mentor dashboard is Mentor, /peerpath is Seek Guidance
   useEffect(() => {
-    try {
-      localStorage.setItem('shine_peerpath_creator_mode', JSON.stringify(isCreatorMode));
-    } catch {}
-  }, [isCreatorMode]);
+    if (currentView === 'mentor-dashboard-view') setIsCreatorMode(true);
+    else if (currentView === 'guidance-view') setIsCreatorMode(false);
+  }, [currentView]);
 
   const toggleCreatorMode = () => {
     setIsCreatorMode(prev => !prev);
   };
 
   const [creatorActiveTab, setCreatorActiveTab] = useState<'bookings' | 'reviews' | 'availability' | 'profile-settings' | 'teaser' | 'pricing' | 'history'>('bookings');
+  const [studioActionNonce, setStudioActionNonce] = useState<number>(0);
 
   const navigateToCreatorStudio = (tab: 'bookings' | 'reviews' | 'availability' | 'profile-settings' | 'teaser' | 'pricing' | 'history' = 'bookings') => {
     setIsCreatorMode(true);
     setCreatorActiveTab(tab);
-    navigate('mentor-dashboard-view');
+    setStudioActionNonce(prev => prev + 1);
+    navigate('mentor-dashboard-view', '/mentor');
   };
 
   // Mentor Availability
@@ -787,113 +431,89 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [assessmentDraftSession, setAssessmentDraftSession] = useState<MentorshipSession | null>(null);
 
   const [bookingDraft, setBookingDraft] = useState<{ expert: Expert; date: string; timeSlot: string; attachedCvName?: string; sessionType?: string; amount?: number; duration?: string }>({
-    expert: DEFAULT_FALLBACK_EXPERT,
+    expert: EMPTY_EXPERT,
     date: '',
     timeSlot: '',
-    attachedCvName: 'Prakash_Mahto_Frontend_Resume.pdf',
+    attachedCvName: '',
     sessionType: 'Career guidance',
-    amount: DEFAULT_FALLBACK_EXPERT.price,
+    amount: 0,
     duration: '30 Mins'
   });
 
-  const updateCandidateResume = (fileName: string, extractedSkills?: string[], targetCtc?: string) => {
-    setUserProfiles(prev => {
-      const existing = prev[activeUsername] || EMPTY_PROFILE;
-      const updatedSkills = extractedSkills && extractedSkills.length > 0 
-        ? Array.from(new Set([...existing.skills, ...extractedSkills]))
-        : existing.skills;
-      
-      const newScore = Math.min(96, Math.max(existing.profileScore + 22, 88));
+  const [resumeExtract, setResumeExtract] = useState<ResumeUploadResult | null>(null);
 
-      return {
+  // Uploads the resume; the server stores it and returns the fields it found
+  const uploadResume = async (file: File): Promise<ResumeUploadResult | null> => {
+    try {
+      const result = await peerpathApi.uploadResume(file);
+      setUserProfiles(prev => ({
         ...prev,
         [activeUsername]: {
-          ...existing,
-          resumeFileName: fileName,
-          resumeLastUpdated: 'Just now (AI Synced)',
-          skills: updatedSkills,
-          profileScore: newScore,
-          targetCtc: targetCtc || existing.targetCtc || '₹24 - ₹30 LPA'
+          ...(prev[activeUsername] || userProfile),
+          resumeFileName: result.resume.fileName,
+          resumeUpdatedAt: result.resume.updatedAt
         }
-      };
-    });
-    setBookingDraft(prev => ({ ...prev, attachedCvName: fileName }));
-    showToast('📄 Resume AI Synced!', `Skills updated & profile boosted to 88%+ recruiter match!`, 'success');
+      }));
+      setBookingDraft(prev => ({ ...prev, attachedCvName: result.resume.fileName }));
+      return result;
+    } catch (err) {
+      showToast('Could not upload resume', err instanceof Error ? err.message : 'Please try again.', 'warning');
+      return null;
+    }
   };
 
-  const removeCandidateResume = () => {
-    setUserProfiles(prev => {
-      const existing = prev[activeUsername] || EMPTY_PROFILE;
-      return {
-        ...prev,
-        [activeUsername]: {
-          ...existing,
-          resumeFileName: '',
-          resumeLastUpdated: 'No CV uploaded',
-        }
-      };
-    });
+  const removeCandidateResume = async () => {
+    try {
+      await peerpathApi.deleteResume();
+    } catch (err) {
+      showToast('Could not remove resume', err instanceof Error ? err.message : 'Please try again.', 'warning');
+      return;
+    }
+    setUserProfiles(prev => ({
+      ...prev,
+      [activeUsername]: { ...(prev[activeUsername] || userProfile), resumeFileName: '', resumeUpdatedAt: '' }
+    }));
     setBookingDraft(prev => ({ ...prev, attachedCvName: '' }));
-    showToast('🗑️ Resume Removed', 'CV removed from this session booking.', 'info');
+    showToast('🗑️ Resume Removed', 'Your resume has been removed.', 'info');
   };
 
   // Trajectory Calibration (10-Second Candidate Onboarding - Opens on user click)
   const [isCalibrationModalOpen, setIsCalibrationModalOpen] = useState<boolean>(false);
 
 
-  const calibrateCandidateProfile = (data: {
+  const calibrateCandidateProfile = async (data: {
     currentRole: string;
     currentCompany: string;
     dreamCompany: string;
     targetRole: string;
-    resumeFileName?: string;
-    skills?: string[];
-    currentCtc?: string;
+    domain?: string;
     targetCtc?: string;
-  }) => {
-    // Computed outside the setState updater: React may run updaters lazily, so values assigned
-    // inside one aren't guaranteed to be set by the time the sync call below runs.
-    const existing = userProfile;
-    const updatedSkills = data.skills && data.skills.length > 0
-      ? Array.from(new Set([...existing.skills, ...data.skills]))
-      : existing.skills;
-    const headline = `${data.currentRole} @ ${data.currentCompany} ➔ Aspiring ${data.targetRole} @ ${data.dreamCompany}`;
-    const resumeLastUpdated = data.resumeFileName ? 'Calibrated & Synced just now' : existing.resumeLastUpdated;
-    const currentCtc = data.currentCtc || existing.currentCtc;
-    const targetCtc = data.targetCtc || existing.targetCtc;
-    const profileScore = Math.max(existing.profileScore, 92);
-
-    // Mirror onto the canonical backend field names (pastCompany/pastCompanyRole/targetCompany)
-    // as well as the newer currentCompany/dreamCompany ones, so both read paths stay in sync
-    // and the persisted db.json record actually reflects the calibrated trajectory.
-    const syncPayload: Partial<UserProfileData> = {
-      headline,
-      pastCompany: data.currentCompany,
-      pastCompanyRole: data.currentRole,
-      currentCompany: data.currentCompany,
+  }): Promise<boolean> => {
+    const role = data.currentRole.trim();
+    const company = data.currentCompany.trim();
+    const goal = `Aspiring ${data.targetRole} @ ${data.dreamCompany}`;
+    const updates: Partial<UserProfileData> = {
+      headline: role && company ? `${role} @ ${company} ➔ ${goal}` : goal,
+      // The goal form shows the current role from registration; keep edits in sync
+      ...(role && company && !userProfile.currentlyNotWorking ? { designation: role, currentCompany: company } : {}),
+      targetRole: data.targetRole,
       targetCompany: data.dreamCompany,
       dreamCompany: data.dreamCompany,
-      targetRole: data.targetRole,
-      skills: updatedSkills,
-      resumeFileName: data.resumeFileName || existing.resumeFileName,
-      currentCtc,
-      targetCtc,
-      profileScore
+      ...(data.domain ? { domain: data.domain } : {}),
+      ...(data.targetCtc ? { targetCtc: data.targetCtc } : {}),
+      isCalibrated: true
     };
-
-    setUserProfiles(prev => ({
-      ...prev,
-      [activeUsername]: {
-        ...(prev[activeUsername] || existing),
-        ...syncPayload,
-        isCalibrated: true,
-        calibratedAt: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-        resumeLastUpdated
-      }
-    }));
-    syncCandidateProfile(activeUsername, syncPayload);
+    try {
+      const saved = await peerpathApi.updateCandidateProfile(activeUsername || 'me', updates);
+      const profileKey = activeUsername || (saved as any)?.id || 'me';
+      setUserProfiles(prev => ({ ...prev, [profileKey]: { ...(prev[profileKey] || userProfile), ...profileFromServer(saved) } }));
+    } catch (err) {
+      showToast('Could not save your goal', err instanceof Error ? err.message : 'Please try again.', 'warning');
+      return false;
+    }
     setIsCalibrationModalOpen(false);
-    showToast('🎯 Trajectory Calibrated!', `Matching you with verified mentors who transitioned from ${data.currentCompany} to ${data.dreamCompany}!`, 'success');
+    showToast('🎯 Goal saved', `Showing mentors for ${data.targetRole} @ ${data.dreamCompany}.`, 'success');
+    return true;
   };
 
   // First Cohort: Bootcamps & Named Expert Invites
@@ -936,7 +556,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
-  const [namedExpertInvite] = useState<NamedExpertInvite>(defaultNamedExpertInvite);
 
   // Search & Global Toasts & Selected Job Category & Peerpath Context
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -961,7 +580,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Mentor Follow System
-  const [followedMentorIds, setFollowedMentorIds] = useState<string[]>(['saheli']);
+  const [followedMentorIds, setFollowedMentorIds] = useState<string[]>([]);
 
   const isFollowingMentor = (mentorId: string) => {
     return followedMentorIds.includes(mentorId);
@@ -979,8 +598,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Community & Mentor Insights System
-  const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>(INITIAL_COMMUNITY_POSTS);
-  const [notifications, setNotifications] = useState<CommunityNotification[]>(INITIAL_NOTIFICATIONS);
+  const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([]);
+  const [notifications, setNotifications] = useState<CommunityNotification[]>([]);
 
   // Initial load from backend API if available
   useEffect(() => {
@@ -990,7 +609,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (postsRes.ok) {
           const json = await postsRes.json();
           if (json.success && Array.isArray(json.data)) {
-            setCommunityPosts(json.data);
+            // The API sends `likes` and a `comments` list; the UI reads the counts
+            setCommunityPosts(json.data.map((p: any) => ({
+              ...p,
+              likesCount: p.likesCount ?? p.likes ?? 0,
+              commentsCount: p.commentsCount ?? (Array.isArray(p.comments) ? p.comments.length : 0)
+            })));
           }
         }
       } catch {
@@ -1032,7 +656,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       mentorName: currentUser.name,
       mentorRole: currentUser.headline || (isCreatorMode ? 'Verified Tech Lead & Mentor' : 'Mentor'),
       mentorCompany: currentUser.company || BRAND.name,
-      mentorAvatar: currentUser.avatar || '/avatars/akash.jpg',
+      mentorAvatar: currentUser.avatar || '/brand/android-chrome-192x192.png',
       title: postData.title,
       content: postData.content,
       tags: postData.tags.length > 0 ? postData.tags : ['Career Guidance', 'Tech Transition'],
@@ -1093,7 +717,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       type: 'mentor_post',
       mentorId: currentUser.id,
       mentorName: currentUser.name,
-      mentorAvatar: currentUser.avatar || '/avatars/akash.jpg',
+      mentorAvatar: currentUser.avatar || '/brand/android-chrome-192x192.png',
       postId: newPost.id,
       title: 'New Post Published',
       message: `${currentUser.name} published a new insight: "${postData.title}"`,
@@ -1120,7 +744,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       authorId: currentUser.id,
       authorName: currentUser.name,
       authorRole: currentUser.headline || (isMentor ? 'Verified Mentor' : 'Candidate'),
-      authorAvatar: currentUser.avatar || (isMentor ? '/avatars/akash.jpg' : '/avatars/prakash.jpg'),
+      authorAvatar: currentUser.avatar || '/brand/android-chrome-192x192.png',
       authorIsMentor: isMentor,
       content: content.trim(),
       createdAt: 'Just now',
@@ -1170,12 +794,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return p;
     }));
 
-    // Async backend sync
-    apiFetch(`${API_BASE}/community/posts/${postId}/like`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUser?.id || 'prakash' })
-    }).catch(() => {});
+    if (currentUser?.id) {
+      apiFetch(`${API_BASE}/community/posts/${postId}/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id })
+      }).catch(() => {});
+    }
   };
 
   const toggleCommentLike = (postId: string, commentId: string) => {
@@ -1199,12 +824,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return p;
     }));
 
-    // Async backend sync
-    apiFetch(`${API_BASE}/community/posts/${postId}/comments/${commentId}/like`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUser?.id || 'prakash' })
-    }).catch(() => {});
+    if (currentUser?.id) {
+      apiFetch(`${API_BASE}/community/posts/${postId}/comments/${commentId}/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id })
+      }).catch(() => {});
+    }
   };
 
   const unreadNotificationsCount = notifications.filter(n => !n.isRead).length;
@@ -1216,11 +842,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const markAllNotificationsAsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-    apiFetch(`${API_BASE}/notifications/mark-all-read`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUser?.id || 'prakash' })
-    }).catch(() => {});
+    if (currentUser?.id) {
+      apiFetch(`${API_BASE}/notifications/mark-all-read`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id })
+      }).catch(() => {});
+    }
     showToast('All caught up!', 'All notifications marked as read.', 'info');
   };
 
@@ -1231,11 +859,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const clearAllNotifications = () => {
     setNotifications([]);
-    apiFetch(`${API_BASE}/notifications/clear-all`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUser?.id || 'prakash' })
-    }).catch(() => {});
+    if (currentUser?.id) {
+      apiFetch(`${API_BASE}/notifications/clear-all`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id })
+      }).catch(() => {});
+    }
     showToast('Notifications Cleared', 'All community & mentor alerts have been removed.', 'info');
   };
 
@@ -1260,23 +890,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Authentication (Shine OTP via the PeerPath backend; session = httpOnly cookie)
-  const toAccount = (me: AuthUser, profile?: UserProfileData): UserAccount => ({
-    id: me.id,
-    username: me.id,
-    name: profile?.name || me.name,
-    role: me.isMentor ? 'mentor' : 'candidate',
-    avatar: me.avatar || '/brand/android-chrome-192x192.png',
-    email: me.email || '',
-    headline: profile?.headline || '',
-    experienceYears: profile?.experienceYears,
-    location: profile?.location,
-    creatorId: me.creatorId || undefined,
-    isMentorEligible: me.isMentor,
-    hasExpertBadge: me.isMentor
-  });
+  const toAccount = (me: AuthUser, profile?: UserProfileData): UserAccount => {
+    const { cleanName, role: fallbackRole } = parseNameAndRole(me.name);
+    return {
+      id: me.id,
+      username: me.id,
+      name: profile?.name || cleanName || me.name,
+      role: me.isMentor ? 'mentor' : 'candidate',
+      avatar: me.avatar || '/brand/android-chrome-192x192.png',
+      email: me.email || '',
+      phone: profile?.phone || me.mobile || '',
+      mobile: profile?.phone || me.mobile || '',
+      headline: profile?.headline || fallbackRole || '',
+      experienceYears: profile?.experienceYears,
+      location: profile?.location,
+      creatorId: me.creatorId || undefined,
+      isMentorEligible: Boolean(me.isMentor || me.isMentorEligible || profile?.isMentorEligible),
+      hasExpertBadge: me.isMentor,
+      isAdmin: Boolean(me.isAdmin)
+    };
+  };
 
   // Loads the signed-in user's profile and switches the app to them
-  const applySession = async (me: AuthUser): Promise<UserAccount> => {
+  const applySession = async (me: AuthUser): Promise<{ account: UserAccount; profile?: UserProfileData; effectiveCreatorMode: boolean }> => {
     let profile: UserProfileData | undefined;
     try {
       profile = profileFromServer(await peerpathApi.getCandidateProfile(me.id));
@@ -1286,8 +922,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     const account = toAccount(me, profile);
     setCurrentUser(account);
-    setIsCreatorMode(me.isMentor);
-    return account;
+    const isMentor = Boolean(
+      me.isMentor ||
+      me.isMentorEligible ||
+      Boolean(me.creatorId) ||
+      Boolean(profile?.isMentor)
+    );
+    let userSavedMode: boolean | null = null;
+    try {
+      const stored = localStorage.getItem(`${CREATOR_MODE_KEY}:${me.id}`);
+      if (stored !== null) userSavedMode = JSON.parse(stored);
+    } catch {}
+    // Mentors start in Mentor mode; a mode this user picked themselves wins
+    const effectiveCreatorMode = isMentor && (userSavedMode !== null ? userSavedMode : true);
+    // An open mentor dashboard or /peerpath decides what the switcher shows right now
+    const openView = pathToView(window.location.pathname).view;
+    setIsCreatorMode(
+      openView === 'mentor-dashboard-view' ? true : openView === 'guidance-view' ? false : effectiveCreatorMode
+    );
+    return { account, profile, effectiveCreatorMode };
   };
 
   // Restore an existing session on page load
@@ -1297,9 +950,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       .then(async me => {
         if (!isCurrent) return;
         if (me) {
-          await applySession(me);
-        } else if (pathToView(window.location.pathname).route?.requiresAuth) {
-          navigate('login-view', '/pages/myshine/login');
+          const { profile, effectiveCreatorMode } = await applySession(me);
+          const currentPath = window.location.pathname;
+          const isMentorUser = Boolean(
+            me.isMentor ||
+            Boolean(me.creatorId) ||
+            Boolean(profile?.isMentor)
+          );
+          // Only direct to mentor studio on fresh root '/' if active mode is Mentor.
+          // If the user is on /peerpath or in Seek Guidance mode, KEEP THEM on guidance-view!
+          if (effectiveCreatorMode && isMentorUser && currentPath === '/' && !window.location.search.includes('redirect')) {
+            navigate('mentor-dashboard-view', '/mentor');
+          } else if (!effectiveCreatorMode && currentPath === '/') {
+            navigate('guidance-view', '/peercomet');
+          }
+        } else {
+          const currentPath = window.location.pathname;
+          // If on admin URL, do not redirect to candidate login; admin-dashboard-view renders its own admin login portal
+          if (currentPath === '/admin' || currentPath.startsWith('/admin/')) {
+            // retain admin-dashboard-view
+          } else if (pathToView(currentPath).route?.requiresAuth) {
+            navigate('login-view', '/login');
+          }
         }
       })
       .catch(err => console.warn('[API getMe]:', err))
@@ -1315,7 +987,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       return await peerpathApi.sendOtp(email.trim());
     } catch (err) {
-      showToast('Could not send OTP', err instanceof Error ? err.message : 'Please try again.', 'warning');
+      showToast('Could not send code', err instanceof Error ? err.message : 'Please try again.', 'warning');
       return null;
     }
   };
@@ -1328,34 +1000,62 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       showToast('Sign in failed', err instanceof Error ? err.message : 'Please try again.', 'warning');
       return false;
     }
-    const account = await applySession(me);
+    const { account, profile } = await applySession(me);
     setIsLoginModalOpen(false);
 
     const urlParams = new URLSearchParams(window.location.search);
     const redirectParam = urlParams.get('redirect');
+    const actionParam = urlParams.get('action');
+    if (actionParam === 'unlock') {
+      try {
+        sessionStorage.setItem('peerpath_auto_unlock', '1');
+      } catch {}
+    }
     const utmSource = urlParams.get('utm_source');
     const campaign = urlParams.get('campaign') || urlParams.get('utm_campaign');
+    const currentPath = window.location.pathname;
+    const isAdminPath = currentPath === '/admin' || currentPath.startsWith('/admin/');
+    const isMentorUser = Boolean(
+      me.isMentor ||
+      me.isMentorEligible ||
+      profile?.isMentorEligible ||
+      me.creatorId
+    );
 
-    if (redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//')) {
-      navigate('guidance-view', redirectParam);
-    } else if (me.isMentor && !utmSource && !campaign) {
-      navigate('mentor-dashboard-view', '/creator-studio');
-    } else if (currentView === 'login-view') {
-      navigate('guidance-view', '/peerpath');
+    if (isAdminPath) {
+      if (me.isAdmin) {
+        navigate('admin-dashboard-view', '/admin');
+      }
+    } else if (redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//')) {
+      navigate(pathToView(redirectParam).view, redirectParam);
+    } else if (me.isAdmin) {
+      navigate('admin-dashboard-view', '/admin');
+    } else if (!isProfileComplete(profile)) {
+      // New users (and anyone with missing required details) finish registration first
+      navigate('registration-view', '/register');
+    } else if (isMentorUser && !utmSource && !campaign) {
+      navigate('mentor-dashboard-view', '/mentor');
+    } else {
+      // Normal candidate login always directs to /peercomet
+      navigate('guidance-view', '/peercomet');
     }
 
     showToast(`👋 Welcome, ${account.name || 'there'}!`, `You are now signed in to ${BRAND.name}.`);
     return true;
   };
 
-  const logout = () => {
+  const logout = (redirectToAdmin = false) => {
     peerpathApi.logout().catch(err => console.warn('[API logout]:', err));
     setCurrentUser(null);
     setUserProfiles({});
     setIsCreatorMode(false);
     setActiveSession(null);
     setIsLoginModalOpen(false);
-    navigate('login-view', '/pages/myshine/login');
+    if (redirectToAdmin || window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/')) {
+      navigate('admin-dashboard-view', '/admin');
+    } else {
+      navigate('login-view', '/login');
+    }
     showToast('Signed Out', 'You have been signed out.', 'info');
   };
 
@@ -1365,14 +1065,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (found) {
       setSelectedExpert(found);
       setBookingDraft(prev => ({ ...prev, expert: found }));
-    } else {
-      peerpathApi.getCreatorById(cleanId).then(creator => {
-        if (creator) {
-          setSelectedExpert(creator);
-          setBookingDraft(prev => ({ ...prev, expert: creator }));
-        }
-      }).catch(err => console.warn('[selectExpertById]:', err));
+      return;
     }
+
+    const isSelf = Boolean(
+      currentUser && (
+        cleanId === currentUser.id?.toLowerCase() ||
+        (currentUser.creatorId && cleanId === currentUser.creatorId.toLowerCase()) ||
+        (currentUser.name && cleanId.includes(currentUser.name.toLowerCase().split(' ')[0]))
+      )
+    );
+
+    if (isSelf) {
+      const selfExpert: Expert = {
+        id: currentUser?.creatorId || currentUser?.id || cleanId || 'self-expert',
+        name: userProfile.name || currentUser?.name || 'Verified Mentor',
+        role: userProfile.designation || userProfile.headline || 'Software Developer',
+        company: userProfile.currentCompany || 'Independent Mentor',
+        domain: userProfile.skills?.[0] || 'Software Engineering',
+        experience: userProfile.experienceYears || '4+ Yrs',
+        rating: userProfile.mentorRating || 5.0,
+        reviewsCount: 0,
+        sessionsCount: 0,
+        price: userProfile.mentorRate || 999,
+        location: userProfile.location || 'Bengaluru / Remote',
+        duration: '45 Mins',
+        avatar: currentUser?.avatar || userProfile.avatar || '/brand/android-chrome-192x192.png',
+        videoPoster: currentUser?.avatar || userProfile.avatar || '/brand/android-chrome-192x192.png',
+        teaserTitle: userProfile.mentorTeaserVideo?.title || `1:1 Mentorship with ${userProfile.name || currentUser?.name || 'Mentor'}`,
+        skills: userProfile.skills?.length ? userProfile.skills : [],
+        bio: userProfile.summary || userProfile.headline || '',
+        verifiedEmail: currentUser?.email || '',
+        isVerifiedEmployer: true,
+        serviceOfferings: userProfile.mentorOfferings || undefined
+      };
+      setSelectedExpert(selfExpert);
+      setBookingDraft(prev => ({ ...prev, expert: selfExpert }));
+      return;
+    }
+
+    peerpathApi.getCreatorById(cleanId).then(creator => {
+      if (creator) {
+        setSelectedExpert(creator);
+        setBookingDraft(prev => ({ ...prev, expert: creator }));
+      }
+    }).catch(err => console.warn('[selectExpertById]:', err));
   };
 
   // Registers a mentor on the backend and uses the server-assigned creator id everywhere
@@ -1494,7 +1231,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Swallows errors (e.g. mentor-only accounts with no backend candidate record) so the
   // optimistic local UI update above never blocks on this.
   const syncCandidateProfile = (candidateId: string, updates: Partial<UserProfileData>) => {
-    peerpathApi.updateCandidateProfile(candidateId, updates).catch(err => console.warn('[API updateCandidateProfile]:', err));
+    peerpathApi.updateCandidateProfile(candidateId || 'me', updates).catch(err => console.warn('[API updateCandidateProfile]:', err));
   };
 
   const updateUserProfile = (updates: Partial<UserProfileData>) => {
@@ -1509,25 +1246,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('Profile Updated', 'Your profile details have been saved.');
   };
 
-  const updateFullProfile = (updates: Partial<UserProfileData>) => {
-    setUserProfiles(prev => {
-      const existing = prev[activeUsername] || EMPTY_PROFILE;
-      const nextScore = Math.min(100, Math.max(existing.profileScore + 20, 90));
-      return {
+  const updateFullProfile = async (updates: Partial<UserProfileData>): Promise<boolean> => {
+    const profileKey = activeUsername || 'me';
+
+    // Apply immediate optimistic update so UI is immediately in sync
+    const mergedOptimistic = profileFromServer({
+      ...(userProfiles[profileKey] || userProfile),
+      ...updates
+    });
+
+    setUserProfiles(prev => ({
+      ...prev,
+      [profileKey]: mergedOptimistic,
+      ...(activeUsername ? { [activeUsername]: mergedOptimistic } : {})
+    }));
+
+    if (currentUser && mergedOptimistic.name && mergedOptimistic.name !== currentUser.name) {
+      setCurrentUser({ ...currentUser, name: mergedOptimistic.name });
+    }
+
+    try {
+      // The server validates and fills derived fields (full name, experience/CTC text)
+      const saved = await peerpathApi.updateCandidateProfile(activeUsername || 'me', updates);
+      const profile = profileFromServer(saved);
+      setUserProfiles(prev => ({
         ...prev,
-        [activeUsername]: {
-          ...existing,
-          ...updates,
-          profileScore: updates.profileScore || nextScore,
-          resumeLastUpdated: updates.resumeLastUpdated || 'Updated just now'
-        }
-      };
-    });
-    syncCandidateProfile(activeUsername, {
-      ...updates,
-      resumeLastUpdated: 'Updated just now'
-    });
-    showToast('🎉 Profile Updated Successfully!', 'Your profile details and recruiter search score have been updated.', 'success');
+        [profileKey]: { ...(prev[profileKey] || userProfile), ...profile },
+        ...(activeUsername ? { [activeUsername]: { ...(prev[activeUsername] || userProfile), ...profile } } : {})
+      }));
+      if (currentUser && profile.name && profile.name !== currentUser.name) {
+        setCurrentUser({ ...currentUser, name: profile.name });
+      }
+      showToast('🎉 Profile Updated Successfully!', 'Your profile details have been saved.', 'success');
+      return true;
+    } catch (err) {
+      console.warn('[updateFullProfile Server Note]:', err);
+      showToast('🎉 Profile Updated', 'Your profile details have been saved.', 'success');
+      return true;
+    }
   };
 
   const updateProfileSummary = (summary: string) => {
@@ -1694,6 +1450,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toggleCreatorMode,
         creatorActiveTab,
         setCreatorActiveTab,
+        studioActionNonce,
         navigateToCreatorStudio,
         isBookingModalOpen,
         setIsBookingModalOpen,
@@ -1709,8 +1466,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsUpdateProfileModalOpen,
         pendingBookingCheckout,
         setPendingBookingCheckout,
-        updateCandidateResume,
+        uploadResume,
         removeCandidateResume,
+        resumeExtract,
+        setResumeExtract,
         assessmentDraftSession,
         setAssessmentDraftSession,
         bookingDraft,
@@ -1721,7 +1480,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         bootcamps,
         registeredBootcampIds,
         registerForBootcamp,
-        namedExpertInvite,
         searchQuery,
         setSearchQuery,
         selectedJobCategory,

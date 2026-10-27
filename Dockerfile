@@ -53,9 +53,9 @@ COPY backend ./backend
 COPY --from=frontend /app/dist ./dist
 
 # Run as a non-root user. Writable paths: milvus_data (vector index, rebuilt from the
-# database on every start) and backend/data/recordings (only used when RECORDINGS_STORAGE=local).
+# database on every start) and backend/data/{recordings,resumes} (only used when RECORDINGS_STORAGE=local).
 RUN useradd --uid 10001 --no-create-home --shell /usr/sbin/nologin peerpath \
-    && mkdir -p /app/milvus_data /app/backend/data/recordings \
+    && mkdir -p /app/milvus_data /app/backend/data/recordings /app/backend/data/resumes \
     && chown -R 10001:10001 /app/milvus_data /app/backend/data
 USER 10001
 

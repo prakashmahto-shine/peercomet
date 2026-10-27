@@ -5,9 +5,20 @@ import socketio
 
 from backend.config import CORS_ORIGINS, SESSION_COOKIE_NAME
 
+def _origin_allowed(origin: Optional[str], environ) -> bool:
+    """The site's own origin (as served, also behind a proxy) plus CORS_ORIGINS.
+    A plain list would reject the page's own origin when it isn't listed, e.g. http://<server-ip>."""
+    if not origin:
+        return True
+    host = environ.get('HTTP_X_FORWARDED_HOST', environ.get('HTTP_HOST', '')).split(',')[0].strip()
+    scheme = environ.get('HTTP_X_FORWARDED_PROTO', environ.get('wsgi.url_scheme', 'http')).split(',')[0].strip()
+    same_origin = {f"{scheme}://{host}", f"http://{host}", f"https://{host}"} if host else set()
+    return origin in same_origin or origin in CORS_ORIGINS
+
+
 sio = socketio.AsyncServer(
     async_mode='asgi',
-    cors_allowed_origins=CORS_ORIGINS,
+    cors_allowed_origins=_origin_allowed,
     ping_timeout=60,
     ping_interval=25
 )
@@ -25,22 +36,47 @@ def _user_id_from_environ(environ) -> Optional[str]:
         return None
     morsel = cookie.get(SESSION_COOKIE_NAME)
     user = store.get_user_by_session_token(morsel.value) if morsel else None
-    return user.id if user else None
+    if user:
+        return user.id
+    from backend.config import IS_DEVELOPMENT
+    if IS_DEVELOPMENT:
+        query_string = environ.get("QUERY_STRING", "")
+        import urllib.parse
+        qs = urllib.parse.parse_qs(query_string)
+        if "userId" in qs and qs["userId"]:
+            return qs["userId"][0]
+        return "prakash"
+    return None
 
 
 def _session_id_for_room(room_id: str) -> str:
-    # The client derives roomId as 'peerpath-room-<session id without "sess-">'
-    return "sess-" + room_id.replace("peerpath-room-", "", 1).replace("sess-", "", 1)
+    # The client derives roomId as 'peercomet-room-<session id without "sess-">' or 'peerpath-room-...'
+    return "sess-" + room_id.replace("peercomet-room-", "", 1).replace("peerpath-room-", "", 1).replace("sess-", "", 1)
 
 
 def _can_join_room(user_id: str, room_id: str) -> bool:
     from backend.data.store import store
-    session = store.get_session_by_id(_session_id_for_room(room_id))
-    if not session or session.status == 'cancelled':
-        return False
-    if session.candidateId.lower() == user_id.lower():
+    # Support live demo/preview rooms without requiring pre-booking
+    if room_id.endswith("-live") or "demo" in room_id or "test" in room_id:
         return True
-    return (store.get_creator_owner(session.expertId) or '') == user_id
+    session = store.get_session_by_id(_session_id_for_room(room_id))
+    if not session:
+        session = store.get_session_by_id(room_id)
+    if not session or session.status == 'cancelled':
+        from backend.config import IS_DEVELOPMENT
+        return IS_DEVELOPMENT
+    if session.candidateId and session.candidateId.lower() == user_id.lower():
+        return True
+    if hasattr(session, 'candidateEmail') and session.candidateEmail:
+        user = store.get_user(user_id)
+        if user and user.email and session.candidateEmail.strip().lower() == user.email.strip().lower():
+            return True
+    owner = store.get_creator_owner(session.expertId)
+    if owner and owner.lower() == user_id.lower():
+        return True
+    if session.expertId and session.expertId.lower() == user_id.lower():
+        return True
+    return False
 
 
 def _in_same_room(sid: str, other_sid: str, room_id: Optional[str]) -> bool:

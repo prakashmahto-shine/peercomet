@@ -1,5 +1,5 @@
 /**
- * Dynamic Salary Benchmark & Trajectory Calculator for Shine Peerpath
+ * Dynamic Salary Benchmark & Trajectory Calculator for Shine PeerComet
  * 
  * Uses industry-standard "Up to ₹XX LPA" highest market standard packages
  * to showcase maximum compensation upside without limiting or down-leveling candidates.

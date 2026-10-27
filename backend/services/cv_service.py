@@ -90,31 +90,15 @@ DOMAIN_TEMPLATES: Dict[str, DomainJDTemplate] = {
 
 class CvService:
     def parse_cv(self, cv_text: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        text_lower = (cv_text or '').lower()
-
-        known_skills = [
-            'react.js', 'react', 'typescript', 'javascript', 'next.js', 'node.js',
-            'python', 'sql', 'pytorch', 'rag', 'llms', 'fastapi', 'docker', 'kubernetes',
-            'systemverilog', 'uvm', 'verilog', 'asic', 'sta', 'cloud security', 'devsecops',
-            'aws', 'terraform', 'splunk', 'micro-frontends', 'module federation'
-        ]
-
-        detected_skills = [s for s in known_skills if s in text_lower]
-
-        detected_exp = '3-5 Years'
-        exp_match = re.search(r'(\d+)\+?\s*(years?|yrs?)', text_lower)
-        if exp_match:
-            detected_exp = f"{exp_match.group(1)} Years Exp."
-
+        """Parses pasted resume text. Returns only what was found (no sample defaults)."""
+        from backend.services.resume_parser import parse_resume
+        fields = parse_resume(cv_text or '')
+        years = fields.get('totalExperienceYears')
         return {
-            'parsedSkills': detected_skills if detected_skills else ['React.js', 'TypeScript', 'JavaScript'],
-            'estimatedExperience': detected_exp,
-            'rawLength': len(cv_text),
-            'extractedHighlights': [
-                'Solid foundation in core engineering principles',
-                'Demonstrates readiness for Tier-1 trajectory transition',
-                'Strong upside with booster skill acquisition'
-            ]
+            'parsedSkills': fields.get('skills', []),
+            'estimatedExperience': f"{years} Years" if years is not None else None,
+            'rawLength': len(cv_text or ''),
+            'fields': fields,
         }
 
     def perform_gap_analysis(

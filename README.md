@@ -53,14 +53,15 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 No `.env` is needed locally: without one the app runs in development mode
-(`APP_ENV=development`, SQLite, no real emails, demo data). `.env.example` is the server template.
+(`APP_ENV=development`, SQLite, no real emails) and starts with an empty database.
+`.env.example` is the server template.
 
 ### 2. Start Python Backend (FastAPI + Milvus)
 ```bash
 npm run server        # or: python3 run_backend.py
 ```
 The API server starts on `http://localhost:5001`. Locally it uses a SQLite file
-(`backend/data/peerpath.sqlite3`), runs migrations and loads demo data automatically.
+(`backend/data/peerpath.sqlite3`) and runs migrations.
 Set `DATABASE_URL` to use Postgres instead.
 
 ### 3. Start Frontend (Vite)
@@ -68,7 +69,10 @@ Set `DATABASE_URL` to use Postgres instead.
 npm run dev
 ```
 The frontend starts on `http://localhost:4242` and proxies `/api` and `/socket.io` to the backend.
-Sign in with any email (or a demo user id such as `akash`) and the code `123456`. No email is sent locally.
+Sign in with any email and the code `123456`: no email is sent locally, the backend terminal
+prints it. Keep the backend running, since the frontend never signs anyone in on its own.
+Admin pages (`/admin`): start the backend with `ADMIN_EMAILS=you@example.com`.
+To delete previously loaded sample data from a database: `python -m backend.db.seed --remove-demo` (shows counts), then add `--yes`.
 
 ### 4. Run Tests
 ```bash

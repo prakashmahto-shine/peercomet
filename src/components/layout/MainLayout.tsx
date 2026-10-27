@@ -3,14 +3,19 @@ import { useApp } from '../../context/AppContext';
 import { Header } from './Header';
 import { Footer } from './Footer';
 import { ToastContainer } from '../common/ToastContainer';
+import { ProfileIncompleteBanner } from '../common/ProfileIncompleteBanner';
 import { GlobalModals } from '../modals/GlobalModals';
 import { ViewRouter, pathToView, getRouteByView } from '../../routes';
+import { useRootModalScrollLock } from '../../hooks/useRootModalScrollLock';
 
 /**
  * Main Layout Component for Shine Peerpath
  * Coordinates Header, Active ViewRouter, Footer, Modals, and Toasts
  */
 export const MainLayout: React.FC = () => {
+  // Enforce universal background scroll lock whenever any modal/popup is open
+  useRootModalScrollLock();
+
   const {
     currentView,
     navigate,
@@ -40,11 +45,17 @@ export const MainLayout: React.FC = () => {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
-  // Sync browser tab title with active route
+  // Sync browser tab title and meta description with active route for SEO
   useEffect(() => {
     const routeMeta = getRouteByView(currentView);
     if (routeMeta?.title) {
       document.title = routeMeta.title;
+    }
+    if (routeMeta?.description) {
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) {
+        metaDesc.setAttribute('content', routeMeta.description);
+      }
     }
   }, [currentView]);
 
@@ -54,11 +65,12 @@ export const MainLayout: React.FC = () => {
   };
 
   const currentRouteMeta = getRouteByView(currentView);
-  const showHeader = !currentRouteMeta.hideHeader && currentView !== 'login-view';
-  const showFooter = !currentRouteMeta.hideFooter && currentView !== 'live-call-view' && currentView !== 'login-view';
+  const isAdminView = currentView === 'admin-dashboard-view';
+  const showHeader = !currentRouteMeta.hideHeader && currentView !== 'login-view' && !isAdminView;
+  const showFooter = !currentRouteMeta.hideFooter && currentView !== 'live-call-view' && currentView !== 'login-view' && !isAdminView;
 
   return (
-    <div className="app-root-container">
+    <div className={`app-root-container ${isAdminView ? 'admin-crm-root' : ''}`}>
       {/* Toast Notification Alerts */}
       <ToastContainer />
 
@@ -72,10 +84,13 @@ export const MainLayout: React.FC = () => {
         />
       )}
 
+      {/* Profile Incomplete Notification Banner */}
+      {!isAdminView && <ProfileIncompleteBanner />}
+
       {/* Dynamic View Router */}
       <main 
-        className="app-main-viewport" 
-        style={{ minHeight: currentView === 'login-view' ? '100vh' : '80vh' }}
+        className={`app-main-viewport ${isAdminView ? 'admin-crm-viewport' : ''}`} 
+        style={{ minHeight: currentView === 'login-view' || isAdminView ? '100vh' : '80vh' }}
       >
         <ViewRouter />
       </main>

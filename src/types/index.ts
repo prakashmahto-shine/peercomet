@@ -19,6 +19,7 @@ export interface Expert {
   verifiedEmail: string;
   isVerifiedEmployer?: boolean;
   followersCount?: number;
+  ownerUserId?: string;
   trajectory?: {
     role3YearsAgo: string;
     company3YearsAgo: string;
@@ -30,6 +31,17 @@ export interface Expert {
     days: string[];
     timeSlots: string[];
   };
+  serviceOfferings?: Array<{
+    id: string;
+    category?: string;
+    title: string;
+    duration: string;
+    tag?: string;
+    description?: string;
+    price: number;
+    icon?: string;
+    isEnabled?: boolean;
+  }>;
 }
 
 export type ViewType = 
@@ -47,7 +59,15 @@ export type ViewType =
   | 'post-session-view'
   | 'recruiter-view'
   | 'mentor-dashboard-view'
-  | 'login-view';
+  | 'login-view'
+  | 'registration-view'
+  | 'admin-dashboard-view'
+  | 'become-mentor-view'
+  | 'terms-view'
+  | 'privacy-view'
+  | 'cookies-view'
+  | 'security-view'
+  | 'contact-view';
 
 export interface BookingDetails {
   expert: Expert;
@@ -120,8 +140,10 @@ export interface UserProfileData {
   targetCtc?: string;
   targetRole?: string;
   targetCompany?: string;
+  domain?: string;
   resumeFileName?: string;
-  resumeLastUpdated?: string;
+  // ISO 8601 time of the last resume upload
+  resumeUpdatedAt?: string;
   educationDegree?: string;
   educationCollege?: string;
   pastCompany?: string;
@@ -134,6 +156,17 @@ export interface UserProfileData {
   mentorRate?: number;
   mentorDuration?: number;
   mentorAvailability?: { days: string[]; timeSlots: string[] };
+  mentorOfferings?: Array<{
+    id: string;
+    category?: string;
+    title: string;
+    duration: string;
+    tag?: string;
+    description?: string;
+    price: number;
+    icon?: string;
+    isEnabled?: boolean;
+  }>;
   mentorTeaserVideo?: {
     url: string;
     title: string;
@@ -154,6 +187,48 @@ export interface UserProfileData {
   startDate?: string;
   avatar?: string;
   lastUpdatedDate?: string;
+  // Structured profile fields (see CandidateProfile in backend/models/schemas.py)
+  firstName?: string;
+  lastName?: string;
+  dateOfBirth?: string | null;   // YYYY-MM-DD
+  totalExperienceYears?: number | null;
+  totalExperienceMonths?: number | null;
+  currentCtcLpa?: number | null;
+  expectedCtcLpa?: number | null;
+  graduationYear?: number | null;
+  linkedinUrl?: string;
+  githubUrl?: string;
+  portfolioUrl?: string;
+}
+
+// Fields the resume parser found (all optional; nothing is guessed)
+export interface ResumeExtract {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  dateOfBirth?: string;
+  location?: string;
+  totalExperienceYears?: number;
+  totalExperienceMonths?: number;
+  currentDesignation?: string;
+  currentCompany?: string;
+  noticePeriod?: string;
+  currentCtcLpa?: number;
+  expectedCtcLpa?: number;
+  summary?: string;
+  skills?: string[];
+  highestQualification?: string;
+  educationCollege?: string;
+  graduationYear?: number;
+  linkedinUrl?: string;
+  githubUrl?: string;
+}
+
+export interface ResumeUploadResult {
+  resume: { fileName: string; updatedAt: string };
+  textFound: boolean;
+  extracted: ResumeExtract;
 }
 
 export interface BootcampMasterclass {
@@ -200,6 +275,8 @@ export interface UserAccount {
   role: 'candidate' | 'mentor';
   avatar: string;
   email: string;
+  phone?: string;
+  mobile?: string;
   headline: string;
   company?: string;
   experienceYears?: string;
@@ -210,8 +287,61 @@ export interface UserAccount {
   completedSessionsCount?: number;
   hasExpertBadge?: boolean;
   isMentorEligible?: boolean;
+  isAdmin?: boolean;
   // Creator (mentor profile) id when this user is a mentor; may differ from the user id
   creatorId?: string;
+}
+
+export interface AdminOverviewStats {
+  totalUsers: number;
+  totalCandidates: number;
+  totalMentors: number;
+  eligibleMentors: number;
+  totalBookings: number;
+  totalGmv: number;
+  platformEarnings: number;
+}
+
+export interface AdminUserData {
+  id: string;
+  name: string;
+  email: string;
+  mobile?: string;
+  avatar?: string;
+  currentCompany?: string;
+  designation?: string;
+  experienceYears?: string;
+  totalExperienceYears?: number;
+  skills: string[];
+  resumeFileName?: string;
+  resumeUpdatedAt?: string;
+  resumeUrl?: string;
+  city?: string;
+  careerGoal?: string;
+  targetRole?: string;
+  isMentorEligible: boolean;
+  isMentor: boolean;
+  creatorId?: string;
+  creatorStatus?: string;
+  createdAt?: string;
+  lastLoginAt?: string;
+}
+
+export interface AdminBookingData {
+  id: string;
+  expertId: string;
+  expertName: string;
+  expertCompany: string;
+  candidateId: string;
+  candidateName: string;
+  candidateEmail?: string;
+  status: string;
+  date: string;
+  timeSlot: string;
+  price: number;
+  platformCut: number;
+  mentorEarnings: number;
+  createdAt?: string;
 }
 
 export interface PeerpathJobContext {
@@ -256,12 +386,20 @@ export interface ZeroPrepDossier {
   candidate: {
     name: string;
     headline: string;
-    experienceYears: string;
-    currentCtc?: string;
-    targetCtc?: string;
-    targetRole?: string;
+    experienceYears?: string | null;
+    designation?: string | null;
+    currentCompany?: string | null;
+    currentCtc?: string | null;
+    targetCtc?: string | null;
+    targetRole?: string | null;
+    noticePeriod?: string | null;
+    educationDegree?: string | null;
+    educationCollege?: string | null;
+    linkedinUrl?: string | null;
     skills: string[];
     summary: string;
+    // Set when the candidate uploaded a resume
+    resumeFileName?: string | null;
   };
   gapReport: {
     missingSkills: string[];

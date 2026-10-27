@@ -13,6 +13,10 @@
 @import './views/login.css';
 @import './views/payment.css';
 @import './views/sessions.css';
+@import './views/admin.css';
+@import './views/become-mentor-landing.css';
+@import './views/static-page.css';
+@import './views/live-call.css';
 
 /* 3. Interactive Modals */
 @import './modals/booking-modal.css';

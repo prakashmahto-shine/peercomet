@@ -6,6 +6,7 @@
 # Optional parts are enabled with COMPOSE_PROFILES in .env:
 #   caddy  - HTTPS + reverse proxy on ports 80/443 (skip if the server already runs nginx)
 #   turn   - coturn TURN server for video calls behind strict NATs/firewalls
+#   mailpit - staging only: catches sign-in emails in a web inbox instead of sending them
 services:
   postgres:
     image: postgres:16-alpine
@@ -39,8 +40,9 @@ services:
       # Only reachable from the server itself (Caddy or the host's nginx forwards to it)
       - "127.0.0.1:5001:5001"
     volumes:
-      # Session recordings when RECORDINGS_STORAGE=local
+      # Session recordings and resumes when RECORDINGS_STORAGE=local
       - recordings:/app/backend/data/recordings
+      - resumes:/app/backend/data/resumes
     depends_on:
       postgres:
         condition: service_healthy
@@ -126,8 +128,26 @@ services:
         limits:
           memory: 256m
 
+  # Staging only: a fake mail server. With SMTP_HOST=mailpit the app sends real random codes,
+  # and they land in Mailpit's inbox (http://<server>:8025) instead of anyone's mailbox.
+  # The inbox shows everyone's codes: keep it on 127.0.0.1 or the office network, with a login.
+  mailpit:
+    profiles: ["mailpit"]
+    image: axllent/mailpit:v1.30.7
+    environment:
+      MP_UI_AUTH: ${MAILPIT_UI_AUTH:-}
+      MP_MAX_MESSAGES: 1000
+    ports:
+      - "${MAILPIT_UI_BIND:-127.0.0.1}:8025:8025"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+
 volumes:
   pgdata:
   recordings:
+  resumes:
   caddy_data:
   caddy_config:

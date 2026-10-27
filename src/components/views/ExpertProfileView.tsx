@@ -4,11 +4,12 @@ import {
   Film, Play, Pause, Zap, Award, Briefcase, 
   Video, UserPlus, UserCheck, FileText, Sparkles, TrendingUp, X, 
   ShieldCheck, ArrowRight, ThumbsUp, GraduationCap, Compass, 
-  Check, Lock, RefreshCw, Brain, Layers, Target
+  Check, Lock, RefreshCw, Brain, Layers, Target, Edit2
 } from 'lucide-react';
 import { Expert, ViewType } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { BRAND } from '../../config/brand';
+import { isSelfMentor } from '../../utils/profile';
 
 interface ExpertProfileViewProps {
   expert: Expert;
@@ -23,11 +24,15 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
 }) => {
   const { 
     currentUser, 
+    userProfile,
+    isCreatorMode,
     navigateToCreatorStudio, 
     isFollowingMentor, 
     toggleFollowMentor, 
     bookingDraft, 
-    setBookingDraft 
+    setBookingDraft,
+    sessions,
+    showToast
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'sessions' | 'trajectory' | 'reviews'>('sessions');
@@ -67,16 +72,13 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
     );
   }
 
-  const isSelf = Boolean(
-    currentUser && (
-      expert.id === currentUser.id ||
-      (currentUser.username && expert.id?.toLowerCase() === currentUser.username.toLowerCase()) ||
-      (currentUser.name && expert.name?.toLowerCase() === currentUser.name.toLowerCase())
-    )
-  );
+  const isSelf = isSelfMentor(expert, currentUser);
+
+  // When viewing self profile, always show studio controls and never allow self-booking
+  const isSelfInMentorMode = isSelf;
 
   const isFollowing = isFollowingMentor(expert.id);
-  const baseFollowers = expert.followersCount || ((expert.reviewsCount || 10) * 12 + 420);
+  const baseFollowers = expert.followersCount || 0;
   const displayFollowersCount = isFollowing ? baseFollowers + 1 : baseFollowers;
 
   const handleOpenTeaserModal = () => {
@@ -89,8 +91,18 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
     setIsPlaying(false);
   };
 
-  const skillsList = Array.isArray(expert.skills) ? expert.skills : [];
-  const mentorFirstName = (expert.name || 'Mentor').split(' ')[0];
+  const displayName = isSelf ? (userProfile.name || currentUser?.name || expert.name) : expert.name;
+  const displayRole = isSelf ? (userProfile.designation || userProfile.headline || expert.role) : expert.role;
+  const displayCompany = isSelf ? (userProfile.currentCompany || expert.company) : expert.company;
+  const displayLocation = isSelf ? (userProfile.location || expert.location || 'Bengaluru, India') : (expert.location || 'Bengaluru, India');
+  const displayExperience = isSelf ? (userProfile.experienceYears || expert.experience) : expert.experience;
+  const skillsList = isSelf && userProfile.skills && userProfile.skills.length > 0 
+    ? userProfile.skills 
+    : (Array.isArray(expert.skills) ? expert.skills : []);
+  const displayBio = isSelf ? (userProfile.summary || expert.bio) : expert.bio;
+  const displayAvatar = isSelf ? (currentUser?.avatar || expert.avatar || '/brand/android-chrome-192x192.png') : (expert.avatar || '/brand/android-chrome-192x192.png');
+
+  const mentorFirstName = (displayName || 'Mentor').split(' ')[0];
   const basePrice = expert.price || 999;
 
   const cleanExperience = (exp?: string) => {
@@ -99,86 +111,68 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
     return match ? `${match[0]} Yrs` : exp;
   };
 
-  const mentorServices = [
-    {
-      id: 'career-guidance',
-      title: 'Career Guidance & Strategy',
-      tag: 'Most Popular',
-      tagColor: '#7C3AED',
-      tagBg: '#F5F3FF',
-      icon: Compass,
-      iconColor: '#7C3AED',
-      iconBg: '#F3E8FF',
-      shortDesc: 'Custom 90-day transition roadmap to bridge skill gaps and target Tier-1 roles.',
-      outcomes: [
-        { icon: '🗺️', title: '90-Day Roadmap', desc: 'Custom milestone plan & skill gap analysis' },
-        { icon: '🎯', title: 'Referral Strategy', desc: 'Tier-1 company shortlist & internal hiring criteria' },
-        { icon: '💡', title: 'Live Deep-Dive', desc: 'Screen-share code, architecture & career pitch' }
-      ],
-      duration: '30 Mins',
-      price: basePrice,
-      slotInfo: 'Next slot: Today, 7:30 PM'
-    },
-    {
-      id: 'interview-prep',
-      title: '1:1 Mock Interview & Scorecard',
-      tag: 'High Impact',
-      tagColor: '#059669',
-      tagBg: '#ECFDF5',
-      icon: Video,
-      iconColor: '#059669',
-      iconBg: '#ECFDF5',
-      shortDesc: 'Simulate live Tier-1 interview rounds with instant rubric evaluation & feedback.',
-      outcomes: [
-        { icon: '🧪', title: 'Real Simulation', desc: 'Live Tier-1 coding / architecture problem round' },
-        { icon: '📊', title: 'Instant Scorecard', desc: 'Problem-solving, system design & communication metrics' },
-        { icon: '⚡', title: 'Actionable Critique', desc: 'Exact trade-offs & areas to improve before actual round' }
-      ],
-      duration: '30 Mins',
-      price: basePrice,
-      slotInfo: 'Next slot: Tomorrow, 6:00 PM'
-    },
-    {
-      id: 'resume-review',
-      title: 'CV Audit & ATS Teardown',
-      tag: 'Quick Win',
-      tagColor: '#D97706',
-      tagBg: '#FEF3C7',
-      icon: FileText,
-      iconColor: '#D97706',
-      iconBg: '#FEF3C7',
-      shortDesc: 'Line-by-line ATS resume audit and metric-driven bullet points rewrite.',
-      outcomes: [
-        { icon: '🔍', title: 'ATS Screener Audit', desc: 'Keyword alignment & format optimization for Tier-1 screeners' },
-        { icon: '✍️', title: 'Impact Rewrites', desc: 'Metric-driven bullet points using the XYZ framework' },
-        { icon: '🛡️', title: 'Candidate Badge', desc: 'Verified status eligibility for Shine Job Board recruiter priority' }
-      ],
-      duration: '30 Mins',
-      price: Math.max(499, Math.round((basePrice * 0.7) / 50) * 50 - 1),
-      slotInfo: 'Next slot: Today, 9:00 PM'
-    },
-    {
-      id: 'salary-negotiation',
-      title: 'Salary & Offer Negotiation',
-      tag: 'High ROI',
-      tagColor: '#2563EB',
-      tagBg: '#EFF6FF',
-      icon: TrendingUp,
-      iconColor: '#2563EB',
-      iconBg: '#EFF6FF',
-      shortDesc: 'Accurate compensation benchmarking and counter-offer strategy to maximize CTC.',
-      outcomes: [
-        { icon: '💰', title: 'Market Benchmark', desc: 'Real Tier-1 CTC and level benchmarking for your experience' },
-        { icon: '📝', title: 'Negotiation Scripts', desc: 'Word-for-word counter-offer emails and recruiter talking points' },
-        { icon: '📈', title: 'Comp Breakdown', desc: 'Vesting schedules, strike prices, and bonus structure review' }
-      ],
-      duration: '30 Mins',
-      price: Math.max(699, Math.round((basePrice * 0.85) / 50) * 50 - 1),
-      slotInfo: 'Next slot: Tomorrow, 8:00 PM'
-    }
-  ];
+  const availabilitySlotInfo = expert.availability?.days?.length 
+    ? `${expert.availability.days.join(', ')} • ${expert.availability.timeSlots?.[0] || 'Flexible slots'}`
+    : 'Flexible availability • Book slot';
+
+  // Dynamic real service offerings mapped from backend API
+  const mentorServices = (expert.serviceOfferings && expert.serviceOfferings.length > 0)
+    ? expert.serviceOfferings.filter(s => s.isEnabled !== false).map(s => {
+        const isResume = s.id?.includes('resume') || (s.category && s.category.toLowerCase().includes('resume'));
+        const isInterview = s.id?.includes('interview') || (s.category && s.category.toLowerCase().includes('interview'));
+        const isSalary = s.id?.includes('salary') || (s.category && s.category.toLowerCase().includes('salary'));
+
+        const tagColor = isResume ? '#D97706' : isInterview ? '#059669' : isSalary ? '#2563EB' : '#7C3AED';
+        const tagBg = isResume ? '#FEF3C7' : isInterview ? '#ECFDF5' : isSalary ? '#EFF6FF' : '#F5F3FF';
+        const IconComp = isResume ? FileText : isInterview ? Video : isSalary ? TrendingUp : Compass;
+
+        return {
+          id: s.id,
+          title: s.title || s.category || '1:1 Mentorship Session',
+          tag: s.tag || (isResume ? 'Resume Audit' : isInterview ? 'Mock Interview' : isSalary ? 'Salary Strategy' : '1:1 Session'),
+          tagColor,
+          tagBg,
+          icon: IconComp,
+          iconColor: tagColor,
+          iconBg: tagBg,
+          shortDesc: s.description || `Direct 1:1 session with ${displayName} covering ${s.title}.`,
+          outcomes: [
+            { icon: '🎯', title: 'Target Guidance', desc: `Personalized actionable advice from ${mentorFirstName}'s real tech experience.` },
+            { icon: '💡', title: 'Live Deep-Dive', desc: 'Screen-share, question breakdown, and real-time critique.' },
+            { icon: '🚀', title: 'Actionable Next Steps', desc: 'Milestones, references, and frameworks tailored for your profile.' }
+          ],
+          duration: s.duration || expert.duration || '45 Mins',
+          price: s.price !== undefined ? s.price : basePrice,
+          slotInfo: availabilitySlotInfo
+        };
+      })
+    : [
+        {
+          id: '1on1-mentorship',
+          title: '1:1 Career Mentorship Session',
+          tag: '1:1 Session',
+          tagColor: '#7C3AED',
+          tagBg: '#F5F3FF',
+          icon: Compass,
+          iconColor: '#7C3AED',
+          iconBg: '#F3E8FF',
+          shortDesc: `Direct 1:1 career guidance, transition roadmap, and interview prep with ${displayName}.`,
+          outcomes: [
+            { icon: '🗺️', title: 'Target Roadmap', desc: 'Milestone plan and skill gap analysis for your dream role.' },
+            { icon: '🎯', title: 'Preparation Strategy', desc: 'Company hiring criteria, coding focus, and portfolio review.' },
+            { icon: '💡', title: 'Live Q&A', desc: 'Direct answers to your career and technical transition questions.' }
+          ],
+          duration: expert.duration || '45 Mins',
+          price: expert.price || 999,
+          slotInfo: availabilitySlotInfo
+        }
+      ];
 
   const handleBookSpecificSession = (s: typeof mentorServices[0]) => {
+    if (isSelf) {
+      showToast('You cannot book a mentorship session with yourself.', 'info');
+      return;
+    }
     if (setBookingDraft) {
       setBookingDraft({
         ...bookingDraft,
@@ -193,13 +187,28 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
 
   return (
     <div className="content-wrapper unified-profile-container">
+
+      {/* 🌟 Self-Mentor Informative Banner (Only shown in Mentor Studio mode) */}
+      {isSelfInMentorMode && (
+        <div className="unified-profile-alert-banner">
+          <div className="upa-content">
+            <Sparkles size={16} className="text-amber-500 flex-shrink-0" />
+            <div className="upa-text">
+              <strong>Your Public Mentor Profile:</strong> Basic details (Name, Role, Company, Skills) automatically sync with your{' '}
+              <button type="button" className="upa-link-btn" onClick={() => onNavigate('profile-view')}>
+                Candidate Profile
+              </button>
+              . Manage your 1:1 offerings, pricing &amp; availability in{' '}
+              <button type="button" className="upa-link-btn" onClick={() => navigateToCreatorStudio('bookings')}>
+                Mentor Studio Hub
+              </button>
+              .
+            </div>
+          </div>
+        </div>
+      )}
       
-      {/* 🌟 2-Column Unified Layout */}
       <div className="up-layout-grid">
-        
-        {/* ====================================================================
-            LEFT COLUMN: Sticky Mentor Identity & Social Proof Card (35%)
-           ==================================================================== */}
         <aside className="up-mentor-sidebar">
           <div className="up-mentor-card">
             
@@ -207,8 +216,8 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
             <div className="up-avatar-center-wrap">
               <div className="up-avatar-ring">
                 <img 
-                  src={expert.avatar || '/avatars/akash.jpg'} 
-                  alt={expert.name} 
+                  src={displayAvatar} 
+                  alt={displayName} 
                   className="up-avatar-img" 
                 />
                 <span className="up-status-dot" title="Available for 1:1 sessions"></span>
@@ -218,16 +227,16 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
             {/* Mentor Name & Headline */}
             <div className="up-mentor-info">
               <div className="up-name-badge-row">
-                <h1 className="up-mentor-name">{expert.name}</h1>
+                <h1 className="up-mentor-name">{displayName}</h1>
                 <span className="up-verified-icon-pill" title="Verified Practitioner">
                   <CheckCircle2 size={15} />
                 </span>
               </div>
 
               <div className="up-company-role">
-                <strong>{expert.role}</strong>
+                <strong>{displayRole}</strong>
                 <span className="up-company-dot">•</span>
-                <span className="up-company-tag">{expert.company}</span>
+                <span className="up-company-tag">{displayCompany}</span>
               </div>
 
               <span className="up-top-mentor-pill">
@@ -235,15 +244,15 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
                 <span>Top 1% Mentor on {BRAND.name}</span>
               </span>
 
-              {isSelf && <span className="up-self-tag">Your Public Profile</span>}
+              {isSelfInMentorMode && <span className="up-self-tag">Your Public Profile</span>}
             </div>
 
-            {/* Social Proof Stats (Clean 2-Row Sleek Metrics) */}
+            {/* Social Proof Stats (Clean 2-Row Sleek Metrics from Real Data) */}
             <div className="up-stats-clean-box">
               <div className="up-scb-row">
                 <div className="up-scb-cell">
                   <Star size={14} className="star-gold-fill" />
-                  <span className="up-scb-val">{expert.rating || 4.96}</span>
+                  <span className="up-scb-val">{expert.rating && (expert.reviewsCount || 0) > 0 ? expert.rating.toFixed(1) : 'New'}</span>
                   <span className="up-scb-sub">rating</span>
                 </div>
                 <div className="up-scb-cell">
@@ -256,28 +265,40 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
               <div className="up-scb-row">
                 <div className="up-scb-cell">
                   <Award size={14} className="text-emerald-600" />
-                  <span className="up-scb-val">{expert.sessionsCount || 340}+</span>
+                  <span className="up-scb-val">{expert.sessionsCount || 0}</span>
                   <span className="up-scb-sub">sessions</span>
                 </div>
                 <div className="up-scb-cell">
                   <Briefcase size={14} className="text-indigo-500" />
-                  <span className="up-scb-val">{cleanExperience(expert.experience)}</span>
+                  <span className="up-scb-val">{cleanExperience(displayExperience)}</span>
                   <span className="up-scb-sub">Exp</span>
                 </div>
               </div>
             </div>
 
-            {/* Secondary Actions (Follow & Video Teaser) */}
+            {/* Secondary Actions (Studio / Candidate Edit & Video Teaser) */}
             <div className="up-mentor-actions">
-              {isSelf ? (
-                <button 
-                  type="button" 
-                  className="btn-up-studio"
-                  onClick={() => navigateToCreatorStudio('teaser')}
-                >
-                  <Award size={14} />
-                  <span>Manage Studio</span>
-                </button>
+              {isSelfInMentorMode ? (
+                <>
+                  <button 
+                    type="button" 
+                    className="btn-up-studio"
+                    onClick={() => navigateToCreatorStudio('bookings')}
+                    title="Open Mentor Studio workspace"
+                  >
+                    <Award size={14} />
+                    <span>Manage Studio</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn-up-edit-candidate"
+                    onClick={() => onNavigate('profile-view')}
+                    title="Edit your Candidate Profile (headline, experience, skills)"
+                  >
+                    <Edit2 size={13} />
+                    <span>Edit Candidate Profile</span>
+                  </button>
+                </>
               ) : (
                 <button 
                   type="button" 
@@ -304,11 +325,11 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
             <div className="up-mentor-facts-grid">
               <div className="up-fact-item">
                 <MapPin size={13} className="text-slate-500 flex-shrink-0" />
-                <span><strong>Location:</strong> {expert.location || 'Bengaluru, India'}</span>
+                <span><strong>Location:</strong> {displayLocation}</span>
               </div>
               <div className="up-fact-item">
                 <ShieldCheck size={13} className="text-emerald-600 flex-shrink-0" />
-                <span><strong>Verification:</strong> {expert.company} Work Email (Active)</span>
+                <span><strong>Verification:</strong> {displayCompany} Work Email (Active)</span>
               </div>
             </div>
 
@@ -325,15 +346,16 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
             {/* Impact Banner */}
             <div className="up-mentor-impact-card">
               <Sparkles size={13} className="text-amber-600 flex-shrink-0" />
-              <span>98% of candidates rated their 1:1 strategy roadmap 5-stars.</span>
+              <span>
+                {(expert.reviewsCount || 0) > 0 
+                  ? `${expert.rating ? expert.rating.toFixed(1) : '5.0'}★ rated across ${expert.reviewsCount} verified session${expert.reviewsCount > 1 ? 's' : ''}.`
+                  : `Verified ${displayCompany} Practitioner available for 1:1 mentorship.`}
+              </span>
             </div>
 
           </div>
         </aside>
 
-        {/* ====================================================================
-            RIGHT COLUMN: Main Content & Services Area (65%)
-           ==================================================================== */}
         <main className="up-main-content">
           
           {/* Tabs Bar (3 Clean Focused Tabs) */}
@@ -352,7 +374,7 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
               onClick={() => setActiveTab('trajectory')}
             >
               <TrendingUp size={15} />
-              <span>Career Trajectory & Background</span>
+              <span>Career Trajectory &amp; Background</span>
             </button>
 
             <button 
@@ -361,7 +383,7 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
             >
               <Star size={15} />
               <span>Verified Reviews</span>
-              <span className="up-tab-count">{expert.reviewsCount || 162}</span>
+              <span className="up-tab-count">{expert.reviewsCount || 0}</span>
             </button>
           </div>
 
@@ -425,7 +447,7 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
                           </span>
                         </div>
                         <div className="up-scm-meta-right">
-                          {isSelf ? (
+                          {isSelfInMentorMode ? (
                             <button 
                               type="button" 
                               className="btn-scm-book"
@@ -471,92 +493,73 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
                 </div>
 
                 <div className="ep-roadmap-timeline">
-                  {/* Milestone 3: Target Role */}
+                  {/* Milestone 2: Present Role */}
                   <div className="ep-rm-item ep-rm-present">
                     <div className="ep-rm-indicator">
                       <div className="ep-rm-dot current"><Sparkles size={13} /></div>
-                      <div className="ep-rm-line"></div>
+                      {expert.trajectory?.company3YearsAgo && <div className="ep-rm-line"></div>}
                     </div>
                     <div className="ep-rm-card">
                       <div className="ep-rm-card-header">
                         <div>
                           <div className="ep-rm-badge-row">
-                            <span className="ep-rm-status-badge present">🎯 Present Target Role</span>
-                            <span className="ep-rm-period">2022 — Present</span>
+                            <span className="ep-rm-status-badge present">🎯 Present Role</span>
                           </div>
-                          <h4 className="ep-rm-role">{expert.role}</h4>
-                          <span className="ep-rm-company">{expert.company} • Tier-1 Product Tech</span>
+                          <h4 className="ep-rm-role">{displayRole}</h4>
+                          <span className="ep-rm-company">{displayCompany} • Verified Employer</span>
                         </div>
                       </div>
                       <p className="ep-rm-story">
-                        {expert.trajectory?.jumpStory || 'Transitioned from SQL dashboards to building multi-modal LLM search algorithms and dispatch heuristics serving 2M orders daily.'}
+                        {expert.trajectory?.jumpStory || displayBio || `Leading software development and architecture at ${displayCompany}.`}
                       </p>
                     </div>
                   </div>
 
-                  {/* Milestone 2: Breakthrough Bridge */}
-                  <div className="ep-rm-item ep-rm-bridge">
-                    <div className="ep-rm-indicator">
-                      <div className="ep-rm-dot bridge"><Zap size={13} /></div>
-                      <div className="ep-rm-line"></div>
-                    </div>
-                    <div className="ep-rm-card">
-                      <div className="ep-rm-card-header">
-                        <div>
-                          <div className="ep-rm-badge-row">
-                            <span className="ep-rm-status-badge bridge">⚡ Breakthrough Bridge</span>
-                            <span className="ep-rm-period">2020 — 2022</span>
-                          </div>
-                          <h4 className="ep-rm-role">{expert.trajectory?.role3YearsAgo || 'Senior Software Engineer'}</h4>
-                          <span className="ep-rm-company">{expert.trajectory?.company3YearsAgo || 'Swiggy • Consumer Internet'}</span>
-                        </div>
+                  {/* Milestone 1: Previous Background if available in real trajectory */}
+                  {expert.trajectory?.company3YearsAgo && (
+                    <div className="ep-rm-item ep-rm-baseline">
+                      <div className="ep-rm-indicator">
+                        <div className="ep-rm-dot baseline"><MapPin size={13} /></div>
                       </div>
-                      <p className="ep-rm-story">
-                        Scaled live real-time distributed microservices and event-driven data streaming clusters that unlocked Tier-1 product tech interview ceilings.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Milestone 1: Baseline Starting Point */}
-                  <div className="ep-rm-item ep-rm-baseline">
-                    <div className="ep-rm-indicator">
-                      <div className="ep-rm-dot baseline"><MapPin size={13} /></div>
-                    </div>
-                    <div className="ep-rm-card baseline-card">
-                      <div className="ep-rm-card-header">
-                        <div>
-                          <div className="ep-rm-badge-row">
-                            <span className="ep-rm-status-badge baseline">📍 Candidate Starting Point</span>
-                            <span className="ep-rm-period">2018 — 2020</span>
+                      <div className="ep-rm-card baseline-card">
+                        <div className="ep-rm-card-header">
+                          <div>
+                            <div className="ep-rm-badge-row">
+                              <span className="ep-rm-status-badge baseline">📍 Previous Background</span>
+                              {expert.trajectory?.salary3YearsAgo && (
+                                <span className="ep-rm-period">{expert.trajectory.salary3YearsAgo}</span>
+                              )}
+                            </div>
+                            <h4 className="ep-rm-role">{expert.trajectory.role3YearsAgo || 'Software Engineer'}</h4>
+                            <span className="ep-rm-company">{expert.trajectory.company3YearsAgo}</span>
                           </div>
-                          <h4 className="ep-rm-role">Software Engineer</h4>
-                          <span className="ep-rm-company">TCS / IT Services Firm</span>
                         </div>
+                        {expert.trajectory.jumpStory && (
+                          <p className="ep-rm-story">
+                            Acquired core production skills in {skillsList.slice(0, 3).join(', ')} to advance into {displayCompany}.
+                          </p>
+                        )}
                       </div>
-                      <p className="ep-rm-story">
-                        Started in foundational service firm role. Mastered backend architecture, DS-Algo problem solving, and production system design.
-                      </p>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
               {/* 2. Mentorship Mission & Philosophy */}
               <div className="up-white-card">
-                <h3 className="up-card-title">About Me & Mentorship Philosophy</h3>
+                <h3 className="up-card-title">About Me &amp; Mentorship Philosophy</h3>
                 <p className="up-card-body">
-                  {expert.bio || `Senior engineering leader at ${expert.company}. Guiding tech talent on career transition, production system design, and interview prep.`}
-                </p>
-                <p className="up-card-body-muted">
-                  Over the last 8+ years, I have architected high-throughput distributed systems and GenAI architectures serving millions of users. Having transitioned from IT services into Tier-1 product tech myself, I help engineers break through interview ceilings and master real-world production engineering.
+                  {displayBio || `Senior practitioner at ${displayCompany}. Guiding tech talent on career transition, production engineering, and interview prep.`}
                 </p>
 
                 <div className="up-quote-callout">
                   <div className="up-quote-mark">“</div>
                   <p className="up-quote-text">
-                    My mission is to eliminate generic advice. In my 1:1 sessions, we dissect your actual code, architecture diagrams, and resume metrics so you walk into interviews as the top candidate hiring managers fight for.
+                    {displayBio 
+                      ? displayBio
+                      : `In my 1:1 sessions, we dissect your actual code, architecture diagrams, and career roadmap so you achieve your career goals with actionable direction.`}
                   </p>
-                  <span className="up-quote-sig">— {expert.name}, {expert.role} at {expert.company}</span>
+                  <span className="up-quote-sig">— {displayName}, {displayRole} at {displayCompany}</span>
                 </div>
               </div>
 
@@ -564,8 +567,8 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
               <div className="up-white-card">
                 <div className="up-pane-header">
                   <div>
-                    <h3 className="up-card-title">Core Technical Competencies</h3>
-                    <p className="up-card-body-muted">Specialized architecture stacks, distributed systems & transition coaching.</p>
+                    <h3 className="up-card-title">Core Technical Skills</h3>
+                    <p className="up-card-body-muted">Verified technical skills and domain expertise from candidate profile.</p>
                   </div>
                   <span className="up-skills-verified-pill">
                     <CheckCircle2 size={12} className="text-emerald-500" />
@@ -573,84 +576,20 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
                   </span>
                 </div>
 
-                <div className="up-comp-grid">
-                  {/* Domain 1: AI & ML */}
-                  <div className="up-comp-card">
-                    <div className="up-comp-header">
-                      <div className="up-comp-icon-ring ai">
-                        <Brain size={16} />
-                      </div>
-                      <div>
-                        <h4 className="up-comp-title">AI & ML Architecture</h4>
-                        <span className="up-comp-subtitle">5 Core Frameworks</span>
-                      </div>
-                    </div>
-                    <div className="up-comp-chips-wrap">
-                      <span className="up-comp-chip ai">PyTorch</span>
-                      <span className="up-comp-chip ai">LLM Fine-Tuning</span>
-                      <span className="up-comp-chip ai">RAG Architectures</span>
-                      <span className="up-comp-chip ai">Vector Search</span>
-                      <span className="up-comp-chip ai">FastAPI</span>
-                    </div>
-                  </div>
-
-                  {/* Domain 2: Systems & Scale */}
-                  <div className="up-comp-card">
-                    <div className="up-comp-header">
-                      <div className="up-comp-icon-ring systems">
-                        <Layers size={16} />
-                      </div>
-                      <div>
-                        <h4 className="up-comp-title">Distributed Systems</h4>
-                        <span className="up-comp-subtitle">High-Scale Backend</span>
-                      </div>
-                    </div>
-                    <div className="up-comp-chips-wrap">
-                      <span className="up-comp-chip sys">Microservices</span>
-                      <span className="up-comp-chip sys">High-Throughput Caching</span>
-                      <span className="up-comp-chip sys">Latency Optimization</span>
-                      <span className="up-comp-chip sys">Real-Time Processing</span>
-                    </div>
-                  </div>
-
-                  {/* Domain 3: Coaching */}
-                  <div className="up-comp-card">
-                    <div className="up-comp-header">
-                      <div className="up-comp-icon-ring coaching">
-                        <Target size={16} />
-                      </div>
-                      <div>
-                        <h4 className="up-comp-title">Career Coaching</h4>
-                        <span className="up-comp-subtitle">Transition & Prep</span>
-                      </div>
-                    </div>
-                    <div className="up-comp-chips-wrap">
-                      <span className="up-comp-chip coach">Services ➔ Product Jump</span>
-                      <span className="up-comp-chip coach">SDE-2 to Lead Jump</span>
-                      <span className="up-comp-chip coach">System Design Mock</span>
-                      <span className="up-comp-chip coach">Executive Pitching</span>
-                    </div>
-                  </div>
+                <div className="up-comp-chips-wrap" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '14px' }}>
+                  {skillsList.map((skill) => (
+                    <span key={skill} className="up-comp-chip sys" style={{ fontSize: '13px', padding: '6px 14px' }}>
+                      {skill}
+                    </span>
+                  ))}
+                  {skillsList.length === 0 && (
+                    <span style={{ color: '#64748B', fontSize: '13px' }}>No skills listed yet</span>
+                  )}
                 </div>
               </div>
 
               {/* 4. Verified Credentials */}
               <div className="up-creds-grid">
-                <div className="up-cred-card">
-                  <div className="up-cred-icon-wrap education">
-                    <GraduationCap size={20} />
-                  </div>
-                  <div className="up-cred-details">
-                    <div className="up-cred-title-row">
-                      <h4 className="up-cred-heading">B.Tech / M.Tech in Computer Science</h4>
-                      <span className="up-cred-status-pill">
-                        <CheckCircle2 size={11} /> Degree Verified
-                      </span>
-                    </div>
-                    <p className="up-cred-desc">Core Foundations in Algorithms, Distributed Systems & AI Systems.</p>
-                  </div>
-                </div>
-
                 <div className="up-cred-card">
                   <div className="up-cred-icon-wrap practitioner">
                     <ShieldCheck size={20} />
@@ -662,7 +601,7 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
                         <CheckCircle2 size={11} /> Identity Active
                       </span>
                     </div>
-                    <p className="up-cred-desc">Current Practitioner at {expert.company} • Official Corporate Email & Work ID Verified</p>
+                    <p className="up-cred-desc">Current Practitioner at {displayCompany} • Official Corporate Verification Active</p>
                   </div>
                 </div>
               </div>
@@ -672,63 +611,27 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
 
           {/* TAB 4: Reviews */}
           {activeTab === 'reviews' && (() => {
-            const candidateReviews = [
-              {
-                id: 'rev-1',
-                name: 'Rahul Kapoor',
-                initials: 'RK',
-                avatarBg: 'linear-gradient(135deg, #3B82F6, #1D4ED8)',
-                role: 'Senior Software Engineer',
-                prevCompany: 'Ex-Wipro • Cleared Tier-1 Product Tech',
-                serviceType: '1:1 Mock System Design & Case Assessment',
-                rating: 5.0,
-                date: '2 weeks ago',
-                outcome: 'Cleared Target Senior Role',
-                comment: `"${expert.name} pointed out 3 critical flaws in my architecture pitch that were previously costing me interviews. She shared clear structural frameworks instead of vague suggestions. Within 3 weeks of practicing her guidance, I cleared the final rounds!"`,
-                helpfulCount: 24,
-              },
-              {
-                id: 'rev-2',
-                name: 'Sneha Menon',
-                initials: 'SM',
-                avatarBg: 'linear-gradient(135deg, #10B981, #047857)',
-                role: 'Senior ML Engineer',
-                prevCompany: 'Transitioned from IT Services',
-                serviceType: '30-Min Fast Track CV & Pitch Overhaul',
-                rating: 5.0,
-                date: '3 weeks ago',
-                outcome: '2 Direct Recruiter Inbounds in 7 Days',
-                comment: `"The CV audit was ruthless in the best possible way. ${expert.name} showed me how my resume lacked production metrics and real-world deployment proofs. The verified badge added to my Shine profile helped 2 recruiters reach out directly next week."`,
-                helpfulCount: 19,
-              },
-              {
-                id: 'rev-3',
-                name: 'Ananya Kulkarni',
-                initials: 'AK',
-                avatarBg: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
-                role: 'Data Scientist',
-                prevCompany: 'Ex-Business Analyst (Non-Tech to AI)',
-                serviceType: 'Career Transition Roadmap (30-Day Action Plan)',
-                rating: 5.0,
-                date: '1 month ago',
-                outcome: 'Successfully Transitioned into AI/ML',
-                comment: `"Bridging the gap from BI analytics into deep learning seemed overwhelming until this session. ${expert.name} mapped out the exact 3 GitHub repositories to build and what hiring managers look for in live coding. 100% worth every rupee."`,
-                helpfulCount: 31,
-              }
-            ];
+            const expertReviews = (sessions || []).filter(s => 
+              (s.expertId === expert.id || s.expert?.id === expert.id) && 
+              (s.rating || s.feedbackNotes)
+            );
 
             return (
               <div className="up-reviews-view">
                 {/* Aggregate Rating Scorecard */}
                 <div className="up-reviews-summary-card">
                   <div className="up-rsc-score">
-                    <span className="big-num">{expert.rating || 4.96}</span>
+                    <span className="big-num">{expertReviews.length > 0 && expert.rating ? expert.rating.toFixed(1) : 'New'}</span>
                     <div className="stars-row">
                       {[...Array(5)].map((_, i) => (
                         <Star key={i} size={15} fill="#F59E0B" color="#F59E0B" />
                       ))}
                     </div>
-                    <span className="count-txt">Based on {expert.reviewsCount || 162} Verified Sessions</span>
+                    <span className="count-txt">
+                      {expertReviews.length > 0 
+                        ? `Based on ${expertReviews.length} Verified Session${expertReviews.length > 1 ? 's' : ''}`
+                        : 'Newly Verified Mentor'}
+                    </span>
                   </div>
 
                   <div className="up-rsc-badges">
@@ -742,8 +645,8 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
                     <div className="up-rsc-badge-item">
                       <Sparkles size={18} className="text-amber-500" />
                       <div>
-                        <strong>Top 1% Mentor Rating</strong>
-                        <p>Ranked #1 in {expert.domain || 'Tech'} Mentorship</p>
+                        <strong>Verified Practitioner</strong>
+                        <p>Direct 1:1 sessions with {mentorFirstName}</p>
                       </div>
                     </div>
                   </div>
@@ -751,44 +654,54 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
 
                 {/* Reviews List */}
                 <div className="up-reviews-stack">
-                  {candidateReviews.map((rev) => (
-                    <div key={rev.id} className="up-review-card">
-                      <div className="up-rc-header">
-                        <div className="up-rc-user">
-                          <div className="up-rc-avatar" style={{ background: rev.avatarBg }}>
-                            {rev.initials}
-                          </div>
-                          <div>
-                            <div className="up-rc-name-row">
-                              <strong>{rev.name}</strong>
-                              <span className="up-rc-ver-pill"><CheckCircle2 size={11} /> Verified</span>
-                            </div>
-                            <span className="up-rc-sub">{rev.role} • {rev.prevCompany}</span>
-                          </div>
-                        </div>
-
-                        <div className="up-rc-rating">
-                          <div className="up-rc-stars">
-                            {[...Array(5)].map((_, i) => (
-                              <Star key={i} size={12} fill="#F59E0B" color="#F59E0B" />
-                            ))}
-                          </div>
-                          <span className="up-rc-date">{rev.date}</span>
-                        </div>
-                      </div>
-
-                      <p className="up-rc-comment">{rev.comment}</p>
-
-                      <div className="up-rc-footer">
-                        <span className="up-rc-outcome">
-                          <Sparkles size={11} /> {rev.outcome}
-                        </span>
-                        <span className="up-rc-helpful">
-                          <ThumbsUp size={11} /> {rev.helpfulCount} found helpful
-                        </span>
-                      </div>
+                  {expertReviews.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 20px', background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
+                      <Star size={28} className="text-amber-500" style={{ margin: '0 auto 10px' }} />
+                      <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>No Reviews Yet</h4>
+                      <p style={{ fontSize: '13px', color: '#64748B', maxWidth: '380px', margin: '0 auto 16px', lineHeight: 1.4 }}>
+                        Reviews appear here after candidates complete a 1:1 session with {mentorFirstName}.
+                      </p>
+                      {!isSelfInMentorMode && (
+                        <button 
+                          type="button" 
+                          className="btn-shine-gold" 
+                          onClick={() => handleBookSpecificSession(mentorServices[0])}
+                          style={{ padding: '8px 16px', fontSize: '13px' }}
+                        >
+                          Book 1:1 Session with {mentorFirstName}
+                        </button>
+                      )}
                     </div>
-                  ))}
+                  ) : (
+                    expertReviews.map((rev) => (
+                      <div key={rev.id} className="up-review-card">
+                        <div className="up-rc-header">
+                          <div className="up-rc-user">
+                            <div className="up-rc-avatar" style={{ background: '#4F46E5', color: '#FFF' }}>
+                              {(rev.candidateName || 'C')[0]}
+                            </div>
+                            <div>
+                              <div className="up-rc-name-row">
+                                <strong>{rev.candidateName}</strong>
+                                <span className="up-rc-ver-pill"><CheckCircle2 size={11} /> Verified</span>
+                              </div>
+                              <span className="up-rc-sub">{rev.sessionType || '1:1 Session'} • {rev.date}</span>
+                            </div>
+                          </div>
+
+                          <div className="up-rc-rating">
+                            <div className="up-rc-stars">
+                              {[...Array(rev.rating || 5)].map((_, i) => (
+                                <Star key={i} size={12} fill="#F59E0B" color="#F59E0B" />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <p className="up-rc-comment">{rev.feedbackNotes || 'Completed 1:1 mentorship session.'}</p>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             );
@@ -820,7 +733,7 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
             <div className="video-modal-viewport" onClick={() => setIsPlaying(!isPlaying)}>
               <div className="video-overlay-tint"></div>
               <img 
-                src={expert.videoPoster || expert.avatar || '/avatars/akash.jpg'} 
+                src={expert.videoPoster || expert.avatar || '/brand/android-chrome-192x192.png'} 
                 alt="Video Thumbnail" 
                 className="video-poster-img" 
               />
@@ -859,7 +772,7 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
                 <span>{expert.duration || '01:15'}</span>
               </div>
               <div className="video-modal-actions">
-                {isSelf ? (
+                {isSelfInMentorMode ? (
                   <button className="btn-shine-gold" onClick={() => { handleCloseTeaserModal(); navigateToCreatorStudio('teaser'); }}>
                     <Award size={15} /> Edit Video in Studio
                   </button>

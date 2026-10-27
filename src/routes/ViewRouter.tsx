@@ -16,6 +16,10 @@ import { PostSessionView } from '../components/views/PostSessionView';
 import { RecruiterView } from '../components/views/RecruiterView';
 import { MentorDashboardView } from '../components/views/MentorDashboardView';
 import { LoginView } from '../components/views/LoginView';
+import { RegistrationView } from '../components/views/RegistrationView';
+import { AdminDashboardView } from '../components/views/AdminDashboardView';
+import { BecomeMentorLandingView } from '../components/views/BecomeMentorLandingView';
+import { StaticPageView } from '../components/views/StaticPageView';
 
 interface ViewRouterProps {
   onSelectExpert?: (expertId: string) => void;
@@ -39,6 +43,7 @@ export const ViewRouter: React.FC<ViewRouterProps> = ({
     setIsBookingModalOpen,
     currentUser,
     isAuthLoading,
+    userProfile,
     setIsCreatorWizardOpen
   } = useApp();
 
@@ -133,21 +138,49 @@ export const ViewRouter: React.FC<ViewRouterProps> = ({
       if (isAuthLoading) return null;
       if (!currentUser) return <LoginView />;
       if (currentUser.role !== 'mentor' && !currentUser.creatorId) {
-        return (
-          <div className="content-wrapper" style={{ padding: '48px 16px', textAlign: 'center' }}>
-            <h2>Creator Studio is for mentors</h2>
-            <p style={{ margin: '12px 0 20px' }}>Set up your mentor profile to start hosting 1:1 sessions.</p>
-            <button type="button" className="btn-shine-gold-sm" onClick={() => setIsCreatorWizardOpen(true)}>
-              Become a Mentor
-            </button>
-          </div>
-        );
+        return <BecomeMentorLandingView />;
       }
       return <MentorDashboardView />;
+
+    case 'become-mentor-view':
+      return <BecomeMentorLandingView />;
+
+    case 'admin-dashboard-view':
+      return <AdminDashboardView />;
 
     // 7. Authentication
     case 'login-view':
       return <LoginView />;
+
+    case 'registration-view':
+      if (isAuthLoading) return null;
+      if (!currentUser) return <LoginView />;
+      return (
+        <>
+          <CareerGuidanceView
+            onNavigate={navigate}
+            onSelectExpert={handleSelectExpert}
+            experts={experts}
+          />
+          <RegistrationView />
+        </>
+      );
+
+    // 8. Static Governance & Legal Pages
+    case 'terms-view':
+      return <StaticPageView initialTab="terms" />;
+
+    case 'privacy-view':
+      return <StaticPageView initialTab="privacy" />;
+
+    case 'cookies-view':
+      return <StaticPageView initialTab="cookies" />;
+
+    case 'security-view':
+      return <StaticPageView initialTab="security" />;
+
+    case 'contact-view':
+      return <StaticPageView initialTab="contact" />;
 
     default:
       return (

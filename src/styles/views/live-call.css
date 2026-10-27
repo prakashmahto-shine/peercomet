@@ -1,0 +1,340 @@
+/* Live 1:1 video call room (LiveVideoCallView). Restored from the pre-split stylesheet. */
+
+.sc-confirmed-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ECFDF5;
+  color: #059669;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #A7F3D0;
+}
+
+.video-call-fullscreen-wrapper {
+  position: fixed;
+  inset: 0;
+  background: #090D16;
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.call-top-bar {
+  height: 56px;
+  flex-shrink: 0;
+  background: rgba(15, 23, 42, 0.95);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #ffffff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 10;
+}
+
+.call-recording-pill {
+  background: rgba(239, 68, 68, 0.2);
+  color: #EF4444;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 12px;
+}
+
+.red-pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: #EF4444;
+  border-radius: 50%;
+  animation: pulseAnim 1.5s infinite;
+}
+
+.call-session-title {
+  font-size: 14px;
+}
+
+.call-timer-center {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--shine-yellow);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-call-tool {
+  background: rgba(255, 210, 0, 0.2);
+  color: var(--shine-yellow);
+  border: 1px solid rgba(255, 210, 0, 0.4);
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.call-main-stage {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 16px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.video-feed-box {
+  background: #1E293B;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: relative;
+  height: 100%;
+  width: 100%;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+}
+
+.feed-bg-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.feed-user-label {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 5;
+}
+
+.sound-wave-indicator {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 3px;
+  z-index: 5;
+}
+
+.sound-wave-indicator span {
+  width: 4px;
+  height: 14px;
+  background: #10B981;
+  border-radius: 2px;
+  animation: soundWave 0.8s ease-in-out infinite alternate;
+}
+
+.cv-gap-drawer {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  width: 380px;
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.drawer-header {
+  padding: 16px 20px;
+  background: #0f172a;
+  color: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.drawer-header h3 {
+  color: #ffffff;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-icon-xs {
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.drawer-body {
+  padding: 20px;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+.candidate-brief {
+  background: #F8FAFC;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  border: 1px solid var(--shine-border);
+}
+
+.rubric-checklist-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rubric-subtitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--shine-gray-muted);
+}
+
+.rubric-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.rubric-item input {
+  margin-top: 2px;
+  accent-color: #059669;
+}
+
+.call-bottom-controls-bar {
+  height: 84px;
+  flex-shrink: 0;
+  background: rgba(15, 23, 42, 0.98);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  position: relative;
+  z-index: 20;
+}
+
+.call-ctrl-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 auto;
+}
+
+.call-action-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 78px;
+}
+
+.call-action-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-icon-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #CBD5E1;
+}
+
+.call-action-btn.btn-active-muted {
+  background: #DC2626;
+  border-color: #EF4444;
+}
+
+.call-action-btn.btn-active-muted .btn-label {
+  color: #ffffff;
+}
+
+.call-action-btn.btn-active-screenshare {
+  background: #2563EB;
+  border-color: #3B82F6;
+}
+
+.call-action-btn.btn-active-screenshare .btn-label {
+  color: #ffffff;
+}
+
+.call-action-btn.btn-active-drawer {
+  background: #F59E0B;
+  border-color: #FBBF24;
+  color: #0F172A;
+}
+
+.call-action-btn.btn-active-drawer .btn-label {
+  color: #0F172A;
+  font-weight: 800;
+}
+
+.call-end-group {
+  position: absolute;
+  right: 32px;
+}
+
+.btn-end-call-prominent {
+  background: #DC2626;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 13.5px;
+  padding: 10px 22px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-end-call-prominent:hover {
+  background: #B91C1C;
+  transform: translateY(-1px);
+}
+
+@keyframes soundWave {
+  0% { height: 4px; }
+  100% { height: 20px; }
+}

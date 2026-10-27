@@ -1,5 +1,5 @@
 from typing import List, Optional, Literal, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 DomainVertical = Literal[
     'AI/ML',
@@ -46,6 +46,8 @@ class Creator(BaseModel):
     isVerifiedEmployer: bool = True
     trajectory: CreatorTrajectory
     availability: CreatorAvailability = Field(default_factory=lambda: CreatorAvailability(days=['Wed', 'Sat', 'Sun'], timeSlots=['07:00 PM - 08:00 PM']))
+    serviceOfferings: Optional[List[Dict[str, Any]]] = None
+    ownerUserId: Optional[str] = None
 
 class PeerVerifiedBadge(BaseModel):
     id: str
@@ -62,25 +64,65 @@ class PeerVerifiedBadge(BaseModel):
 
 class CandidateProfile(BaseModel):
     id: str
+    # Display name (kept in sync with first + last name)
     name: str
+    firstName: Optional[str] = Field(default=None, max_length=100)
+    lastName: Optional[str] = Field(default=None, max_length=100)
     email: str = ""
     phone: str = ""
+    # YYYY-MM-DD; age is computed from it, never stored
+    dateOfBirth: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    avatar: Optional[str] = None
     headline: str = ""
-    experienceYears: str = "4+ Years"
-    location: str = "Bengaluru, India"
-    profileScore: int = 75
-    jobSearchStatus: str = "Actively Looking"
-    summary: str = ""
-    skills: List[str] = Field(default_factory=list)
+    location: Optional[str] = Field(default=None, max_length=100)
+
+    # Work
+    totalExperienceYears: Optional[int] = Field(default=None, ge=0, le=60)
+    totalExperienceMonths: Optional[int] = Field(default=None, ge=0, le=11)
+    experienceYears: Optional[str] = None  # display text, e.g. "4 years 6 months"
+    designation: Optional[str] = Field(default=None, max_length=100)
+    currentCompany: Optional[str] = Field(default=None, max_length=100)
+    currentlyNotWorking: bool = False
+    startDate: Optional[str] = None
+    noticePeriod: Optional[str] = Field(default=None, max_length=50)
+
+    # Salary (lakhs per annum) + display text
+    currentCtcLpa: Optional[float] = Field(default=None, ge=0, le=1000)
+    expectedCtcLpa: Optional[float] = Field(default=None, ge=0, le=1000)
     currentCtc: Optional[str] = None
+    expectedCtc: Optional[str] = None
+
+    profileScore: int = 0
+    jobSearchStatus: str = ""
+    summary: str = Field(default="", max_length=3000)
+    skills: List[str] = Field(default_factory=list, max_length=50)
+
+    # Education
+    educationDegree: Optional[str] = Field(default=None, max_length=100)
+    educationCollege: Optional[str] = Field(default=None, max_length=150)
+    graduationYear: Optional[int] = Field(default=None, ge=1950, le=2100)
+
+    # Links
+    linkedinUrl: Optional[str] = Field(default=None, max_length=300)
+    githubUrl: Optional[str] = Field(default=None, max_length=300)
+    portfolioUrl: Optional[str] = Field(default=None, max_length=300)
+
+    # Resume on file (set only by the upload API) and when it was uploaded (ISO 8601, UTC)
+    resumeFileName: Optional[str] = None
+    resumeUpdatedAt: Optional[str] = None
+    resumeFileKey: Optional[str] = None
+
+    # Career goals
     targetCtc: Optional[str] = None
     targetRole: Optional[str] = None
     targetCompany: Optional[str] = None
+    dreamCompany: Optional[str] = None
     pastCompany: Optional[str] = None
     pastCompanyRole: Optional[str] = None
-    educationDegree: Optional[str] = None
-    educationCollege: Optional[str] = None
     domain: Optional[str] = None
+    isCalibrated: bool = False
+    isMentorEligible: bool = False
+
     badges: List[PeerVerifiedBadge] = Field(default_factory=list)
     recruiterSearchMultiplier: Optional[float] = 1.5
 
@@ -138,13 +180,22 @@ class GapAnalysisResult(BaseModel):
 
 class ZeroPrepCandidate(BaseModel):
     name: str
-    headline: str
-    experienceYears: str
+    headline: str = ""
+    # Optional: new candidates may not have filled these in yet
+    experienceYears: Optional[str] = None
+    designation: Optional[str] = None
+    currentCompany: Optional[str] = None
     currentCtc: Optional[str] = None
     targetCtc: Optional[str] = None
     targetRole: Optional[str] = None
-    skills: List[str]
-    summary: str
+    noticePeriod: Optional[str] = None
+    educationDegree: Optional[str] = None
+    educationCollege: Optional[str] = None
+    linkedinUrl: Optional[str] = None
+    skills: List[str] = Field(default_factory=list)
+    summary: str = ""
+    # Set when the candidate uploaded a resume (download: GET /api/cv/sessions/{id}/candidate-resume)
+    resumeFileName: Optional[str] = None
 
 class ZeroPrepGapReport(BaseModel):
     missingSkills: List[str]
@@ -193,6 +244,7 @@ class CreatorRegisterInput(BaseModel):
     role3YearsAgo: Optional[str] = None
     company3YearsAgo: Optional[str] = None
     salary3YearsAgo: Optional[str] = None
+    serviceOfferings: Optional[List[Dict[str, Any]]] = None
 
 class AvailabilityUpdateInput(BaseModel):
     days: List[str]
@@ -208,6 +260,7 @@ class CreatorUpdateInput(BaseModel):
     teaserTitle: Optional[str] = None
     duration: Optional[str] = None
     location: Optional[str] = None
+    serviceOfferings: Optional[List[Dict[str, Any]]] = None
 
 class CheckoutPayload(BaseModel):
     expertId: str
@@ -241,10 +294,23 @@ class AssessmentSubmitPayload(BaseModel):
     interviewReadinessScore: Optional[int] = None
 
 class RecruiterMatchInput(BaseModel):
-    roleTitle: str
+    roleTitle: Optional[str] = None
+    jobTitle: Optional[str] = None
     requiredSkills: List[str] = Field(default_factory=list)
     candidateId: Optional[str] = None
     peerVerifiedOnly: Optional[bool] = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_role_title(cls, values: Any) -> Any:
+        if isinstance(values, dict):
+            if not values.get("roleTitle") and values.get("jobTitle"):
+                values["roleTitle"] = values["jobTitle"]
+            elif not values.get("roleTitle") and values.get("title"):
+                values["roleTitle"] = values["title"]
+            if not values.get("roleTitle"):
+                values["roleTitle"] = "Senior Engineer"
+        return values
 
 class RecruiterInviteInput(BaseModel):
     candidateId: str

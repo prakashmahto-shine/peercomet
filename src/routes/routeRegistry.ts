@@ -25,8 +25,8 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
   {
     id: 'career-guidance',
     name: 'Career Guidance & Skill Gap Analyzer',
-    path: '/peerpath',
-    aliases: ['/', '/guidance', '/career-guidance', '/myshine', '/dashboard'],
+    path: '/peercomet',
+    aliases: ['/', '/peerpath', '/guidance', '/career-guidance', '/dashboard'],
     view: 'guidance-view',
     title: `Career Guidance & Upward Trajectory | ${BRAND.name}`,
     description: 'Personalized AI skill-gap analyzer and career trajectory roadmap',
@@ -65,7 +65,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
   },
   {
     id: 'expert-profile',
-    name: 'Mentor Profile & Teaser Dossier',
+    name: 'Mentor Profile & Booking',
     path: '/expert/:id',
     aliases: ['/expert', '/mentor/:id', '/mentor-profile'],
     view: 'expert-profile-view',
@@ -119,7 +119,7 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     id: 'live-call',
     name: 'Live 1:1 Video Call Room',
     path: '/live-call',
-    aliases: ['/call', '/room/peerpath-session', '/room/:id'],
+    aliases: ['/call', '/room/peercomet-session', '/room/peerpath-session', '/room/:id'],
     view: 'live-call-view',
     title: `Live Mentorship Room | ${BRAND.name}`,
     description: 'WebRTC video call with zero-prep cockpit, code sharing, and live recording',
@@ -148,35 +148,140 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
     category: 'recruiter'
   },
   {
-    id: 'mentor-dashboard',
-    name: 'Mentor Studio & Earnings Cockpit',
-    path: '/mentor-dashboard',
-    aliases: ['/mentor', '/mentor-portal', '/creator-studio', '/creator', '/creator-dashboard'],
+    id: 'mentor-portal',
+    name: 'Verified Tech Mentors & Career Guidance',
+    path: '/mentor',
+    aliases: ['/mentor-dashboard', '/mentor-portal', '/creator-studio', '/creator', '/creator-dashboard'],
     view: 'mentor-dashboard-view',
-    title: `Mentor Studio & Earnings Analytics | ${BRAND.name}`,
-    description: 'Session calendar, zero-prep candidate dossiers, reach analytics, and payout tracker',
+    title: `Verified Tech Mentors & 1:1 Career Guidance | ${BRAND.name}`,
+    description: 'Connect with verified tech mentors for 1:1 guidance, mock interviews, and career roadmap',
     category: 'mentor',
     requiresAuth: true
+  },
+  {
+    id: 'become-mentor',
+    name: 'Become a Verified Mentor',
+    path: '/become-a-mentor',
+    aliases: ['/become-mentor', '/join-as-mentor', '/creator-signup'],
+    view: 'become-mentor-view',
+    title: `Become a Mentor: 0% Platform Commission | ${BRAND.name}`,
+    description: 'Host 1:1 career guidance calls, monetize your experience, and guide ambitious engineers',
+    category: 'mentor'
   },
   {
     id: 'login-auth',
     name: 'Sign In / Sign Up',
     path: '/login',
-    aliases: ['/signin', '/pages/myshine/login'],
+    aliases: ['/signin'],
     view: 'login-view',
     title: `Sign In | ${BRAND.name}`,
     description: 'Access candidate career dashboard or mentor studio',
     category: 'auth',
     hideHeader: true,
     hideFooter: true
+  },
+  {
+    id: 'registration',
+    name: 'Create Your Profile',
+    path: '/register',
+    aliases: ['/signup', '/complete-profile'],
+    view: 'registration-view',
+    title: `Create Your Profile | ${BRAND.name}`,
+    description: 'Complete your profile: upload a resume to fill it automatically or enter details',
+    category: 'auth',
+    requiresAuth: true,
+    hideFooter: true
+  },
+  {
+    id: 'admin-dashboard',
+    name: 'Admin Backoffice CRM',
+    path: '/admin',
+    aliases: [
+      '/admin/home',
+      '/admin-dashboard',
+      '/admin-panel',
+      '/management',
+      '/admin/overview',
+      '/admin/candidates',
+      '/admin/candidate',
+      '/admin/mentors',
+      '/admin/mentor',
+      '/admin/payments',
+      '/admin/payment',
+      '/admin/escrow'
+    ],
+    view: 'admin-dashboard-view',
+    title: `Admin CRM & Operations Console | ${BRAND.name}`,
+    description: 'Centralized business CRM for registrations, mentor rights vetting, session bookings, and platform revenue',
+    category: 'shared',
+    hideHeader: true,
+    hideFooter: true
+  },
+  {
+    id: 'terms-of-service',
+    name: 'Terms of Service',
+    path: '/terms',
+    aliases: ['/terms-of-service', '/terms-and-conditions', '/tos'],
+    view: 'terms-view',
+    title: `Terms of Service & User Agreement | ${BRAND.name}`,
+    description: `Terms of Service and user agreement governing mentorship and platform usage on ${BRAND.name}.`,
+    category: 'shared'
+  },
+  {
+    id: 'privacy-policy',
+    name: 'Privacy Policy',
+    path: '/privacy',
+    aliases: ['/privacy-policy', '/privacy-notice'],
+    view: 'privacy-view',
+    title: `Privacy Policy & Data Protection | ${BRAND.name}`,
+    description: `Privacy Policy and candidate data protection practices on ${BRAND.name}.`,
+    category: 'shared'
+  },
+  {
+    id: 'cookie-policy',
+    name: 'Cookie Policy',
+    path: '/cookies',
+    aliases: ['/cookie-policy'],
+    view: 'cookies-view',
+    title: `Cookie Policy & Tracking Preferences | ${BRAND.name}`,
+    description: `Information about how cookies and tracking preferences work on ${BRAND.name}.`,
+    category: 'shared'
+  },
+  {
+    id: 'security-fraud',
+    name: 'Security & Trust Safety',
+    path: '/security',
+    aliases: ['/fraud-alert', '/security-fraud', '/safety'],
+    view: 'security-view',
+    title: `Security, Safety & Fraud Prevention | ${BRAND.name}`,
+    description: 'Security policies, verified screening standards, and fraud protection guidelines.',
+    category: 'shared'
+  },
+  {
+    id: 'contact-support',
+    name: 'Contact & Support',
+    path: '/contact',
+    aliases: ['/support', '/help', '/contact-us'],
+    view: 'contact-view',
+    title: `Contact & Support Helpdesk | ${BRAND.name}`,
+    description: `Official support, contact channels, and helpdesk for ${BRAND.name}.`,
+    category: 'shared'
   }
 ];
+
+export const PEERCOMET_ROUTES = PEERPATH_ROUTES;
 
 /**
  * Universal Path-to-View Matcher for browser URL routing
  */
 export function pathToView(pathname: string): { view: ViewType; expertId?: string; route?: RouteDefinition } {
   const clean = pathname.replace(/\/$/, '') || '/';
+
+  // Admin sub-routes (/admin, /admin/candidates, /admin/mentors, etc.)
+  if (clean === '/admin' || clean.startsWith('/admin/')) {
+    const route = PEERPATH_ROUTES.find(r => r.view === 'admin-dashboard-view');
+    return { view: 'admin-dashboard-view', route };
+  }
 
   // Parameterized dynamic routes (e.g. /expert/saheli)
   if (clean.startsWith('/expert/') || clean.startsWith('/mentor/')) {
@@ -211,7 +316,7 @@ export function viewToPath(view: ViewType, params?: { expertId?: string }): stri
     return `/expert/${params.expertId}`;
   }
   const route = PEERPATH_ROUTES.find(r => r.view === view);
-  return route ? route.path : '/peerpath';
+  return route ? route.path : '/peercomet';
 }
 
 /**

@@ -7,9 +7,13 @@ import {
   GapAnalysisResult, 
   ShineJob, 
   UserProfileData,
+  ResumeUploadResult,
   CommunityPost,
   CommunityComment,
-  CommunityNotification
+  CommunityNotification,
+  AdminOverviewStats,
+  AdminUserData,
+  AdminBookingData
 } from '../types';
 
 const ENV_API_URL = typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL 
@@ -74,6 +78,8 @@ export interface AuthUser {
   avatar?: string | null;
   creatorId?: string | null;
   isMentor: boolean;
+  isMentorEligible?: boolean;
+  isAdmin?: boolean;
 }
 
 export const peerpathApi = {
@@ -179,20 +185,22 @@ export const peerpathApi = {
   },
 
   // Candidate Profile
-  async getCandidateProfile(id: string): Promise<UserProfileData> {
-    const res = await fetchWithRetry(`${API_BASE}/candidates/${id}`);
-    if (!res.ok) throw new Error(`Failed fetching candidate ${id}`);
+  async getCandidateProfile(id?: string): Promise<UserProfileData> {
+    const candidateId = id || 'me';
+    const res = await fetchWithRetry(`${API_BASE}/candidates/${candidateId}`);
+    if (!res.ok) throw new Error(`Failed fetching candidate ${candidateId}`);
     const json = await res.json();
     return json.data;
   },
 
-  async updateCandidateProfile(id: string, updates: Partial<UserProfileData>): Promise<UserProfileData> {
-    const res = await fetchWithRetry(`${API_BASE}/candidates/${id}`, {
+  async updateCandidateProfile(id?: string, updates: Partial<UserProfileData> = {}): Promise<UserProfileData> {
+    const candidateId = id || 'me';
+    const res = await fetchWithRetry(`${API_BASE}/candidates/${candidateId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates)
     });
-    if (!res.ok) throw new Error(`Failed updating candidate ${id}`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed saving profile');
     const json = await res.json();
     return json.data;
   },
@@ -217,6 +225,31 @@ export const peerpathApi = {
     if (!res.ok) throw new Error(`Failed matching trajectories`);
     const json = await res.json();
     return { matches: json.data, supportedDomain: json.supportedDomain !== false, message: json.message };
+  },
+
+  // Resume: upload (stores the file and returns the fields found in it), download, delete
+  async uploadResume(file: File): Promise<ResumeUploadResult> {
+    const form = new FormData();
+    form.append('file', file);
+    // No retry: a timed-out upload may already have been stored
+    const res = await apiFetch(`${API_BASE}/cv/upload`, { method: 'POST', body: form });
+    if (!res.ok) throw await errorFromResponse(res, 'Could not upload the resume');
+    const json = await res.json();
+    return json.data;
+  },
+
+  async deleteResume(): Promise<void> {
+    const res = await apiFetch(`${API_BASE}/cv/resume`, { method: 'DELETE' });
+    if (!res.ok) throw await errorFromResponse(res, 'Could not remove the resume');
+  },
+
+  ownResumeUrl(): string {
+    return `${API_BASE}/cv/resume`;
+  },
+
+  // For the mentor of a booked session
+  candidateResumeUrl(sessionId: string): string {
+    return `${API_BASE}/cv/sessions/${encodeURIComponent(sessionId)}/candidate-resume`;
   },
 
   // CV Parsing
@@ -373,12 +406,14 @@ export const peerpathApi = {
 
   // Video Recordings & Streaming
   getRecordingUrl(sessionId: string): string {
-    const cleanId = (sessionId || '').replace(/^peerpath-/, '').replace(/^sess-/, '');
+    if (!sessionId) return '';
+    if (sessionId.startsWith('http://') || sessionId.startsWith('https://')) return sessionId;
+    const cleanId = (sessionId || '').replace(/^.*\/sessions\//, '').replace(/\/recording$/, '').replace(/^peercomet-/, '').replace(/^peerpath-/, '').replace(/^sess-/, '');
     return `${API_BASE}/sessions/${cleanId}/recording`;
   },
 
   async uploadSessionRecording(sessionId: string, blob: Blob): Promise<{ success: boolean; recordingUrl: string; sessionId: string }> {
-    const cleanId = (sessionId || '').replace(/^peerpath-/, '').replace(/^sess-/, '');
+    const cleanId = (sessionId || '').replace(/^peercomet-/, '').replace(/^peerpath-/, '').replace(/^sess-/, '');
     const res = await fetchWithRetry(`${API_BASE}/sessions/${cleanId}/recording`, {
       method: 'POST',
       headers: {
@@ -581,6 +616,55 @@ export const peerpathApi = {
     return res.json();
   },
 
+  // Admin Operations
+  async getAdminOverview(): Promise<AdminOverviewStats> {
+    const res = await fetchWithRetry(`${API_BASE}/admin/overview`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed fetching admin overview');
+    const json = await res.json();
+    return json.data;
+  },
+
+  async getAdminUsers(): Promise<AdminUserData[]> {
+    const res = await fetchWithRetry(`${API_BASE}/admin/users`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed fetching users');
+    const json = await res.json();
+    return json.data;
+  },
+
+  async toggleMentorAccess(userId: string, isMentorEligible: boolean): Promise<boolean> {
+    const res = await fetchWithRetry(`${API_BASE}/admin/users/${encodeURIComponent(userId)}/mentor-access`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isMentorEligible })
+    });
+    if (!res.ok) throw await errorFromResponse(res, 'Failed updating mentor access');
+    return true;
+  },
+
+  async getAdminBookings(): Promise<AdminBookingData[]> {
+    const res = await fetchWithRetry(`${API_BASE}/admin/bookings`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed fetching bookings');
+    const json = await res.json();
+    return json.data;
+  },
+
+  async getAdminCreators(): Promise<any[]> {
+    const res = await fetchWithRetry(`${API_BASE}/admin/creators`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed fetching creators');
+    const json = await res.json();
+    return json.data;
+  },
+
+  async updateCreatorStatus(creatorId: string, status: string): Promise<boolean> {
+    const res = await fetchWithRetry(`${API_BASE}/admin/creators/${encodeURIComponent(creatorId)}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    if (!res.ok) throw await errorFromResponse(res, 'Failed updating creator status');
+    return true;
+  },
+
   // Reset Demo
   async resetDemo() {
     const res = await fetchWithRetry(`${API_BASE}/demo/reset`, { method: 'POST' });
@@ -588,3 +672,5 @@ export const peerpathApi = {
     return res.json();
   }
 };
+
+export const peercometApi = peerpathApi;

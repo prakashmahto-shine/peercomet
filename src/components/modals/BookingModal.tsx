@@ -11,6 +11,8 @@ import { useApp } from '../../context/AppContext';
 import { peerpathApi } from '../../services/api';
 import { formatBookingDate } from '../../utils/bookingDates';
 import { BRAND } from '../../config/brand';
+import { isResumeRecent } from '../../utils/resume';
+import { isSelfMentor } from '../../utils/profile';
 
 // Used only when a mentor has no saved availability
 const DEFAULT_TIME_SLOTS = ['10:00 AM - 11:00 AM', '02:00 PM - 03:00 PM', '06:30 PM - 07:30 PM', '08:00 PM - 09:00 PM'];
@@ -47,6 +49,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   onSelectTime,
 }) => {
   const { 
+    currentUser,
     userProfile, 
     bookingDraft, 
     setBookingDraft, 
@@ -55,7 +58,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     bookSession,
     navigate,
     showToast,
-    updateCandidateResume
+    uploadResume
   } = useApp();
 
   // Next 14 days starting from today; filtered below to the mentor's available weekdays
@@ -83,31 +86,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     return days;
   }, []);
 
-  // Fallback / default expert
-  const expert: Expert = propExpert || bookingDraft?.expert || selectedExpert || {
-    id: 'deepika-pm',
-    name: 'Deepika Sen',
-    role: 'Senior Technical Product Manager',
-    company: 'Google',
-    domain: 'Product Management',
-    experience: '8+ Yrs',
-    location: 'Bengaluru, India',
-    duration: '30 Mins',
-    avatar: '/avatars/deepika.jpg',
-    videoPoster: '/thumbnails/deepika-video.jpg',
-    teaserTitle: 'How I Transitioned from Engineering to Google PM',
-    rating: 4.93,
-    reviewsCount: 154,
-    sessionsCount: 310,
-    price: 1399,
-    bio: 'Helping tech professionals make seamless career transitions into Tier-1 product management and tech leadership roles.',
-    skills: ['Product Strategy', 'System Design', 'Interview Prep'],
-    verifiedEmail: 'deepika.sen@google.com',
-    isVerifiedEmployer: true
-  };
+  // The mentor being booked (an empty placeholder has no id)
+  const pickExpert = (e?: Expert) => (e && e.id ? e : undefined);
+  const expert: Expert = pickExpert(propExpert) || pickExpert(bookingDraft?.expert) || selectedExpert;
 
   const expertName = expert?.name || 'Mentor';
-  const expertAvatar = expert?.avatar || '/avatars/deepika.jpg';
+  const expertAvatar = expert?.avatar || '/brand/android-chrome-192x192.png';
   const expertRole = expert?.role || 'Tech Leader';
   const expertCompany = expert?.company || 'Top Tech Firm';
   const expertPrice = expert?.price || 1399;
@@ -147,13 +131,22 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   // 4 Harmonized 1:1 Services
   const sessionOfferings = useMemo(() => {
     const base = expertPrice || 1399;
+    const getPrice = (id: string, fallback: number) => {
+      const found = expert?.serviceOfferings?.find(s => s.id === id);
+      return found && found.price !== undefined ? found.price : fallback;
+    };
+    const getDur = (id: string, fallback: string) => {
+      const found = expert?.serviceOfferings?.find(s => s.id === id);
+      return found && found.duration ? found.duration : fallback;
+    };
+
     return [
       {
         id: 'career-guidance',
         title: 'Career Guidance & Strategy',
         icon: Compass,
-        duration: '30 Mins',
-        price: base,
+        duration: getDur('career-guidance', '45 Mins'),
+        price: getPrice('career-guidance', base),
         iconColor: '#7C3AED',
         iconBg: '#F5F3FF'
       },
@@ -161,8 +154,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         id: 'interview-prep',
         title: '1:1 Mock Interview & Scorecard',
         icon: Video,
-        duration: '30 Mins',
-        price: base,
+        duration: getDur('interview-prep', '60 Mins'),
+        price: getPrice('interview-prep', base),
         iconColor: '#059669',
         iconBg: '#ECFDF5'
       },
@@ -170,8 +163,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         id: 'resume-review',
         title: 'CV Audit & ATS Teardown',
         icon: FileText,
-        duration: '30 Mins',
-        price: Math.max(499, Math.round((base * 0.7) / 50) * 50 - 1),
+        duration: getDur('resume-review', '30 Mins'),
+        price: getPrice('resume-review', Math.max(499, Math.round((base * 0.7) / 50) * 50 - 1)),
         iconColor: '#D97706',
         iconBg: '#FEF3C7'
       },
@@ -179,13 +172,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         id: 'salary-negotiation',
         title: 'Salary & Offer Negotiation',
         icon: TrendingUp,
-        duration: '30 Mins',
-        price: Math.max(699, Math.round((base * 0.85) / 50) * 50 - 1),
+        duration: getDur('salary-negotiation', '30 Mins'),
+        price: getPrice('salary-negotiation', Math.max(699, Math.round((base * 0.85) / 50) * 50 - 1)),
         iconColor: '#2563EB',
         iconBg: '#EFF6FF'
       }
     ];
-  }, [expertPrice]);
+  }, [expertPrice, expert?.serviceOfferings]);
 
   const [selectedSessionId, setSelectedSessionId] = useState<string>('career-guidance');
 
@@ -216,23 +209,29 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [isUploadingCv, setIsUploadingCv] = useState<boolean>(false);
 
-  const currentCvName = userProfile?.resumeFileName || bookingDraft?.attachedCvName || 'Prakash_Mahto_Frontend_Resume.pdf';
+  const currentCvName = userProfile?.resumeFileName || bookingDraft?.attachedCvName || '';
 
-  // 1-Click CV sync / update from modal
-  const handleCvFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Uploads the resume so the mentor can download it before the session
+  const handleCvFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setIsUploadingCv(true);
-      setTimeout(() => {
-        setIsUploadingCv(false);
-        updateCandidateResume(file.name, ['React', 'TypeScript', 'System Design', 'Frontend Architecture']);
-        showToast('📄 Latest CV Attached!', `${file.name} attached for ${expertName}'s pre-call dossier.`, 'success');
-      }, 600);
+    e.target.value = '';
+    if (!file) return;
+    setIsUploadingCv(true);
+    const result = await uploadResume(file);
+    setIsUploadingCv(false);
+    if (result) {
+      showToast('📄 Resume Attached', `${expertName} can download it before the session.`, 'success');
     }
   };
 
+  const isSelf = isSelfMentor(expert, currentUser);
+
   // 1-Click direct opening of Razorpay Gateway (No intermediate friction screens)
   const handleOpenRazorpay = () => {
+    if (isSelf) {
+      showToast('Self-booking not allowed', 'You cannot book a mentorship session with yourself.', 'info');
+      return;
+    }
     if (!activeDateStr || !activeTime) {
       showToast('Pick a slot', 'Please choose an available date and time slot.', 'info');
       return;
@@ -253,6 +252,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   const handleCompletePayment = async () => {
+    if (isSelf) {
+      showToast('Self-booking not allowed', 'You cannot book a mentorship session with yourself.', 'info');
+      return;
+    }
     const slotTime = activeTime;
     setIsProcessing(true);
     const booked = await bookSession(expert, activeDateStr, slotTime, activeSession.id);
@@ -279,7 +282,51 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     navigate('confirmed-view');
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !expert?.id) return null;
+
+  if (isSelf) {
+    return (
+      <div className="app-modal-backdrop open" onClick={onClose}>
+        <div className="app-modal-card bfm-modal-card" style={{ maxWidth: '440px', padding: '32px 24px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <AlertCircle size={28} />
+          </div>
+          <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A', marginBottom: '8px' }}>
+            This is Your Mentor Profile
+          </h3>
+          <p style={{ fontSize: '14px', color: '#64748B', lineHeight: 1.5, marginBottom: '24px' }}>
+            You cannot book a mentorship session with yourself. You can manage your availability, pricing, and service offerings in the Mentor Studio.
+          </p>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+            <button
+              type="button"
+              className="btn-pm-profile-view"
+              onClick={() => {
+                onClose();
+                setIsBookingModalOpen(false);
+              }}
+              style={{ padding: '10px 18px', fontSize: '13px', borderRadius: '8px' }}
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              className="btn-shine-gold"
+              onClick={() => {
+                onClose();
+                setIsBookingModalOpen(false);
+                navigate('mentor-dashboard-view', '/mentor');
+              }}
+              style={{ padding: '10px 18px', fontSize: '13px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Briefcase size={14} />
+              <span>Go to Mentor Studio</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app-modal-backdrop open" onClick={onClose}>
@@ -424,9 +471,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
           {/* Step 3: Attached Candidate CV / Mentor Dossier */}
           {(() => {
-            const isSynced = (userProfile?.resumeLastUpdated || '').includes('Just now') || 
-              (userProfile?.resumeLastUpdated || '').includes('Synced') ||
-              (currentCvName !== 'resume (1).pdf' && currentCvName !== 'resume.pdf' && (userProfile?.profileScore || 0) > 85);
+            const hasCv = Boolean(currentCvName);
+            // "Ready" only if the resume was actually uploaded in the last 30 days
+            const isSynced = hasCv && isResumeRecent(userProfile);
             const mentorFirstName = expertName.split(' ')[0];
 
             return (
@@ -440,9 +487,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     <span className="bfm-cv-badge-ready">
                       <CheckCircle2 size={11} /> 100% Ready for {mentorFirstName}
                     </span>
-                  ) : (
+                  ) : hasCv ? (
                     <span className="bfm-cv-badge-warn">
                       <AlertCircle size={11} /> Outdated CV (~1 yr old)
+                    </span>
+                  ) : (
+                    <span className="bfm-cv-badge-warn">
+                      <AlertCircle size={11} /> Optional • No CV Attached
                     </span>
                   )}
                 </div>
@@ -453,20 +504,24 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       {isSynced ? (
                         <CheckCircle2 size={16} className="text-emerald-600" />
                       ) : (
-                        <FileText size={16} className="text-amber-600" />
+                        <FileText size={16} className={hasCv ? "text-amber-600" : "text-slate-400"} />
                       )}
                     </div>
                     <div className="bfm-cv-details">
                       <div className="bfm-cv-name-row">
-                        <span className="bfm-cv-name">{currentCvName}</span>
+                        <span className="bfm-cv-name">{hasCv ? currentCvName : 'No CV attached yet'}</span>
                       </div>
                       {isSynced ? (
                         <div className="bfm-cv-subtext ready">
                           ✨ Synced • {mentorFirstName} will review your updated projects before the call
                         </div>
-                      ) : (
+                      ) : hasCv ? (
                         <div className="bfm-cv-subtext warn">
                           ⚠️ Mentor reviews this before call • Upload latest CV for tailored interview prep & referrals
+                        </div>
+                      ) : (
+                        <div className="bfm-cv-subtext" style={{ color: '#64748b' }}>
+                          Upload your latest CV so {mentorFirstName} can review your experience before the live session
                         </div>
                       )}
                     </div>
@@ -616,7 +671,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <div className="rzp-qr-pane">
                     <div className="rzp-qr-box">
                       <img 
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=upi://pay?pa=shine.peerpath@razorpay&pn=${encodeURIComponent(BRAND.name)}&am=${payableAmount}&cu=INR`} 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=upi://pay?pa=shine.peercomet@razorpay&pn=${encodeURIComponent(BRAND.name)}&am=${payableAmount}&cu=INR`} 
                         alt="Scan UPI QR Code" 
                         className="rzp-qr-img"
                       />

@@ -7,21 +7,14 @@ import { useApp } from '../../context/AppContext';
 import { BRAND } from '../../config/brand';
 
 export const PaymentView: React.FC = () => {
-  const { bookingDraft, navigate, bookSession, selectedExpert, userProfile, setIsBookingModalOpen } = useApp();
-  const expert = bookingDraft.expert || selectedExpert || {
-    id: 'deepika-pm',
-    name: 'Deepika Sen',
-    role: 'Senior Technical Product Manager',
-    company: 'Google',
-    price: 1399,
-    avatar: '/avatars/deepika.jpg'
-  };
+  const { bookingDraft, navigate, bookSession, selectedExpert, userProfile, setIsBookingModalOpen, currentUser } = useApp();
+  const expert = bookingDraft.expert?.id ? bookingDraft.expert : selectedExpert;
 
   const date = bookingDraft.date;
   const timeSlot = bookingDraft.timeSlot;
   const sessionType = bookingDraft.sessionType || 'Career Guidance & Strategy';
   const sessionDuration = bookingDraft.duration || '30 Mins';
-  const payableAmount = bookingDraft.amount || expert.price || 1399;
+  const payableAmount = bookingDraft.amount || expert.price || 0;
 
   // Razorpay Modal simulation state
   const [isRazorpayModalOpen, setIsRazorpayModalOpen] = useState<boolean>(false);
@@ -49,6 +42,17 @@ export const PaymentView: React.FC = () => {
     }
   };
 
+  if (!expert?.id) {
+    return (
+      <div className="content-wrapper payment-layout-grid">
+        <div className="payment-left-card">
+          <h2 className="pay-sec-heading">No session selected</h2>
+          <button className="btn-back-link" onClick={() => navigate('experts-view')}>Browse mentors</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="content-wrapper payment-layout-grid">
       
@@ -61,7 +65,7 @@ export const PaymentView: React.FC = () => {
         <h2 className="pay-sec-heading">Session Summary</h2>
 
         <div className="pay-expert-card">
-          <img src={expert.avatar || '/avatars/deepika.jpg'} alt={expert.name} className="pay-avatar" />
+          <img src={expert.avatar || '/brand/android-chrome-192x192.png'} alt={expert.name} className="pay-avatar" />
           <div>
             <h4>{expert.name}</h4>
             <p>{expert.role} at {expert.company} • <strong className="text-blue-600">{sessionType}</strong></p>
@@ -92,7 +96,7 @@ export const PaymentView: React.FC = () => {
         <div className="trust-guarantee-box">
           <ShieldCheck size={22} className="t-icon" />
           <p>
-            <strong>Shine Trust Guarantee:</strong> 100% full refund if mentor is unavailable or if you are not satisfied with session quality.
+            <strong>{BRAND.name} Trust Guarantee (Backed by Shine):</strong> 100% full refund if mentor is unavailable or if you are not satisfied with session quality.
           </p>
         </div>
       </div>
@@ -119,11 +123,11 @@ export const PaymentView: React.FC = () => {
           </div>
           <div className="rzp-brief-row">
             <span className="rzp-brief-lbl">Candidate</span>
-            <span className="rzp-brief-val">{userProfile?.name || 'Prakash Kumar'}</span>
+            <span className="rzp-brief-val">{currentUser?.name || userProfile?.name || 'Candidate'}</span>
           </div>
           <div className="rzp-brief-row">
             <span className="rzp-brief-lbl">Invite Sent To</span>
-            <span className="rzp-brief-val font-mono">{userProfile?.email || 'prakash.mahto@gmail.com'}</span>
+            <span className="rzp-brief-val font-mono">{currentUser?.email || userProfile?.email || 'your registered email'}</span>
           </div>
         </div>
 
@@ -158,7 +162,7 @@ export const PaymentView: React.FC = () => {
           
           <div className="rzp-compliance-footer">
             <Shield size={12} className="text-slate-400" />
-            <span>RBI & PCI-DSS Compliant • <strong>Shine Gateway</strong></span>
+            <span>RBI & PCI-DSS Compliant • <strong>{BRAND.name} Secure Gateway</strong></span>
           </div>
         </div>
 
@@ -240,7 +244,7 @@ export const PaymentView: React.FC = () => {
                   <div className="rzp-qr-pane">
                     <div className="rzp-qr-box">
                       <img 
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=upi://pay?pa=shine.peerpath@razorpay&pn=${encodeURIComponent(BRAND.name)}&am=${payableAmount}&cu=INR`} 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=upi://pay?pa=shine.peercomet@razorpay&pn=${encodeURIComponent(BRAND.name)}&am=${payableAmount}&cu=INR`} 
                         alt="Scan UPI QR Code" 
                         className="rzp-qr-img"
                       />

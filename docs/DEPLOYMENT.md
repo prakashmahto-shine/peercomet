@@ -1,6 +1,6 @@
-# PeerPath: Deployment Guide
+# PeerComet: Deployment Guide
 
-This guide is for the infra team. PeerPath ships as **one Docker image**. It runs on a VM with Docker or on Kubernetes; the requirements below apply to both, and the [platform notes](#platform-notes) cover the differences.
+This guide is for the infra team. PeerComet ships as **one Docker image**. It runs on a VM with Docker or on Kubernetes; the requirements below apply to both, and the [platform notes](#platform-notes) cover the differences.
 
 ## At a glance
 
@@ -31,7 +31,7 @@ Python dependencies are fully pinned in `requirements.lock`, so rebuilding the s
 All settings are environment variables. `.env.example` is a complete server template.
 
 **No mock or demo behaviour runs on servers.** Outside `APP_ENV=development`:
-- The app refuses to start with `EMAIL_BACKEND=console` (the fixed development code).
+- There is no fixed sign-in code: `EMAIL_BACKEND=console` is ignored and every code is random and emailed.
 - It never loads demo data and has no demo-reset endpoint.
 
 | Variable | Required | Example / default | Notes |
@@ -41,12 +41,13 @@ All settings are environment variables. `.env.example` is a complete server temp
 | `SMTP_HOST` / `SMTP_PORT` | yes | `smtp.example.com` / `587` | Sign-in codes are sent by email. Until `SMTP_HOST` and `EMAIL_FROM` are set, the app runs but sign-in returns 503. |
 | `SMTP_SECURITY` | no | `starttls` | `starttls` (587), `ssl` (465) or `none` |
 | `SMTP_USERNAME` / `SMTP_PASSWORD` | usually | | **Secret** |
-| `EMAIL_FROM` | yes | `PeerPath <no-reply@peerpath.in>` | Sender address. Its domain needs SPF/DKIM for the SMTP service, or mail lands in spam. |
+| `EMAIL_FROM` | yes | `PeerComet <no-reply@peercomet.com>` | Sender address. Its domain needs SPF/DKIM for the SMTP service, or mail lands in spam. |
 | `OTP_TTL_MINUTES` | no | `10` | How long a sign-in code is valid |
-| `CORS_ORIGINS` | yes | `https://peerpath.in` | Comma-separated; also used by Socket.IO |
+| `CORS_ORIGINS` | yes | `https://peercomet.com` | Comma-separated; also used by Socket.IO |
 | `SESSION_TTL_DAYS` | no | `30` | Login session lifetime |
-| `ADMIN_USER_IDS` | no | | PeerPath user ids with admin access |
-| `RECRUITER_USER_IDS` | no | | PeerPath user ids allowed to use recruiter search |
+| `ADMIN_EMAILS` | no | `ops@peercomet.com` | Comma-separated emails with admin access. Admins sign in with the normal email code at `/admin`. |
+| `ADMIN_USER_IDS` | no | | PeerComet user ids with admin access (alternative to `ADMIN_EMAILS`) |
+| `RECRUITER_USER_IDS` | no | | PeerComet user ids allowed to use recruiter search |
 | `RECORDINGS_STORAGE` | yes | `s3` (recommended) or `local` | See [Storage](#storage) |
 | `S3_BUCKET` | when `s3` | | |
 | `S3_PREFIX` | no | `recordings` | |
@@ -55,7 +56,7 @@ All settings are environment variables. `.env.example` is a complete server temp
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | when `s3` without an IAM role | | **Secret** |
 | `RECORDINGS_DIR` | when `local` | `/app/backend/data/recordings` | Must be on persistent storage |
 | `MAX_RECORDING_MB` | no | `500` | Largest accepted recording upload |
-| `TURN_URLS` | **yes for production** | `turn:turn.peerpath.in:3478,turns:turn.peerpath.in:5349` | See [Video calls](#video-calls-turn) |
+| `TURN_URLS` | **yes for production** | `turn:turn.peercomet.com:3478,turns:turn.peercomet.com:5349` | See [Video calls](#video-calls-turn) |
 | `TURN_USERNAME` / `TURN_CREDENTIAL` | with `TURN_URLS` | | **Secret** |
 | `STUN_URLS` | no | Google public STUN | Comma-separated |
 
@@ -86,7 +87,7 @@ Recordings are personal data.
 
 ## HTTP routing (reverse proxy / load balancer / ingress)
 
-- **Host and TLS:** the public host (e.g. `peerpath.in`) with TLS. Route everything (`/`) to port `5001`; the app serves the site, `/api` and `/socket.io` itself.
+- **Host and TLS:** the public host (e.g. `peercomet.com`) with TLS. Route everything (`/`) to port `5001`; the app serves the site, `/api` and `/socket.io` itself.
 - **WebSockets** must be allowed on `/socket.io/`, with long timeouts (e.g. nginx `proxy_read_timeout 3600s`).
 - **Request body size:** at least `MAX_RECORDING_MB` (500 MB) for recording uploads. The nginx default is 1 MB.
 - **Forwarded headers:** forward `X-Forwarded-For` and `X-Forwarded-Proto`. Uvicorn runs with `--proxy-headers`.
@@ -126,7 +127,7 @@ Running several instances later needs:
 
 | Service | What | Enabled |
 |---|---|---|
-| `app` | PeerPath image. Listens on `127.0.0.1:5001` only. | always |
+| `app` | PeerComet image. Listens on `127.0.0.1:5001` only. | always |
 | `postgres` | PostgreSQL 16. Data in the `pgdata` volume. | always |
 | `backup` | `pg_dump` at start-up and every 24 hours into `./backups`. Keeps `BACKUP_KEEP_DAYS` days. | always |
 | `caddy` | HTTPS (automatic Let's Encrypt certificate) on 80/443 and proxy to `app` | `COMPOSE_PROFILES` contains `caddy` |
@@ -154,6 +155,26 @@ curl -fsS https://$SITE_DOMAIN/api/ready
 
 The first start creates the database tables. No demo data is loaded.
 
+**Sign-in emails on staging (Mailpit)**
+
+To test sign-in on staging without a real mail account, run Mailpit, a mail server that keeps
+every email in a web inbox and sends nothing out. The app still creates random codes.
+
+```env
+COMPOSE_PROFILES=mailpit          # plus caddy/turn if used
+SMTP_HOST=mailpit
+SMTP_PORT=1025
+SMTP_SECURITY=none
+SMTP_USERNAME=
+SMTP_PASSWORD=
+EMAIL_FROM=PeerComet <no-reply@peercomet.com>
+MAILPIT_UI_AUTH=team:<long-password>
+MAILPIT_UI_BIND=127.0.0.1         # 0.0.0.0 only on an office network / VPN
+```
+
+Open the inbox with `ssh -L 8025:127.0.0.1:8025 <user>@<server>` and then http://localhost:8025.
+The inbox shows everyone's codes, so keep it private. Use a real SMTP service for production.
+
 **Updating to a new version**
 
 ```bash
@@ -173,7 +194,7 @@ docker compose up -d --build app  # brief restart of the app only; data is kept
 ```nginx
 server {
     listen 443 ssl;
-    server_name peerpath.in;                  # SITE_DOMAIN
+    server_name peercomet.com;                  # SITE_DOMAIN
     # ssl_certificate / ssl_certificate_key as for the server's other sites
     client_max_body_size 500m;
     location / {

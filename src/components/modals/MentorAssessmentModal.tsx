@@ -85,14 +85,14 @@ export const MentorAssessmentModal: React.FC = () => {
         <div className="as-candidate-summary-box">
           <div className="as-candidate-avatar-wrap">
             <img 
-              src={assessmentDraftSession.candidateAvatar || '/avatars/prakash.jpg'} 
+              src={assessmentDraftSession.candidateAvatar || '/brand/android-chrome-192x192.png'} 
               alt={assessmentDraftSession.candidateName} 
               className="as-candidate-avatar"
             />
           </div>
           <div className="as-candidate-info">
             <h4>{assessmentDraftSession.candidateName}</h4>
-            <p>{assessmentDraftSession.candidateRole || 'Senior Frontend Developer'}</p>
+            <p>{assessmentDraftSession.candidateRole || 'Candidate'}</p>
             <span className="as-session-time-chip">
               Session: {assessmentDraftSession.date} • {assessmentDraftSession.timeSlot}
             </span>

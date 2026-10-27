@@ -5,23 +5,18 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '../../context/AppContext';
+import { isResumeRecent } from '../../utils/resume';
+import { BRAND } from '../../config/brand';
 
 export const ConfirmedView: React.FC = () => {
-  const { bookingDraft, navigate, userProfile, setIsCvSyncModalOpen, selectedExpert } = useApp();
+  const { bookingDraft, navigate, userProfile, setIsCvSyncModalOpen, selectedExpert, currentUser } = useApp();
   
-  const expert = bookingDraft.expert || selectedExpert || {
-    id: 'akash',
-    name: 'Akash Jain',
-    role: 'Lead Product Manager',
-    company: 'Shine (HT Media)',
-    price: 999,
-    avatar: '/avatars/akash.jpg'
-  };
+  const expert = bookingDraft.expert?.id ? bookingDraft.expert : selectedExpert;
 
-  const date = bookingDraft.date || 'Tomorrow, 5 Sep';
-  const timeSlot = bookingDraft.timeSlot || '10:00 AM - 11:00 AM';
+  const date = bookingDraft.date;
+  const timeSlot = bookingDraft.timeSlot;
   const sessionType = bookingDraft.sessionType || 'Career guidance';
-  const paidAmount = bookingDraft.amount || expert.price || 999;
+  const paidAmount = bookingDraft.amount || expert.price || 0;
 
   useEffect(() => {
     try {
@@ -33,8 +28,17 @@ export const ConfirmedView: React.FC = () => {
     } catch (e) {}
   }, []);
 
-  const currentCv = bookingDraft.attachedCvName || userProfile?.resumeFileName || 'Prakash_Mahto_Frontend_Resume.pdf';
-  const isRecentlySynced = (userProfile?.resumeLastUpdated || '').includes('Just now') || (userProfile?.resumeLastUpdated || '').includes('Synced');
+  const currentCv = bookingDraft.attachedCvName || userProfile?.resumeFileName || '';
+  const isRecentlySynced = isResumeRecent(userProfile);
+
+  if (!expert?.id || !date) {
+    return (
+      <div className="content-wrapper confirmation-card-wrapper">
+        <h2>No recent booking</h2>
+        <button className="btn-back-link" onClick={() => navigate('sessions-view')}>Go to My Sessions</button>
+      </div>
+    );
+  }
 
   return (
     <div className="content-wrapper confirmation-card-wrapper">
@@ -45,10 +49,10 @@ export const ConfirmedView: React.FC = () => {
         </div>
 
         <h1 className="conf-title">Session Booked Successfully!</h1>
-        <p className="conf-subtitle">We've sent a calendar invite and video room link to <strong>{userProfile?.email || 'prakash.mahto@gmail.com'}</strong>.</p>
+        <p className="conf-subtitle">We've sent a calendar invite and video room link to <strong>{currentUser?.email || userProfile?.email || 'your registered email'}</strong>.</p>
 
         <div className="conf-session-info-card">
-          <img src={expert.avatar || '/avatars/akash.jpg'} alt={expert.name || 'Mentor'} className="conf-avatar" />
+          <img src={expert.avatar || '/brand/android-chrome-192x192.png'} alt={expert.name || 'Mentor'} className="conf-avatar" />
           <div className="conf-meta">
             <h3>{expert.name || 'Mentor'} • <span className="text-blue-600 font-semibold">{sessionType}</span></h3>
             <p>{expert.role || 'Tech Leader'} at {expert.company || 'Tech Company'}</p>
@@ -67,21 +71,27 @@ export const ConfirmedView: React.FC = () => {
             </div>
             <div>
               <div className="conf-cv-title-row">
-                <strong className="conf-cv-title">1:1 Session Dossier: Attached Resume</strong>
+                <strong className="conf-cv-title">1:1 Session Profile: Attached Resume</strong>
                 {isRecentlySynced ? (
                   <span className="conf-cv-synced-badge">
                     <CheckCircle2 size={12} /> Latest CV Synced
                   </span>
-                ) : (
+                ) : currentCv ? (
                   <span className="conf-cv-old-badge">
                     ⚠️ Last updated ~1 yr ago
+                  </span>
+                ) : (
+                  <span className="conf-cv-old-badge">
+                    No Resume Attached
                   </span>
                 )}
               </div>
               <p className="conf-cv-desc">
                 {isRecentlySynced 
-                  ? `Your updated resume (${currentCv}) is loaded into ${expert.name}'s Zero-Prep Dossier.`
-                  : `Currently attached: "${currentCv}". Want ${expert.name} to see your newest projects before the live call?`}
+                  ? `Your updated resume (${currentCv}) is attached to your session profile for ${expert.name}.`
+                  : currentCv
+                    ? `Currently attached: "${currentCv}". Want ${expert.name} to see your newest projects before the live call?`
+                    : `No resume attached yet. Upload your latest CV so ${expert.name} can review your tech background before the call.`}
               </p>
             </div>
           </div>
@@ -99,9 +109,9 @@ export const ConfirmedView: React.FC = () => {
         <div className="conf-checklist-box">
           <h4><Sparkles size={16} /> What happens next?</h4>
           <ol>
-            <li>Your Shine CV and Trajectory Gap Report have been automatically pre-loaded for {expert.name || 'your mentor'}.</li>
+            <li>Your candidate profile and Trajectory Gap Report have been automatically pre-loaded for {expert.name || 'your mentor'}.</li>
             <li>You will receive a WhatsApp reminder 15 minutes before the call starts.</li>
-            <li>Post-session, your mentor will review and approve your <strong>Shine Verified Peer Badge</strong>.</li>
+            <li>Post-session, your mentor will review and approve your <strong>{BRAND.name} Verified Peer Badge</strong>.</li>
           </ol>
         </div>
 

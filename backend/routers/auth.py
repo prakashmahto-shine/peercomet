@@ -41,19 +41,20 @@ def send_otp(payload: OtpSendInput):
 
 
 @router.post("/otp/verify")
-def verify_otp(payload: OtpVerifyInput, response: Response):
+def verify_otp(payload: OtpVerifyInput, request: Request, response: Response):
     try:
         user, token = auth_service.verify_otp(
             payload.requestId, payload.email, payload.otp, name=payload.name, mobile=payload.mobile
         )
     except AuthError as e:
         _raise(e)
+    is_https = request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
     response.set_cookie(
         SESSION_COOKIE_NAME,
         token,
         max_age=SESSION_TTL_DAYS * 24 * 3600,
         httponly=True,
-        secure=SESSION_COOKIE_SECURE,
+        secure=SESSION_COOKIE_SECURE and is_https,
         samesite="lax",
         path="/",
     )

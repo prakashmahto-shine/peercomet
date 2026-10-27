@@ -2,8 +2,8 @@
 Sign-in and sign-up with a one-time code sent by email (no passwords).
 
   1. send_otp(email)    -> emails a 6-digit code, returns a request id
-  2. verify_otp(...)    -> checks the code; new emails also give their name (sign-up)
-                           -> creates the user if needed and opens a login session
+  2. verify_otp(...)    -> checks the code, creates the account for a new email (sign-up)
+                           and opens a login session; the client then shows registration
 """
 import hashlib
 import hmac
@@ -13,7 +13,8 @@ from datetime import datetime, timedelta
 from typing import Optional, Tuple
 
 from backend.auth.email_sender import EmailNotConfigured, EmailSendError, send_email
-from backend.config import BRAND_NAME, DEV_OTP_CODE, EMAIL_BACKEND, OTP_TTL_MINUTES
+from backend.auth.deps import is_admin
+from backend.config import BRAND_NAME, DEV_OTP_CODE, EMAIL_BACKEND, IS_DEVELOPMENT, OTP_TTL_MINUTES
 from backend.data.store import store
 from backend.db.models import User
 
@@ -50,7 +51,7 @@ def normalize_mobile(raw: Optional[str]) -> Optional[str]:
 
 def _is_dev_demo_id(identifier: str) -> bool:
     """Local development only: a seeded demo user id (e.g. 'akash') instead of an email."""
-    if EMAIL_BACKEND != "console" or "@" in identifier:
+    if not IS_DEVELOPMENT or EMAIL_BACKEND != "console" or "@" in identifier:
         return False
     return bool(store.get_candidate(identifier) or store.get_creator_by_id(identifier))
 
@@ -87,6 +88,7 @@ def send_otp(identifier: str) -> Tuple[str, bool]:
     if store.count_recent_email_otps(email, datetime.utcnow() - SEND_WINDOW) >= MAX_SENDS_PER_WINDOW:
         raise AuthError("Too many codes requested. Please try again in a few minutes.", 429)
 
+    # The fixed code only exists in local development (console email); servers always send a random one
     code = DEV_OTP_CODE if EMAIL_BACKEND == "console" else f"{secrets.randbelow(10 ** 6):06d}"
     request_id = secrets.token_urlsafe(16)
     store.create_email_otp(request_id, email, _code_hash(request_id, code),
@@ -100,8 +102,8 @@ def send_otp(identifier: str) -> Tuple[str, bool]:
     try:
         send_email(email, subject, text, html)
     except EmailNotConfigured:
-        print("[Auth] Email is not configured (SMTP_HOST / EMAIL_FROM): sign-in is unavailable")
-        raise AuthError("Sign-in is temporarily unavailable", 503)
+        print("[Auth] Sign-in email not sent: SMTP_HOST / EMAIL_FROM are not configured")
+        raise AuthError("Email sign-in isn't available right now. Please try again later.", 503)
     except EmailSendError as e:
         print(f"[Auth] Could not send sign-in email: {e}")
         raise AuthError("We couldn't send the email. Please try again.", 502)
@@ -132,10 +134,9 @@ def verify_otp(request_id: str, identifier: str, otp: str,
     else:
         user = store.get_user_by_email(email)
         if user is None:
-            # Sign-up: validate before using up the code, so the user can fix the form
+            # Sign-up: the account is created now; name and the rest of the profile are
+            # collected by the registration form (/register). Validate before using up the code.
             clean_name = (name or "").strip()
-            if len(clean_name) < 2:
-                raise AuthError("Please enter your name to create your account", 422)
             clean_mobile = normalize_mobile(mobile)
             if not store.consume_email_otp(request_id):
                 raise AuthError("This code has already been used. Please request a new one.", 410)
@@ -151,6 +152,8 @@ def verify_otp(request_id: str, identifier: str, otp: str,
 def describe_user(user: User) -> dict:
     """Payload for /api/auth/me and login responses."""
     creator = store.get_creator_by_owner(user.id)
+    cand = store.get_candidate(user.id)
+    is_mentor_eligible = bool(creator is not None or (cand and cand.isMentorEligible))
     return {
         "id": user.id,
         "name": user.name,
@@ -159,4 +162,6 @@ def describe_user(user: User) -> dict:
         "avatar": user.avatar,
         "creatorId": creator.id if creator else None,
         "isMentor": creator is not None,
+        "isMentorEligible": is_mentor_eligible,
+        "isAdmin": is_admin(user),
     }

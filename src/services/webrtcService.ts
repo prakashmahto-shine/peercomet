@@ -406,7 +406,7 @@ export class WebRTCService {
    */
   public async uploadRecording(sessionId: string, blob: Blob, durationSeconds: number): Promise<boolean> {
     try {
-      const cleanSessionId = sessionId.replace(/^peerpath-/, '').replace(/^sess-/, '');
+      const cleanSessionId = sessionId.replace(/^peercomet-/, '').replace(/^peerpath-/, '').replace(/^sess-/, '');
       const apiBase = ENV_BACKEND_URL ? `${ENV_BACKEND_URL}/api` : '/api';
       const response = await fetch(`${apiBase}/sessions/${cleanSessionId}/recording`, {
         credentials: 'include',

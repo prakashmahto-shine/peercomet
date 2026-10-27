@@ -22,3 +22,4 @@ backend/data/recordings/
 *.sqlite3-*
 *.json.tmp
 backups/
+backend/data/resumes/

@@ -2937,36 +2937,276 @@
   gap: 8px;
 }
 
+/* ==========================================================================
+   HIGH-VISIBILITY "BECOME A MENTOR" BUTTON (Sub-Nav Switcher)
+   ========================================================================== */
 .ptn-become-mentor-btn {
   margin-left: auto;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 7px;
-  background: #FFFBEB;
-  border: 1px solid #FDE68A;
-  color: #92400E;
-  font-size: 12.5px;
+  gap: 8px;
+  background: linear-gradient(135deg, #FFFDF5 0%, #FEF3C7 35%, #FDE68A 100%);
+  border: 1.5px solid #F59E0B;
+  color: #78350F;
+  font-size: 13px;
   font-weight: 800;
-  padding: 6px 14px;
-  border-radius: var(--radius-full);
+  padding: 7px 16px;
+  border-radius: 9999px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.25), 0 0 0 1px rgba(245, 158, 11, 0.1);
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.ptn-become-mentor-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  transition: 0.5s;
+}
+
+.ptn-become-mentor-btn:hover::before {
+  left: 100%;
 }
 
 .ptn-become-mentor-btn:hover {
-  background: #FEF3C7;
-  border-color: #F59E0B;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 50%, #FBBF24 100%);
+  border-color: #D97706;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4), 0 0 12px rgba(245, 158, 11, 0.25);
+  color: #451A03;
+}
+
+.ptn-bm-sparkle-pill {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #FDE68A;
+  border: 1px solid #F59E0B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #B45309;
+  flex-shrink: 0;
+}
+
+.ptn-bm-label {
+  letter-spacing: -0.1px;
 }
 
 .ptn-zero-fee-tag {
   background: #059669;
-  color: #ffffff;
+  color: #FFFFFF;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  letter-spacing: 0.3px;
+  box-shadow: 0 1px 3px rgba(5, 150, 105, 0.3);
+}
+
+.ptn-bm-arrow {
+  color: #92400E;
+  transition: transform 0.2s ease;
+}
+
+.ptn-become-mentor-btn:hover .ptn-bm-arrow {
+  transform: translateX(3px);
+  color: #451A03;
+}
+
+/* ==========================================================================
+   NAVBAR DIRECT "BECOME A MENTOR" BUTTON
+   ========================================================================== */
+.navbar-become-mentor-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: linear-gradient(135deg, #FFFDF5 0%, #FEF3C7 100%);
+  border: 1.5px solid #F59E0B;
+  color: #78350F;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 13px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+}
+
+.navbar-become-mentor-cta:hover {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  border-color: #D97706;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+  color: #451A03;
+}
+
+.nbm-sparkle {
+  color: #D97706;
+}
+
+.nbm-badge {
+  background: #059669;
+  color: #FFFFFF;
   font-size: 10px;
   font-weight: 800;
   padding: 1px 6px;
   border-radius: 4px;
+}
+
+/* ==========================================================================
+   SPOTLIGHT "BECOME A MENTOR" INVITATION STRIP
+   ========================================================================== */
+.peerpath-mentor-spotlight-strip {
+  background: linear-gradient(135deg, #0F172A 0%, #1E1B4B 45%, #2E1065 100%);
+  border: 1.5px solid #F59E0B;
+  border-radius: 20px;
+  padding: 20px 24px;
+  margin: 18px 0 24px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  box-shadow: 0 12px 32px -6px rgba(15, 23, 42, 0.35), 0 0 20px rgba(245, 158, 11, 0.18);
+  position: relative;
+  overflow: hidden;
+}
+
+.peerpath-mentor-spotlight-strip::after {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.pmss-left {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex: 1;
+  min-width: 0;
+}
+
+.pmss-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(168, 85, 247, 0.2) 100%);
+  border: 1.5px solid rgba(245, 158, 11, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FCD34D;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
+}
+
+.pmss-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.pmss-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pmss-pill-gold {
+  background: rgba(245, 158, 11, 0.2);
+  color: #FDE68A;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 9px;
+  border-radius: 9999px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.pmss-pill-green {
+  background: rgba(16, 185, 129, 0.2);
+  color: #6EE7B7;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 9999px;
+}
+
+.pmss-pill-sub {
+  color: #CBD5E1;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pmss-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #FFFFFF;
+  margin: 0;
+  letter-spacing: -0.2px;
+  line-height: 1.35;
+}
+
+.pmss-desc {
+  font-size: 12.5px;
+  color: #CBD5E1;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.btn-pmss-register {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  color: #0F172A;
+  font-size: 13.5px;
+  font-weight: 800;
+  padding: 12px 22px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.btn-pmss-register:hover {
+  background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.55);
+}
+
+@media (max-width: 768px) {
+  .peerpath-mentor-spotlight-strip {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+    gap: 14px;
+  }
+  .btn-pmss-register {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .peerpath-mentor-recruitment-strip {
@@ -3993,7 +4233,7 @@
   background: #FEF3C7;
 }
 
-/* 5. Candidate Trajectory Banner (For Prakash / Jobseekers) - Ultra-Compact & Clean Shine-Native */
+/* 5. Candidate Trajectory Banner (For Jobseekers) - Ultra-Compact & Clean Shine-Native */
 .dashboard-candidate-trajectory-banner {
   background: linear-gradient(90deg, #FAF8FF 0%, #FFFFFF 50%, #F5F3FF 100%);
   border: 1px solid #E9D5FF;
@@ -6468,13 +6708,37 @@
   width: 56px;
   height: 56px;
   border-radius: 18px;
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(168, 85, 247, 0.15) 100%);
-  border: 1.5px solid rgba(245, 158, 11, 0.5);
+  background: radial-gradient(circle at center, rgba(251, 191, 36, 0.28) 0%, rgba(245, 158, 11, 0.14) 100%);
+  border: 1.5px solid rgba(251, 191, 36, 0.75);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.2);
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.25);
+  color: #FCD34D;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.plub-icon-wrap svg,
+.plub-icon-wrap .plub-lock-icon {
+  color: #FCD34D !important;
+  stroke: #FCD34D !important;
+  stroke-width: 2.3px;
+  filter: drop-shadow(0 2px 10px rgba(245, 158, 11, 0.75));
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.peerpath-locked-unlock-banner:hover .plub-icon-wrap {
+  border-color: #FDE68A;
+  background: radial-gradient(circle at center, rgba(251, 191, 36, 0.4) 0%, rgba(245, 158, 11, 0.22) 100%);
+  box-shadow: 0 0 32px rgba(245, 158, 11, 0.55), inset 0 1px 2px rgba(255, 255, 255, 0.35);
+  transform: scale(1.05);
+}
+
+.peerpath-locked-unlock-banner:hover .plub-icon-wrap svg,
+.peerpath-locked-unlock-banner:hover .plub-icon-wrap .plub-lock-icon {
+  transform: scale(1.06);
+  filter: drop-shadow(0 2px 14px rgba(245, 158, 11, 0.95));
 }
 
 .plub-text-col {

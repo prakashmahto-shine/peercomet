@@ -269,23 +269,31 @@
   padding-top: 50px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
 }
 
 .phc-name-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .phc-name {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 800;
   color: #0F172A;
   margin: 0;
   line-height: 1.2;
+  letter-spacing: -0.3px;
+}
+
+.phc-badges-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .phc-candidate-pill {
@@ -301,6 +309,12 @@
   gap: 4px;
 }
 
+.phc-candidate-pill.phc-pill-phone {
+  background: #F0FDF4;
+  color: #15803D;
+  border-color: #BBF7D0;
+}
+
 .phc-notice-pill {
   background: #EFF6FF;
   color: #1D4ED8;
@@ -309,6 +323,58 @@
   padding: 3px 9px;
   border-radius: 9999px;
   border: 1px solid #BFDBFE;
+}
+
+/* Dedicated Professional Role & Organization Row */
+.phc-designation-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 1px;
+  line-height: 1.35;
+}
+
+.phc-role-title {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #1E293B;
+  letter-spacing: -0.2px;
+}
+
+.phc-company-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14.5px;
+}
+
+.phc-company-at {
+  color: #64748B;
+  font-weight: 400;
+}
+
+.phc-company-name {
+  font-weight: 600;
+  color: #0F172A;
+}
+
+.phc-seeking-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+}
+
+.phc-sep-dot {
+  color: #94A3B8;
+  font-weight: 700;
+}
+
+.phc-seeking-text {
+  color: #059669;
+  font-weight: 600;
+  font-size: 13px;
 }
 
 .phc-headline {
@@ -331,10 +397,10 @@
   align-items: center;
   gap: 5px;
   font-size: 12px;
-  color: #64748B;
+  color: #475569;
   background: #F8FAFC;
   border: 1px solid #E2E8F0;
-  padding: 3px 10px;
+  padding: 3.5px 10px;
   border-radius: 6px;
   font-weight: 500;
 }
@@ -352,7 +418,12 @@
 .phc-contact-item {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  background: #F1F5F9;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-weight: 500;
+  color: #334155;
 }
 
 .phc-contact-sep {
