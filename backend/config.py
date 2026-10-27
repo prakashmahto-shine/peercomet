@@ -60,7 +60,7 @@ ADMIN_EMAILS = {e.lower() for e in _env_list("ADMIN_EMAILS")}
 ADMIN_USER_IDS = set(_env_list("ADMIN_USER_IDS"))
 RECRUITER_USER_IDS = set(_env_list("RECRUITER_USER_IDS"))
 
-CORS_ORIGINS = _env_list("CORS_ORIGINS", "http://localhost:4242,http://127.0.0.1:4242,http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000")
+CORS_ORIGINS = _env_list("CORS_ORIGINS", "https://peercomet.com,https://www.peercomet.com,http://localhost:4242,http://127.0.0.1:4242,http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000")
 
 RECORDINGS_STORAGE = os.getenv("RECORDINGS_STORAGE", "local").lower()
 RECORDINGS_DIR = Path(os.getenv("RECORDINGS_DIR", str(DATA_DIR / "recordings")))
