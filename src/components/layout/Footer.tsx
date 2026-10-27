@@ -326,17 +326,6 @@ export const Footer: React.FC = () => {
             <a href="/security" onClick={(e) => { e.preventDefault(); navigate('security-view'); }}>Security & Fraud</a>
           </div>
 
-          <div className="fb-right-social">
-            <span className="social-label">CONNECT WITH US:</span>
-            <div className="social-icon-links">
-              <a href="#!" className="s-icon" title="Facebook">f</a>
-              <a href="#!" className="s-icon" title="Instagram">📷</a>
-              <a href="#!" className="s-icon" title="LinkedIn">in</a>
-              <a href="#!" className="s-icon" title="X">𝕏</a>
-              <a href="#!" className="s-icon" title="YouTube">▶</a>
-            </div>
-          </div>
-
         </div>
       </div>
 

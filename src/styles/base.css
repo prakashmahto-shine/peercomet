@@ -720,6 +720,50 @@ button {
   border-color: #CBD5E1;
 }
 
+/* 🚀 Modern Header Login / Register Pill Button */
+.btn-header-login-gold {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 18px;
+  border-radius: var(--radius-full, 9999px);
+  background: linear-gradient(135deg, #0C3B6E 0%, #1D4ED8 100%);
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(12, 59, 110, 0.22);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+  user-select: none;
+  text-decoration: none;
+}
+
+.btn-header-login-gold:hover {
+  background: linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%);
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 14px rgba(29, 78, 216, 0.38);
+  transform: translateY(-1px);
+}
+
+.btn-header-login-gold:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(12, 59, 110, 0.25);
+}
+
+.btn-header-login-gold svg {
+  flex-shrink: 0;
+  color: #FFFFFF;
+  transition: transform 0.2s ease;
+}
+
+.btn-header-login-gold:hover svg {
+  transform: scale(1.1);
+}
+
 /* ⚡ Direct Navbar Mentor vs Seek Guidance Segmented Role Switcher */
 .navbar-role-mode-segmented {
   display: inline-flex;
@@ -4941,29 +4985,33 @@ button {
   }
 
   .myshine-nav-left {
+    display: contents;
+  }
+
+  .myshine-nav-left > div:first-child {
+    order: 1;
     display: flex;
     align-items: center;
-    gap: 8px;
   }
 
   .myshine-nav-right-prod {
+    order: 2;
     display: flex;
     align-items: center;
     gap: 8px;
-  }
-
-  .shine-official-svg-logo {
-    height: 26px !important;
+    margin-left: auto;
   }
 
   .myshine-nav-links {
+    order: 3;
     width: 100%;
     display: flex;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     white-space: nowrap;
-    gap: 6px;
-    padding: 6px 0 6px 0;
+    gap: 8px;
+    padding: 6px 0;
+    margin-top: 4px;
     border-top: 1px solid #F1F5F9;
     align-items: center;
   }
@@ -4989,6 +5037,13 @@ button {
     display: flex;
     align-items: center;
     margin-left: auto;
+  }
+
+  .btn-header-login-gold {
+    height: 32px;
+    padding: 0 12px;
+    font-size: 12px;
+    gap: 6px;
   }
 
   .prod-nav-search-bar {

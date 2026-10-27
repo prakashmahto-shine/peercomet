@@ -76,12 +76,16 @@ export const StaticPageView: React.FC<StaticPageViewProps> = ({ initialTab = 'te
       {/* Top Banner / Hero */}
       <section className="slp-hero-header">
         <div className="content-wrapper slp-hero-content">
-          <div className="slp-breadcrumbs">
-            <button type="button" className="slp-crumb-link" onClick={() => navigate('guidance-view', '/peercomet')}>
-              <ArrowLeft size={14} /> Back to Home
+          <div className="slp-top-back-wrap">
+            <button 
+              type="button" 
+              className="slp-modern-back-btn" 
+              onClick={() => navigate('guidance-view', '/peercomet')}
+              title={`Return to ${BRAND.name}`}
+            >
+              <ArrowLeft size={14} className="slp-back-arrow" />
+              <span>Back to {BRAND.name}</span>
             </button>
-            <span className="slp-crumb-sep">/</span>
-            <span className="slp-crumb-active">Legal &amp; Trust Governance</span>
           </div>
 
           <div className="slp-hero-badge">

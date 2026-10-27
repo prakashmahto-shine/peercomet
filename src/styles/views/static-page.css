@@ -34,39 +34,40 @@
   z-index: 1;
 }
 
-.slp-breadcrumbs {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-  font-size: 13px;
+.slp-top-back-wrap {
+  margin-bottom: 18px;
 }
 
-.slp-crumb-link {
+.slp-modern-back-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  color: #94A3B8;
-  cursor: pointer;
-  padding: 0;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #CBD5E1;
+  padding: 7px 16px;
+  border-radius: 999px;
   font-size: 13px;
-  font-weight: 500;
-  transition: color 0.2s;
-}
-
-.slp-crumb-link:hover {
-  color: #38BDF8;
-}
-
-.slp-crumb-sep {
-  color: #475569;
-}
-
-.slp-crumb-active {
-  color: #E2E8F0;
   font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.slp-modern-back-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  transform: translateX(-2px);
+}
+
+.slp-modern-back-btn .slp-back-arrow {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.slp-modern-back-btn:hover .slp-back-arrow {
+  transform: translateX(-3px);
 }
 
 .slp-hero-badge {
