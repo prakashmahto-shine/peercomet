@@ -26,9 +26,9 @@ def is_configured() -> bool:
     return EMAIL_BACKEND == "console" or bool(SMTP_HOST and EMAIL_FROM)
 
 
-def send_email(to: str, subject: str, text: str, html: Optional[str] = None) -> None:
+def send_email(to: str, subject: str, text: str, html: Optional[str] = None, reply_to: Optional[str] = None) -> None:
     if EMAIL_BACKEND == "console":
-        print(f"[Email:console] To: {to}\nSubject: {subject}\n\n{text}\n")
+        print(f"[Email:console] To: {to} (Reply-To: {reply_to})\nSubject: {subject}\n\n{text}\n")
         return
     if not is_configured():
         raise EmailNotConfigured("SMTP_HOST and EMAIL_FROM must be set to send email")
@@ -36,6 +36,8 @@ def send_email(to: str, subject: str, text: str, html: Optional[str] = None) -> 
     msg = EmailMessage()
     msg["From"] = EMAIL_FROM
     msg["To"] = to
+    if reply_to:
+        msg["Reply-To"] = reply_to
     msg["Subject"] = subject
     msg.set_content(text)
     if html:

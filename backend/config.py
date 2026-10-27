@@ -48,6 +48,7 @@ SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_SECURITY = os.getenv("SMTP_SECURITY", "starttls").lower()
 EMAIL_FROM = os.getenv("EMAIL_FROM", "")
+SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "support@peercomet.com")
 OTP_TTL_MINUTES = int(os.getenv("OTP_TTL_MINUTES", "10"))
 DEV_OTP_CODE = os.getenv("DEV_OTP_CODE", "123456")
 
