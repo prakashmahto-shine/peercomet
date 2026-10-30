@@ -14,7 +14,16 @@ from typing import Optional, Tuple
 
 from backend.auth.email_sender import EmailNotConfigured, EmailSendError, send_email
 from backend.auth.deps import is_admin
-from backend.config import BRAND_NAME, DEV_OTP_CODE, EMAIL_BACKEND, IS_DEVELOPMENT, OTP_TTL_MINUTES
+from backend.config import (
+    ALLOW_DEV_OTP,
+    BRAND_NAME,
+    DEV_OTP_CODE,
+    EMAIL_BACKEND,
+    IS_DEVELOPMENT,
+    IS_PRODUCTION,
+    OTP_TTL_MINUTES,
+    SMTP_HOST,
+)
 from backend.data.store import store
 from backend.db.models import User
 
@@ -88,8 +97,9 @@ def send_otp(identifier: str) -> Tuple[str, bool]:
     if store.count_recent_email_otps(email, datetime.utcnow() - SEND_WINDOW) >= MAX_SENDS_PER_WINDOW:
         raise AuthError("Too many codes requested. Please try again in a few minutes.", 429)
 
-    # The fixed code only exists in local development (console email); servers always send a random one
-    code = DEV_OTP_CODE if EMAIL_BACKEND == "console" else f"{secrets.randbelow(10 ** 6):06d}"
+    # Use fixed dev/staging code if allowed/console or when SMTP is not configured; otherwise random 6-digit code
+    use_fixed_otp = ALLOW_DEV_OTP or EMAIL_BACKEND == "console" or not SMTP_HOST
+    code = DEV_OTP_CODE if use_fixed_otp else f"{secrets.randbelow(10 ** 6):06d}"
     request_id = secrets.token_urlsafe(16)
     store.create_email_otp(request_id, email, _code_hash(request_id, code),
                            datetime.utcnow() + timedelta(minutes=OTP_TTL_MINUTES))
@@ -102,10 +112,14 @@ def send_otp(identifier: str) -> Tuple[str, bool]:
     try:
         send_email(email, subject, text, html)
     except EmailNotConfigured:
-        print("[Auth] Sign-in email not sent: SMTP_HOST / EMAIL_FROM are not configured")
+        print(f"[Auth] SMTP not configured. Staging OTP code for '{email}': {code}")
+        if ALLOW_DEV_OTP or not SMTP_HOST or not IS_PRODUCTION:
+            return request_id, store.get_user_by_email(email) is not None
         raise AuthError("Email sign-in isn't available right now. Please try again later.", 503)
     except EmailSendError as e:
-        print(f"[Auth] Could not send sign-in email: {e}")
+        print(f"[Auth] Could not send sign-in email: {e}. Fallback OTP code for '{email}': {code}")
+        if ALLOW_DEV_OTP or not SMTP_HOST or not IS_PRODUCTION:
+            return request_id, store.get_user_by_email(email) is not None
         raise AuthError("We couldn't send the email. Please try again.", 502)
 
     return request_id, store.get_user_by_email(email) is not None

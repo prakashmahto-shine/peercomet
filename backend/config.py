@@ -51,11 +51,12 @@ EMAIL_FROM = os.getenv("EMAIL_FROM", "")
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "support@peercomet.com")
 OTP_TTL_MINUTES = int(os.getenv("OTP_TTL_MINUTES", "10"))
 DEV_OTP_CODE = os.getenv("DEV_OTP_CODE", "123456")
+ALLOW_DEV_OTP = _env_bool("ALLOW_DEV_OTP", not bool(SMTP_HOST))
 
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "smtp" if (SMTP_HOST and EMAIL_FROM) else "console").lower()
-if EMAIL_BACKEND == "console" and not IS_DEVELOPMENT:
-    print("[Config:Warning] Email isn't configured (SMTP_HOST / EMAIL_FROM). Sign-in is unavailable.")
+if EMAIL_BACKEND == "console" and not IS_DEVELOPMENT and SMTP_HOST:
     EMAIL_BACKEND = "smtp"
+
 
 ADMIN_EMAILS = {e.lower() for e in _env_list("ADMIN_EMAILS")}
 ADMIN_USER_IDS = set(_env_list("ADMIN_USER_IDS"))
