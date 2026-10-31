@@ -642,31 +642,413 @@
   }
 
   /* --------------------------------------------------------------------------
-     9. FOOTER MOBILE RESPONSIVENESS
+     9. COMPLETE FOOTER MOBILE SYSTEM (No Overflow, Clean Cards, Full Stretch)
      -------------------------------------------------------------------------- */
   .shine-official-footer-wrapper,
   .peerpath-standalone-footer {
-    padding: 24px 14px 28px 14px !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow: hidden !important;
+    margin-top: 36px !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    background: #14213D !important;
+  }
+
+  .footer-main-navy-section {
+    background: #14213D !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    padding: 0 !important;
+  }
+
+  .footer-main-navy-section > .content-wrapper {
+    padding: 24px 14px 24px 14px !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Top Brand & HT Media Strip */
+  .footer-top-brand-strip {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    margin-bottom: 22px !important;
     width: 100% !important;
     box-sizing: border-box !important;
   }
 
-  .footer-columns-row,
-  .sof-columns-grid {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    gap: 20px !important;
+  .ftbs-left {
     width: 100% !important;
   }
 
-  .footer-bottom-row,
-  .sof-bottom-row {
+  .ftbs-right-parent {
+    width: 100% !important;
+  }
+
+  .ht-media-badge-pill {
+    font-size: 11px !important;
+    padding: 4px 12px !important;
+  }
+
+  /* Footer Navigation Columns Stacking */
+  .footer-columns-row {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 18px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .footer-nav-col {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding-bottom: 16px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
+
+  .footer-nav-col:last-child {
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+  }
+
+  .footer-nav-col h4 {
+    font-size: 14.5px !important;
+    font-weight: 800 !important;
+    color: #FFFFFF !important;
+    margin-bottom: 10px !important;
+  }
+
+  .footer-links-list {
+    gap: 8px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .footer-links-list li a {
+    font-size: 13px !important;
+    color: #94A3B8 !important;
+    display: inline-block !important;
+    padding: 2px 0 !important;
+  }
+
+  /* Network Partner Brands Card & Marquee */
+  .footer-highlighted-partners-showcase {
+    margin-top: 24px !important;
+    padding: 18px 14px !important;
+    border-radius: 14px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  .f-partner-header-flex {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+    margin-bottom: 14px !important;
+    padding-bottom: 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .f-partner-heading {
+    font-size: 16px !important;
+    line-height: 1.3 !important;
+  }
+
+  .f-partner-subdesc {
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+    max-width: 100% !important;
+  }
+
+  .f-partner-marquee-viewport {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Promo Strip & The 2 Cards (Download Shine App & Looking for Immediate Job Openings) */
+  .footer-promo-strip {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 14px !important;
+    margin-top: 22px !important;
+    padding-top: 20px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Card 1: Download Shine App */
+  .download-app-banner {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 14px !important;
+    padding: 16px 14px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    border-radius: 14px !important;
+    box-sizing: border-box !important;
+  }
+
+  .dab-left-brand {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .dab-shine-badge {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    flex-shrink: 0 !important;
+    border-radius: 10px !important;
+  }
+
+  .download-app-text {
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+
+  .download-app-text h3 {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    color: #FFFFFF !important;
+    margin: 0 0 3px 0 !important;
+    line-height: 1.3 !important;
+  }
+
+  .download-app-text p {
+    font-size: 12px !important;
+    color: #94A3B8 !important;
+    margin: 0 !important;
+    line-height: 1.4 !important;
+  }
+
+  .btn-footer-get-app {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 11px 16px !important;
+    font-size: 13.5px !important;
+    font-weight: 700 !important;
+    border-radius: 10px !important;
+    min-height: 42px !important;
+    box-sizing: border-box !important;
+    text-align: center !important;
+  }
+
+  /* Card 2: Looking for Immediate Job Openings? */
+  .peerpath-footer-cta-box {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 14px !important;
+    padding: 16px 14px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    border-radius: 14px !important;
+    box-sizing: border-box !important;
+  }
+
+  .pfcb-left-brand {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .pfcb-text {
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+
+  .pfcb-text h4 {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    color: #FFFFFF !important;
+    margin: 0 0 3px 0 !important;
+    line-height: 1.35 !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+
+  .pfcb-text p {
+    font-size: 12px !important;
+    color: #C7D2FE !important;
+    margin: 0 !important;
+    line-height: 1.4 !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+
+  .btn-pfcb-explore {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 11px 16px !important;
+    font-size: 13.5px !important;
+    font-weight: 700 !important;
+    border-radius: 10px !important;
+    min-height: 42px !important;
+    box-sizing: border-box !important;
+    text-align: center !important;
+  }
+
+  /* Bottom Most Copyright & Legal Strip */
+  .footer-bottommost-bar {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow: hidden !important;
+    padding: 18px 14px 28px 14px !important;
+    box-sizing: border-box !important;
+    background: #0B132B !important;
+  }
+
+  .footer-bottom-flex {
+    display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
+    justify-content: center !important;
     text-align: center !important;
     gap: 12px !important;
+    width: 100% !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .fb-left {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    gap: 6px !important;
+    width: 100% !important;
+  }
+
+  .fb-peerpath-brand-mini {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+
+  .fb-co-brand-text {
+    font-size: 11.5px !important;
+    color: #94A3B8 !important;
+    text-align: center !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    line-height: 1.4 !important;
+  }
+
+  .fb-center-links {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 8px 10px !important;
+    width: 100% !important;
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+  }
+
+  /* --------------------------------------------------------------------------
+     10. MOBILE LOGIN VIEW (/login) - Login Box on Top!
+     -------------------------------------------------------------------------- */
+  .login-canvas-container {
+    padding: 12px 14px 28px 14px !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+  }
+
+  .login-canvas-navbar {
+    margin-bottom: 16px !important;
+  }
+
+  .login-main-stage {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 20px !important;
+    width: 100% !important;
+    align-items: center !important;
+  }
+
+  /* Form at the TOP */
+  .stage-right-form {
+    order: 1 !important;
+    width: 100% !important;
+    max-width: 440px !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+  }
+
+  .frosted-glass-sign-in-box {
+    width: 100% !important;
+    padding: 22px 18px !important;
+    border-radius: 20px !important;
+    box-sizing: border-box !important;
+    box-shadow: 0 12px 36px -6px rgba(15, 23, 42, 0.12), 0 0 20px rgba(99, 102, 241, 0.08) !important;
+  }
+
+  .fgb-header {
+    margin-bottom: 16px !important;
+  }
+
+  .fgb-title {
+    font-size: 20px !important;
+  }
+
+  .fgb-subtitle {
+    font-size: 12.5px !important;
+  }
+
+  /* Story and Trust Cluster BELOW the form */
+  .stage-left-content {
+    order: 2 !important;
+    width: 100% !important;
+    margin-top: 10px !important;
+    padding-top: 24px !important;
+    border-top: 1px solid rgba(226, 232, 240, 0.8) !important;
+    box-sizing: border-box !important;
+  }
+
+  .story-main-title {
+    font-size: 22px !important;
+    line-height: 1.3 !important;
+  }
+
+  .floating-mentors-cluster {
+    margin-top: 10px !important;
+    transform: scale(0.95) !important;
   }
 }
+
 
 /* ==============================================================================
    10. ULTRA-COMPACT SMARTPHONES (<= 480px) (e.g. iPhone SE, iPhone 14/15/16)
@@ -727,4 +1109,28 @@
     width: 100% !important;
     text-align: center !important;
   }
+
+  /* Compact Footer Refinements */
+  .footer-main-navy-section > .content-wrapper {
+    padding: 20px 12px 20px 12px !important;
+  }
+
+  .download-app-banner,
+  .peerpath-footer-cta-box {
+    padding: 14px 12px !important;
+    gap: 12px !important;
+  }
+
+  .pfcb-text h4,
+  .download-app-text h3 {
+    font-size: 14px !important;
+    line-height: 1.3 !important;
+  }
+
+  .btn-pfcb-explore,
+  .btn-footer-get-app {
+    font-size: 13px !important;
+    padding: 10px 14px !important;
+  }
 }
+
