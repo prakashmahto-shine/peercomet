@@ -23,3 +23,7 @@
 @import './modals/creator-wizard.css';
 @import './modals/update-profile.css';
 @import './modals/other-modals.css';
+
+/* 4. Dedicated Mobile Responsive Design System (iPhone & Smartphones) */
+@import './mobile.css';
+
