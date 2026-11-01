@@ -5,11 +5,12 @@ import {
   ArrowRight, ShieldCheck, Calendar, Info, PlusCircle, Check,
   ThumbsUp, Globe, MoreHorizontal, X, FileText, Lightbulb, Hash,
   BarChart2, Eye, TrendingUp, Target, Building2, MapPin, Clock,
-  Briefcase
+  Briefcase, Edit3, PenSquare
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { CommunityPost } from '../../types';
 import { BRAND } from '../../config/brand';
+import { getUserAvatar } from '../../utils/avatar';
 
 export const CommunityView: React.FC = () => {
   const { 
@@ -142,7 +143,7 @@ export const CommunityView: React.FC = () => {
               <div className="lpc-banner" />
               <div className="lpc-avatar-container">
                 <img 
-                  src={currentUser?.avatar || userProfile.avatar || '/brand/android-chrome-192x192.png'} 
+                  src={getUserAvatar(currentUser?.name || userProfile?.name, currentUser?.avatar || userProfile?.avatar)} 
                   alt={currentUser?.name || userProfile.name || 'User'} 
                   className="lpc-avatar" 
                 />
@@ -273,34 +274,49 @@ export const CommunityView: React.FC = () => {
 
           <main className="community-center-feed">
             
-            {/* LinkedIn-style Composer (for Mentors) */}
-            {isMentorRole && (
+            {/* LinkedIn-style Composer */}
+            {currentUser && (
               <div className="linkedin-composer-box">
                 <div className="lcb-top-row">
                   <img 
-                    src={currentUser?.avatar || '/brand/android-chrome-192x192.png'} 
-                    alt={currentUser?.name || 'Mentor'} 
+                    src={getUserAvatar(currentUser?.name || userProfile?.name, currentUser?.avatar || userProfile?.avatar)} 
+                    alt={currentUser?.name || 'User'} 
                     className="lcb-avatar" 
                   />
                   <button 
+                    type="button"
                     className="lcb-input-trigger"
                     onClick={() => setComposerOpen(true)}
                   >
-                    Share an architecture breakdown, interview question, or transition playbook...
+                    <Edit3 size={15} className="lcb-trigger-icon" />
+                    <span>Start a post...</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-lcb-post-quick"
+                    onClick={() => setComposerOpen(true)}
+                    title="Write a Post"
+                  >
+                    <PenSquare size={14} />
+                    <span>Post</span>
                   </button>
                 </div>
                 <div className="lcb-buttons-row">
-                  <button className="lcb-btn" onClick={() => setComposerOpen(true)}>
+                  <button className="lcb-btn" onClick={() => { setPostTags('System Design'); setComposerOpen(true); }}>
                     <FileText size={16} className="lcb-icon text-blue" />
                     <span>System Design</span>
                   </button>
-                  <button className="lcb-btn" onClick={() => setComposerOpen(true)}>
+                  <button className="lcb-btn" onClick={() => { setPostTags('Interview Tips'); setComposerOpen(true); }}>
                     <Lightbulb size={16} className="lcb-icon text-amber" />
-                    <span>Interview Traps</span>
+                    <span>Interview Tips</span>
                   </button>
-                  <button className="lcb-btn" onClick={() => setComposerOpen(true)}>
-                    <Calendar size={16} className="lcb-icon text-purple" />
-                    <span>Open 1:1 Slots</span>
+                  <button className="lcb-btn" onClick={() => { setPostTags('Career Transition'); setComposerOpen(true); }}>
+                    <TrendingUp size={16} className="lcb-icon text-purple" />
+                    <span>Career Switch</span>
+                  </button>
+                  <button className="lcb-btn" onClick={() => { setPostTags('Ask Question'); setComposerOpen(true); }}>
+                    <MessageSquare size={16} className="lcb-icon text-emerald" />
+                    <span>Ask Question</span>
                   </button>
                 </div>
               </div>
@@ -408,16 +424,26 @@ export const CommunityView: React.FC = () => {
             {/* Empty State */}
             {filteredPosts.length === 0 ? (
               <div className="linkedin-empty-state">
-                <Users size={44} className="text-muted" />
-                <h3>No posts in this feed</h3>
+                <div className="empty-state-icon-glow">
+                  <Sparkles size={38} className="text-purple" />
+                </div>
+                <h3>No posts in this feed yet</h3>
                 <p>
-                  {feedFilter === 'following' 
-                    ? "You haven't followed any mentors who posted under this filter yet." 
-                    : "No insights match the selected topic filter."}
+                  Be the first to share an insight, ask a question, or post a career playbook!
                 </p>
+                <div className="empty-cta-box">
+                  <button 
+                    type="button"
+                    className="btn-empty-create-post"
+                    onClick={() => setComposerOpen(true)}
+                  >
+                    <Sparkles size={16} /> Write a Post
+                  </button>
+                </div>
                 <div className="empty-actions-row">
-                  {feedFilter === 'following' && (
+                  {communityPosts.length > 0 && feedFilter !== 'all' && (
                     <button 
+                      type="button"
                       className="btn-empty-switch"
                       onClick={() => { setFeedFilter('all'); setSelectedTag('all'); }}
                     >
@@ -425,6 +451,7 @@ export const CommunityView: React.FC = () => {
                     </button>
                   )}
                   <button 
+                    type="button"
                     className="btn-empty-explore"
                     onClick={() => navigate('experts-view')}
                   >
@@ -448,7 +475,7 @@ export const CommunityView: React.FC = () => {
                         <div className="post-author-block">
                           <div className="post-author-avatar-wrap">
                             <img 
-                              src={post.mentorAvatar} 
+                              src={getUserAvatar(post.mentorName, post.mentorAvatar)} 
                               alt={post.mentorName} 
                               className="post-author-avatar" 
                             />
@@ -595,7 +622,7 @@ export const CommunityView: React.FC = () => {
                           {/* New Comment Input */}
                           <div className="comment-composer-row">
                             <img 
-                              src={currentUser?.avatar || userProfile.avatar || '/brand/android-chrome-192x192.png'} 
+                              src={getUserAvatar(currentUser?.name || userProfile?.name, currentUser?.avatar || userProfile?.avatar)} 
                               alt={currentUser?.name || 'User'} 
                               className="comment-user-avatar" 
                             />
@@ -631,7 +658,7 @@ export const CommunityView: React.FC = () => {
                               {post.comments.map(c => (
                                 <div key={c.id} className="comment-thread-item">
                                   <img 
-                                    src={c.authorAvatar} 
+                                    src={getUserAvatar(c.authorName, c.authorAvatar)} 
                                     alt={c.authorName} 
                                     className="comment-author-avatar" 
                                   />
@@ -695,8 +722,9 @@ export const CommunityView: React.FC = () => {
         <div className="linkedin-modal-backdrop" onClick={() => setComposerOpen(false)}>
           <div className="linkedin-modal-card" onClick={e => e.stopPropagation()}>
             <div className="lmc-header">
-              <h3>Create an Insight Post for Candidates</h3>
+              <h3>Create a Post</h3>
               <button 
+                type="button"
                 className="lmc-close-btn"
                 onClick={() => setComposerOpen(false)}
               >
@@ -706,14 +734,14 @@ export const CommunityView: React.FC = () => {
 
             <div className="lmc-author-strip">
               <img 
-                src={currentUser?.avatar || '/brand/android-chrome-192x192.png'} 
-                alt={currentUser?.name || 'Mentor'} 
+                src={getUserAvatar(currentUser?.name || userProfile?.name, currentUser?.avatar || userProfile?.avatar)} 
+                alt={currentUser?.name || 'User'} 
                 className="lmc-author-avatar" 
               />
               <div className="lmc-author-meta">
-                <strong>{currentUser?.name || 'Mentor'}</strong>
+                <strong>{currentUser?.name || 'Community Member'}</strong>
                 <span className="lmc-privacy-tag">
-                  <Globe size={11} /> Anyone • {followedMentorIds.length} followers notified
+                  <Globe size={11} /> Anyone on {BRAND.name}
                 </span>
               </div>
             </div>
@@ -722,7 +750,7 @@ export const CommunityView: React.FC = () => {
               <div className="form-group">
                 <input 
                   type="text" 
-                  placeholder="Post Headline (e.g. Distributed Transactions & Outbox Pattern: What we evaluate in 40LPA+ rounds)" 
+                  placeholder="Post title (e.g. How I cracked my Senior Backend interview)" 
                   value={postTitle} 
                   onChange={(e) => setPostTitle(e.target.value)}
                   className="lmc-input-title"
@@ -733,7 +761,7 @@ export const CommunityView: React.FC = () => {
               <div className="form-group">
                 <textarea 
                   rows={6}
-                  placeholder="What architecture breakdown, candidate pitfall, or interview takeaway do you want to share? (Bullet points and structured takeaways recommended)"
+                  placeholder="What do you want to talk about? Share an insight, interview experience, or question..."
                   value={postContent}
                   onChange={(e) => setPostContent(e.target.value)}
                   className="lmc-textarea-body"
@@ -744,7 +772,7 @@ export const CommunityView: React.FC = () => {
               <div className="form-group">
                 <input 
                   type="text" 
-                  placeholder="Topic tags separated by comma (e.g. System Design, Kafka, Microservices)" 
+                  placeholder="Topic tags separated by comma (e.g. System Design, Career, Interview)" 
                   value={postTags} 
                   onChange={(e) => setPostTags(e.target.value)}
                   className="lmc-input-tags"
@@ -763,7 +791,7 @@ export const CommunityView: React.FC = () => {
                   type="submit" 
                   className="lmc-btn-post"
                 >
-                  <Send size={14} /> Post & Notify Followers
+                  <Send size={14} /> Post
                 </button>
               </div>
             </form>

@@ -11,6 +11,7 @@ import { useApp } from '../../context/AppContext';
 import { peerpathApi } from '../../services/api';
 import { MentorshipSession, ZeroPrepDossier } from '../../types';
 import { BRAND } from '../../config/brand';
+import { getUserAvatar } from '../../utils/avatar';
 
 export interface MentorSessionOffering {
   id: string;
@@ -225,7 +226,7 @@ export const MentorDashboardView: React.FC = () => {
   // Bookings are stored against the creator id, which differs from the user id for candidates who became mentors
   const mentorId = currentUser?.creatorId || currentUser?.id || '';
   const mentorName = currentUser?.name || '';
-  const mentorAvatar = currentUser?.avatar || '/brand/android-chrome-192x192.png';
+  const mentorAvatar = getUserAvatar(currentUser?.name || userProfile?.name, currentUser?.avatar || userProfile?.avatar);
   const myCreator = experts.find(e => e.id.toLowerCase() === mentorId.toLowerCase());
 
   // Start pricing from the mentor's real listed price, so saving settings never resets it to a default
@@ -293,7 +294,7 @@ export const MentorDashboardView: React.FC = () => {
     id: `rev-${s.id}`,
     candidateName: s.candidateName,
     candidateRole: s.candidateRole || 'Candidate',
-    candidateAvatar: s.candidateAvatar || '/brand/android-chrome-192x192.png',
+    candidateAvatar: getUserAvatar(s.candidateName, s.candidateAvatar),
     rating: s.candidateRating || 0,
     date: s.date,
     sessionType: s.sessionType || '1:1 Mentorship Session',
@@ -913,7 +914,7 @@ export const MentorDashboardView: React.FC = () => {
                     <div className="msc-candidate-meta">
                       <div className="msc-avatar-wrap">
                         <img 
-                          src={sess.candidateAvatar || '/brand/android-chrome-192x192.png'} 
+                          src={getUserAvatar(sess.candidateName, sess.candidateAvatar)} 
                           alt={sess.candidateName} 
                           className="msc-candidate-avatar"
                         />
@@ -1013,7 +1014,7 @@ export const MentorDashboardView: React.FC = () => {
                   <div className="msc-card-top-row">
                     <div className="msc-candidate-meta">
                       <div className="msc-avatar-wrap">
-                        <img src={sess.candidateAvatar || '/brand/android-chrome-192x192.png'} alt={sess.candidateName} className="msc-candidate-avatar" />
+                        <img src={getUserAvatar(sess.candidateName, sess.candidateAvatar)} alt={sess.candidateName} className="msc-candidate-avatar" />
                         <span className="msc-avatar-badge-done">✓</span>
                       </div>
                       <div className="msc-candidate-info">

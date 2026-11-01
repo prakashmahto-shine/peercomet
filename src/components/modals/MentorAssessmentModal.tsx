@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Award, Star, CheckCircle2, ShieldCheck, Sparkles, User, FileText } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { getUserAvatar } from '../../utils/avatar';
 
 export const MentorAssessmentModal: React.FC = () => {
   const { 
@@ -85,7 +86,7 @@ export const MentorAssessmentModal: React.FC = () => {
         <div className="as-candidate-summary-box">
           <div className="as-candidate-avatar-wrap">
             <img 
-              src={assessmentDraftSession.candidateAvatar || '/brand/android-chrome-192x192.png'} 
+              src={getUserAvatar(assessmentDraftSession.candidateName, assessmentDraftSession.candidateAvatar)} 
               alt={assessmentDraftSession.candidateName} 
               className="as-candidate-avatar"
             />

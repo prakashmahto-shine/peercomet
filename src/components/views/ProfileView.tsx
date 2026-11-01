@@ -11,6 +11,7 @@ import { useApp } from '../../context/AppContext';
 import { BRAND } from '../../config/brand';
 import { formatResumeAge, hasResume, resumeAgeDays } from '../../utils/resume';
 import { parseNameAndRole } from '../../utils/profile';
+import { getUserAvatar } from '../../utils/avatar';
 import { peerpathApi } from '../../services/api';
 
 // Age in whole years from a YYYY-MM-DD date of birth
@@ -210,7 +211,7 @@ export const ProfileView: React.FC = () => {
             <div className="phc-top-row">
               <div className="phc-avatar-wrap">
                 <img 
-                  src={currentUser?.avatar || userProfile?.avatar || '/brand/android-chrome-192x192.png'} 
+                  src={getUserAvatar(displayName || userProfile?.name, currentUser?.avatar || userProfile?.avatar)} 
                   alt={userProfile.name} 
                   className="phc-avatar-img"
                 />

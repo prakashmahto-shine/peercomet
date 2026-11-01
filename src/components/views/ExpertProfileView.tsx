@@ -10,6 +10,7 @@ import { Expert, ViewType } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { BRAND } from '../../config/brand';
 import { isSelfMentor } from '../../utils/profile';
+import { getUserAvatar } from '../../utils/avatar';
 
 interface ExpertProfileViewProps {
   expert: Expert;
@@ -100,7 +101,9 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
     ? userProfile.skills 
     : (Array.isArray(expert.skills) ? expert.skills : []);
   const displayBio = isSelf ? (userProfile.summary || expert.bio) : expert.bio;
-  const displayAvatar = isSelf ? (currentUser?.avatar || expert.avatar || '/brand/android-chrome-192x192.png') : (expert.avatar || '/brand/android-chrome-192x192.png');
+  const displayAvatar = isSelf 
+    ? getUserAvatar(displayName, currentUser?.avatar || expert.avatar || userProfile?.avatar) 
+    : getUserAvatar(displayName, expert.avatar);
 
   const mentorFirstName = (displayName || 'Mentor').split(' ')[0];
   const basePrice = expert.price || 999;
@@ -733,7 +736,7 @@ export const ExpertProfileView: React.FC<ExpertProfileViewProps> = ({
             <div className="video-modal-viewport" onClick={() => setIsPlaying(!isPlaying)}>
               <div className="video-overlay-tint"></div>
               <img 
-                src={expert.videoPoster || expert.avatar || '/brand/android-chrome-192x192.png'} 
+                src={expert.videoPoster || getUserAvatar(expert.name, expert.avatar)} 
                 alt="Video Thumbnail" 
                 className="video-poster-img" 
               />

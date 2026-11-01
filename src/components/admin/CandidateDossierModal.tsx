@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, FileText, ExternalLink } from 'lucide-react';
 import { AdminUserData } from '../../types';
+import { getUserAvatar } from '../../utils/avatar';
 
 interface CandidateDossierModalProps {
   candidate: AdminUserData;
@@ -46,7 +47,7 @@ export const CandidateDossierModal: React.FC<CandidateDossierModalProps> = ({
           {/* Hero / Avatar */}
           <div className="crm-dossier-hero">
             <img
-              src={candidate.avatar || '/brand/android-chrome-192x192.png'}
+              src={getUserAvatar(displayName, candidate.avatar)}
               alt={displayName}
               className="crm-dossier-avatar"
             />

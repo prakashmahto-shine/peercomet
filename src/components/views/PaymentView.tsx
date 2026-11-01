@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { BRAND } from '../../config/brand';
+import { getUserAvatar } from '../../utils/avatar';
 
 export const PaymentView: React.FC = () => {
   const { bookingDraft, navigate, bookSession, selectedExpert, userProfile, setIsBookingModalOpen, currentUser } = useApp();
@@ -65,7 +66,7 @@ export const PaymentView: React.FC = () => {
         <h2 className="pay-sec-heading">Session Summary</h2>
 
         <div className="pay-expert-card">
-          <img src={expert.avatar || '/brand/android-chrome-192x192.png'} alt={expert.name} className="pay-avatar" />
+          <img src={getUserAvatar(expert.name, expert.avatar)} alt={expert.name} className="pay-avatar" />
           <div>
             <h4>{expert.name}</h4>
             <p>{expert.role} at {expert.company} • <strong className="text-blue-600">{sessionType}</strong></p>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ShieldAlert, ShieldCheck, Award, Mail, FileText } from 'lucide-react';
 import { ViewType } from '../../types';
 import { peerpathApi } from '../../services/api';
+import { getUserAvatar } from '../../utils/avatar';
 
 interface RecruiterViewProps {
   onNavigate: (view: ViewType) => void;
@@ -81,7 +82,7 @@ export const RecruiterView: React.FC<RecruiterViewProps> = ({ onNavigate }) => {
         <div className="recruiter-candidate-card verified-highlight" key={candidate.id}>
           <div className="r-card-header">
             <div className="r-candidate-meta">
-              <img src={candidate.avatar || '/brand/android-chrome-192x192.png'} alt={candidate.name} className="r-avatar" />
+              <img src={getUserAvatar(candidate.name, candidate.avatar)} alt={candidate.name} className="r-avatar" />
               <div>
                 <div className="r-name-row">
                   <h3>{candidate.name}</h3>

@@ -13,6 +13,7 @@ import { formatBookingDate } from '../../utils/bookingDates';
 import { BRAND } from '../../config/brand';
 import { isResumeRecent } from '../../utils/resume';
 import { isSelfMentor } from '../../utils/profile';
+import { getUserAvatar } from '../../utils/avatar';
 
 // Used only when a mentor has no saved availability
 const DEFAULT_TIME_SLOTS = ['10:00 AM - 11:00 AM', '02:00 PM - 03:00 PM', '06:30 PM - 07:30 PM', '08:00 PM - 09:00 PM'];
@@ -91,7 +92,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const expert: Expert = pickExpert(propExpert) || pickExpert(bookingDraft?.expert) || selectedExpert;
 
   const expertName = expert?.name || 'Mentor';
-  const expertAvatar = expert?.avatar || '/brand/android-chrome-192x192.png';
+  const expertAvatar = getUserAvatar(expertName, expert?.avatar);
   const expertRole = expert?.role || 'Tech Leader';
   const expertCompany = expert?.company || 'Top Tech Firm';
   const expertPrice = expert?.price || 1399;

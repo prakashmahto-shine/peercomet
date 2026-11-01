@@ -118,6 +118,14 @@
   margin-bottom: 16px;
 }
 
+.footer-col-header {
+  display: block;
+}
+
+.footer-col-toggle-icon {
+  display: none;
+}
+
 .footer-accordion-item {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   padding-bottom: 12px;

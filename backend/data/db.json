@@ -1,5 +1,380 @@
 {
-  "creators": [],
+  "creators": [
+    {
+      "id": "exp-google-ankit",
+      "name": "Ankit Sharma",
+      "role": "Staff Software Engineer",
+      "company": "Google",
+      "domain": "Full-Stack",
+      "experience": "8+ Years",
+      "rating": 4.96,
+      "reviewsCount": 68,
+      "sessionsCount": 142,
+      "price": 999,
+      "location": "Bengaluru, India",
+      "duration": "45 mins",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256",
+      "videoPoster": "",
+      "teaserTitle": "Cracking Google L5/L6: System Design & Distributed Caching",
+      "skills": [
+        "System Design",
+        "Distributed Systems",
+        "Go",
+        "Microservices",
+        "Kubernetes"
+      ],
+      "bio": "Staff Engineer at Google with 8+ years experience. Transitioned from TCS to Tier-1 product companies. Helped 90+ engineers clear Google, Uber, and Meta interviews.",
+      "verifiedEmail": "ankit.sharma@google.com",
+      "isVerifiedEmployer": true,
+      "followersCount": 1240,
+      "trajectory": {
+        "role3YearsAgo": "Senior Systems Engineer",
+        "company3YearsAgo": "Tata Consultancy Services (TCS)",
+        "salary3YearsAgo": "\u20b97.5 LPA",
+        "keyJumpSkills": [
+          "Distributed Systems",
+          "Low-Level Design",
+          "Concurrency",
+          "Redis"
+        ],
+        "jumpStory": "Switched from a service-based firm to Google by mastering scalable architecture, mock interview feedback, and clean code practices."
+      },
+      "availability": {
+        "days": [
+          "Saturday",
+          "Sunday",
+          "Tuesday",
+          "Thursday"
+        ],
+        "timeSlots": [
+          "07:00 PM",
+          "08:30 PM",
+          "10:00 PM"
+        ]
+      },
+      "serviceOfferings": [
+        {
+          "id": "srv-1",
+          "title": "1:1 System Design & Architecture Mock",
+          "duration": "45 mins",
+          "price": 999,
+          "description": "Live architecture problem with real-time feedback on scalability, trade-offs, and FAANG evaluation rubrics."
+        },
+        {
+          "id": "srv-2",
+          "title": "Resume & LinkedIn Teardown for Tier-1 Cos",
+          "duration": "30 mins",
+          "price": 699,
+          "description": "Line-by-line ATS resume review to get past automated screening and direct recruiter shortlisting."
+        }
+      ]
+    },
+    {
+      "id": "exp-swiggy-priya",
+      "name": "Priya Nair",
+      "role": "Engineering Lead",
+      "company": "Swiggy",
+      "domain": "Full-Stack",
+      "experience": "7+ Years",
+      "rating": 4.94,
+      "reviewsCount": 54,
+      "sessionsCount": 118,
+      "price": 899,
+      "location": "Bengaluru, India",
+      "duration": "45 mins",
+      "avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=256",
+      "videoPoster": "",
+      "teaserTitle": "Service-to-Product Transition Playbook: Infosys to Swiggy",
+      "skills": [
+        "Java",
+        "Spring Boot",
+        "Kafka",
+        "High Throughput",
+        "System Design"
+      ],
+      "bio": "Engineering Lead at Swiggy. Started my career at Infosys. Passionate about helping engineers bridge their backend architectural gaps and crack high-growth unicorn roles.",
+      "verifiedEmail": "priya.nair@swiggy.in",
+      "isVerifiedEmployer": true,
+      "followersCount": 890,
+      "trajectory": {
+        "role3YearsAgo": "Software Engineer",
+        "company3YearsAgo": "Infosys",
+        "salary3YearsAgo": "\u20b96.2 LPA",
+        "keyJumpSkills": [
+          "Kafka",
+          "Microservices",
+          "Spring Boot",
+          "Design Patterns"
+        ],
+        "jumpStory": "Broke out of service delivery into Swiggy by building high-concurrency event-driven projects and practicing targeted mock interviews."
+      },
+      "availability": {
+        "days": [
+          "Monday",
+          "Wednesday",
+          "Saturday"
+        ],
+        "timeSlots": [
+          "06:30 PM",
+          "08:00 PM",
+          "09:30 PM"
+        ]
+      },
+      "serviceOfferings": [
+        {
+          "id": "srv-swiggy-1",
+          "title": "Backend & High-Concurrency Mock Interview",
+          "duration": "45 mins",
+          "price": 899,
+          "description": "Deep dive into concurrency, databases, and microservices design questions asked at Swiggy & Zomato."
+        }
+      ]
+    },
+    {
+      "id": "exp-microsoft-vikram",
+      "name": "Vikram Verma",
+      "role": "Principal SDE",
+      "company": "Microsoft",
+      "domain": "Cybersecurity",
+      "experience": "9+ Years",
+      "rating": 4.98,
+      "reviewsCount": 82,
+      "sessionsCount": 195,
+      "price": 1199,
+      "location": "Hyderabad, India",
+      "duration": "60 mins",
+      "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=256",
+      "videoPoster": "",
+      "teaserTitle": "Cracking Microsoft Principal & Senior Roles: Cloud Scalability",
+      "skills": [
+        "Cloud Architecture",
+        "Azure",
+        "C#/.NET",
+        "Distributed Systems",
+        "Security"
+      ],
+      "bio": "Principal Software Engineer at Microsoft. 9+ years building planetary-scale enterprise cloud infrastructure. Transitioned from Wipro early in my career.",
+      "verifiedEmail": "vikram.verma@microsoft.com",
+      "isVerifiedEmployer": true,
+      "followersCount": 1680,
+      "trajectory": {
+        "role3YearsAgo": "Lead Developer",
+        "company3YearsAgo": "Wipro Technologies",
+        "salary3YearsAgo": "\u20b98.8 LPA",
+        "keyJumpSkills": [
+          "Cloud Arch",
+          "Distributed Caching",
+          "System Design",
+          "Reliability"
+        ],
+        "jumpStory": "Transitioned from Wipro to Microsoft through structured System Design preparation and hands-on distributed systems projects."
+      },
+      "availability": {
+        "days": [
+          "Saturday",
+          "Sunday"
+        ],
+        "timeSlots": [
+          "11:00 AM",
+          "03:00 PM",
+          "06:00 PM"
+        ]
+      },
+      "serviceOfferings": [
+        {
+          "id": "srv-ms-1",
+          "title": "Senior/Principal System Design & Behavioral Round",
+          "duration": "60 mins",
+          "price": 1199,
+          "description": "Comprehensive evaluation of high-level architecture, trade-offs, and leadership principles."
+        }
+      ]
+    },
+    {
+      "id": "exp-amazon-sneha",
+      "name": "Sneha Kulkarni",
+      "role": "Senior Software Engineer",
+      "company": "Amazon",
+      "domain": "Full-Stack",
+      "experience": "6+ Years",
+      "rating": 4.93,
+      "reviewsCount": 46,
+      "sessionsCount": 104,
+      "price": 899,
+      "location": "Bengaluru, India",
+      "duration": "45 mins",
+      "avatar": "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=256",
+      "videoPoster": "",
+      "teaserTitle": "Amazon Leadership Principles & Bar Raiser Mock Session",
+      "skills": [
+        "Java",
+        "AWS",
+        "DynamoDB",
+        "Microservices",
+        "Leadership Principles"
+      ],
+      "bio": "Senior SDE at Amazon. Transitioned from Cognizant. Has conducted 50+ real Amazon bar raiser and coding interview rounds.",
+      "verifiedEmail": "sneha.k@amazon.com",
+      "isVerifiedEmployer": true,
+      "followersCount": 950,
+      "trajectory": {
+        "role3YearsAgo": "Programmer Analyst",
+        "company3YearsAgo": "Cognizant",
+        "salary3YearsAgo": "\u20b96.8 LPA",
+        "keyJumpSkills": [
+          "AWS",
+          "Distributed Storage",
+          "DSA",
+          "LP Preparation"
+        ],
+        "jumpStory": "Overcame Cognizant service background by mastering Amazon Leadership Principles and low-latency system design."
+      },
+      "availability": {
+        "days": [
+          "Friday",
+          "Saturday",
+          "Sunday"
+        ],
+        "timeSlots": [
+          "05:00 PM",
+          "07:30 PM",
+          "09:00 PM"
+        ]
+      },
+      "serviceOfferings": [
+        {
+          "id": "srv-amz-1",
+          "title": "Amazon Bar Raiser & LP Coding Mock",
+          "duration": "45 mins",
+          "price": 899,
+          "description": "Simulated Amazon coding round with full STAR method leadership principles evaluation."
+        }
+      ]
+    },
+    {
+      "id": "exp-uber-rohan",
+      "name": "Rohan Deshmukh",
+      "role": "Staff AI/ML Architect",
+      "company": "Uber",
+      "domain": "AI/ML",
+      "experience": "7+ Years",
+      "rating": 4.97,
+      "reviewsCount": 59,
+      "sessionsCount": 135,
+      "price": 1099,
+      "location": "Bengaluru, India",
+      "duration": "45 mins",
+      "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=256",
+      "videoPoster": "",
+      "teaserTitle": "Switching to GenAI & ML Engineering: Tech Mahindra to Uber",
+      "skills": [
+        "GenAI",
+        "LLMs",
+        "Python",
+        "MLOps",
+        "PyTorch",
+        "Vector DBs"
+      ],
+      "bio": "Staff AI/ML Architect at Uber. Building real-time dynamic pricing and routing neural models. Mentored 40+ engineers transitioning into AI/ML.",
+      "verifiedEmail": "rohan.d@uber.com",
+      "isVerifiedEmployer": true,
+      "followersCount": 1310,
+      "trajectory": {
+        "role3YearsAgo": "Data Analyst",
+        "company3YearsAgo": "Tech Mahindra",
+        "salary3YearsAgo": "\u20b97.2 LPA",
+        "keyJumpSkills": [
+          "Deep Learning",
+          "PyTorch",
+          "System Architecture",
+          "MLOps"
+        ],
+        "jumpStory": "Transitioned from Tech Mahindra data analyst into Uber Staff AI architect by building end-to-end production ML systems."
+      },
+      "availability": {
+        "days": [
+          "Tuesday",
+          "Thursday",
+          "Saturday"
+        ],
+        "timeSlots": [
+          "07:00 PM",
+          "08:30 PM",
+          "10:00 PM"
+        ]
+      },
+      "serviceOfferings": [
+        {
+          "id": "srv-uber-1",
+          "title": "GenAI & Machine Learning System Design Mock",
+          "duration": "45 mins",
+          "price": 1099,
+          "description": "Design real-world recommendation, retrieval (RAG), and large-scale model inference pipelines."
+        }
+      ]
+    },
+    {
+      "id": "exp-razorpay-arjun",
+      "name": "Arjun Mehta",
+      "role": "Principal Engineer",
+      "company": "Razorpay",
+      "domain": "Full-Stack",
+      "experience": "8+ Years",
+      "rating": 4.95,
+      "reviewsCount": 48,
+      "sessionsCount": 110,
+      "price": 999,
+      "location": "Bengaluru, India",
+      "duration": "45 mins",
+      "avatar": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=256",
+      "videoPoster": "",
+      "teaserTitle": "Fintech Engineering: High-Throughput & Fault Tolerance",
+      "skills": [
+        "Go",
+        "Node.js",
+        "PostgreSQL",
+        "Distributed Caching",
+        "Event Sourcing"
+      ],
+      "bio": "Principal Engineer at Razorpay. Handling millions of payment transactions daily. Started at Accenture. Expert in fintech system design.",
+      "verifiedEmail": "arjun.mehta@razorpay.com",
+      "isVerifiedEmployer": true,
+      "followersCount": 1120,
+      "trajectory": {
+        "role3YearsAgo": "Software Engineer",
+        "company3YearsAgo": "Accenture",
+        "salary3YearsAgo": "\u20b96.5 LPA",
+        "keyJumpSkills": [
+          "Go",
+          "PostgreSQL",
+          "Distributed Locks",
+          "Kafka"
+        ],
+        "jumpStory": "Made the switch from Accenture to Tier-1 Fintech by mastering idempotency, transaction consistency, and high-volume architecture."
+      },
+      "availability": {
+        "days": [
+          "Monday",
+          "Friday",
+          "Sunday"
+        ],
+        "timeSlots": [
+          "06:00 PM",
+          "08:00 PM",
+          "09:30 PM"
+        ]
+      },
+      "serviceOfferings": [
+        {
+          "id": "srv-razorpay-1",
+          "title": "Fintech System Design & Distributed Transactions Mock",
+          "duration": "45 mins",
+          "price": 999,
+          "description": "Learn how to answer high-throughput payment, ledger consistency, and double-spend prevention interview questions."
+        }
+      ]
+    }
+  ],
   "candidates": [],
   "sessions": [],
   "posts": []

@@ -6,6 +6,7 @@ import {
 import { AdminOverviewStats, AdminUserData, AdminBookingData } from '../../types';
 import { AdminSection } from './AdminSidebar';
 import { BRAND } from '../../config/brand';
+import { getUserAvatar } from '../../utils/avatar';
 
 interface AdminOverviewSectionProps {
   overview: AdminOverviewStats | null;
@@ -122,7 +123,7 @@ export const AdminOverviewSection: React.FC<AdminOverviewSectionProps> = ({
                   return (
                     <div key={u.id} className="crm-recent-user-item">
                       <img
-                        src={u.avatar || '/brand/android-chrome-192x192.png'}
+                        src={getUserAvatar(name, u.avatar)}
                         alt={name}
                         className="crm-recent-avatar"
                       />

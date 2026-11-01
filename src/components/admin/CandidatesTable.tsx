@@ -4,6 +4,7 @@ import {
   MapPin, FileText, ExternalLink, CheckCircle2, XCircle, Eye, X, Sparkles 
 } from 'lucide-react';
 import { AdminUserData } from '../../types';
+import { getUserAvatar } from '../../utils/avatar';
 
 interface CandidatesTableProps {
   users: AdminUserData[];
@@ -148,7 +149,7 @@ export const CandidatesTable: React.FC<CandidatesTableProps> = ({
                     <td>
                       <div className="crm-user-profile-cell">
                         <img
-                          src={user.avatar || '/brand/android-chrome-192x192.png'}
+                          src={getUserAvatar(displayName, user.avatar)}
                           alt={displayName}
                           className="crm-user-avatar"
                         />

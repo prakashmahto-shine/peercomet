@@ -8,6 +8,7 @@ import { useApp } from '../../context/AppContext';
 import { WebRTCService, PeerState } from '../../services/webrtcService';
 import { API_BASE, apiFetch } from '../../services/api';
 import { BRAND } from '../../config/brand';
+import { getUserAvatar } from '../../utils/avatar';
 
 export const LiveVideoCallView: React.FC = () => {
   const { 
@@ -171,7 +172,7 @@ export const LiveVideoCallView: React.FC = () => {
           userId: currentUser?.id || (isMentor ? expert.id : 'candidate'),
           userName: isMentor ? expert.name : (currentUser?.name || userProfile?.name || 'Candidate'),
           userRole: isMentor ? 'mentor' : 'candidate',
-          avatar: isMentor ? expert.avatar : (currentUser?.avatar || '/brand/android-chrome-192x192.png'),
+          avatar: isMentor ? getUserAvatar(expert.name, expert.avatar) : getUserAvatar(currentUser?.name || userProfile?.name, currentUser?.avatar || userProfile?.avatar),
           localStream: stream || undefined
         });
 
@@ -432,7 +433,7 @@ export const LiveVideoCallView: React.FC = () => {
 
   const otherParticipantName = isMentor ? candidateName : expert.name;
   const otherParticipantRole = isMentor ? candidateRole : `${expert.role} • ${expert.company}`;
-  const otherParticipantAvatar = isMentor ? (activeSession?.candidateAvatar || '/brand/android-chrome-192x192.png') : expert.avatar;
+  const otherParticipantAvatar = isMentor ? getUserAvatar(candidateName, activeSession?.candidateAvatar) : getUserAvatar(expert.name, expert.avatar);
 
   return (
     <div className="video-call-fullscreen-wrapper">
@@ -546,7 +547,7 @@ export const LiveVideoCallView: React.FC = () => {
           ) : cameraError ? (
             <>
               <img 
-                src={currentUser?.avatar || '/brand/android-chrome-192x192.png'} 
+                src={getUserAvatar(currentUser?.name || userProfile?.name, currentUser?.avatar || userProfile?.avatar)} 
                 alt="Candidate Feed" 
                 className="feed-bg-img" 
               />

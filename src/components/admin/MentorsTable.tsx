@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { AdminUserData } from '../../types';
 import { BRAND } from '../../config/brand';
+import { getUserAvatar } from '../../utils/avatar';
 
 interface MentorsTableProps {
   users: AdminUserData[];
@@ -156,7 +157,7 @@ export const MentorsTable: React.FC<MentorsTableProps> = ({
                     <td>
                       <div className="crm-user-profile-cell">
                         <img
-                          src={creator?.avatar || user.avatar || '/brand/android-chrome-192x192.png'}
+                          src={getUserAvatar(displayName, creator?.avatar || user.avatar)}
                           alt={displayName}
                           className="crm-user-avatar"
                         />

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { BRAND } from '../../config/brand';
+import { getUserAvatar } from '../../utils/avatar';
 
 export const CreatorWizardModal: React.FC = () => {
   const { 
@@ -528,8 +529,8 @@ export const CreatorWizardModal: React.FC = () => {
       price: primaryOffering.price,
       location: 'Bengaluru / Remote',
       duration: `${primaryOffering.duration} Mins`,
-      avatar: currentUser?.avatar || userProfile?.avatar || '/brand/android-chrome-192x192.png',
-      videoPoster: currentUser?.avatar || userProfile?.avatar || '/brand/android-chrome-192x192.png',
+      avatar: getUserAvatar(fullName.trim() || currentUser?.name || userProfile?.name, currentUser?.avatar || userProfile?.avatar),
+      videoPoster: getUserAvatar(fullName.trim() || currentUser?.name || userProfile?.name, currentUser?.avatar || userProfile?.avatar),
       teaserTitle: teaserVideoTitle || `1:1 Mentorship with ${fullName.trim() || currentUser?.name || 'Mentor'}`,
       skills: selectedSkills,
       bio: bio.trim(),
@@ -555,7 +556,7 @@ export const CreatorWizardModal: React.FC = () => {
         url: teaserVideoUrl,
         title: teaserVideoTitle || `1:1 Mentorship with ${fullName.trim() || currentUser?.name || 'Mentor'}`,
         duration: '01:15 min',
-        thumbnail: currentUser?.avatar || userProfile?.avatar || '/brand/android-chrome-192x192.png',
+        thumbnail: getUserAvatar(fullName.trim() || currentUser?.name || userProfile?.name, currentUser?.avatar || userProfile?.avatar),
         uploadedAt: 'Just now'
       } : undefined
     });
@@ -1294,7 +1295,7 @@ export const CreatorWizardModal: React.FC = () => {
                       <video 
                         src={teaserVideoUrl} 
                         controls 
-                        poster={currentUser?.avatar || userProfile?.avatar || '/brand/android-chrome-192x192.png'}
+                        poster={getUserAvatar(fullName.trim() || currentUser?.name || userProfile?.name, currentUser?.avatar || userProfile?.avatar)}
                         style={{ width: '100%', maxHeight: '200px', display: 'block' }}
                       />
                     </div>
@@ -1341,7 +1342,7 @@ export const CreatorWizardModal: React.FC = () => {
                   <div className="pmc-body-grid-modern">
                     <div className="pmc-avatar-wrap">
                       <img 
-                        src={currentUser?.avatar || userProfile?.avatar || '/brand/android-chrome-192x192.png'} 
+                        src={getUserAvatar(fullName.trim() || currentUser?.name || userProfile?.name, currentUser?.avatar || userProfile?.avatar)} 
                         alt={fullName} 
                         className="pmc-avatar-img" 
                       />

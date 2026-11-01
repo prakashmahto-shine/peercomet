@@ -8,6 +8,14 @@ export const Footer: React.FC = () => {
   const { navigate, currentView } = useApp();
   const [isBlogsOpen, setIsBlogsOpen] = useState<boolean>(false);
   const [isJobsOpen, setIsJobsOpen] = useState<boolean>(false);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+
+  const toggleSection = (key: string) => {
+    setOpenSections(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
 
   // Check if current view is inside Peerpath ecosystem (all views except legacy external jobs portal)
   const isPeerpathView = currentView !== 'jobs-view';
@@ -61,8 +69,13 @@ export const Footer: React.FC = () => {
             {isPeerpathView ? (
               /* Peerpath Platform Focused Navigation Columns */
               <>
-                <div className="footer-nav-col">
-                  <h4>Explore Mentors</h4>
+                <div className={`footer-nav-col ${openSections['explore'] ? 'is-open' : ''}`}>
+                  <div className="footer-col-header" onClick={() => toggleSection('explore')}>
+                    <h4>Explore Mentors</h4>
+                    <span className="footer-col-toggle-icon">
+                      <ChevronDown size={15} />
+                    </span>
+                  </div>
                   <ul className="footer-links-list">
                     <li><a href="#!" onClick={(e) => { e.preventDefault(); navigate('experts-view'); }}>AI & GenAI Specialists</a></li>
                     <li><a href="#!" onClick={(e) => { e.preventDefault(); navigate('experts-view'); }}>Frontend & Mobile Architects</a></li>
@@ -72,8 +85,13 @@ export const Footer: React.FC = () => {
                   </ul>
                 </div>
 
-                <div className="footer-nav-col">
-                  <h4>Transition Roadmaps</h4>
+                <div className={`footer-nav-col ${openSections['roadmaps'] ? 'is-open' : ''}`}>
+                  <div className="footer-col-header" onClick={() => toggleSection('roadmaps')}>
+                    <h4>Transition Roadmaps</h4>
+                    <span className="footer-col-toggle-icon">
+                      <ChevronDown size={15} />
+                    </span>
+                  </div>
                   <ul className="footer-links-list">
                     <li><a href="#!" onClick={(e) => { e.preventDefault(); navigate('guidance-view'); }}>Services ➔ Product Switch</a></li>
                     <li><a href="#!" onClick={(e) => { e.preventDefault(); navigate('guidance-view'); }}>Non-AI ➔ GenAI / ML Jump</a></li>
@@ -82,18 +100,27 @@ export const Footer: React.FC = () => {
                   </ul>
                 </div>
 
-                <div className="footer-nav-col">
-                  <h4>For Mentors</h4>
+                <div className={`footer-nav-col ${openSections['mentors'] ? 'is-open' : ''}`}>
+                  <div className="footer-col-header" onClick={() => toggleSection('mentors')}>
+                    <h4>For Mentors</h4>
+                    <span className="footer-col-toggle-icon">
+                      <ChevronDown size={15} />
+                    </span>
+                  </div>
                   <ul className="footer-links-list">
                     <li><a href="/become-a-mentor" onClick={(e) => { e.preventDefault(); navigate('become-mentor-view'); }}>Become a Mentor (0% Fee)</a></li>
                     <li><a href="#!" onClick={(e) => { e.preventDefault(); navigate('mentor-dashboard-view'); }}>Mentor Studio Portal</a></li>
                     <li><a href="#!" onClick={(e) => { e.preventDefault(); navigate('sessions-view'); }}>Manage Availability & Calls</a></li>
-                    <li><a href="#!">Earnings & Bank Payouts</a></li>
                   </ul>
                 </div>
 
-                <div className="footer-nav-col">
-                  <h4>Shine Hiring Moat</h4>
+                <div className={`footer-nav-col ${openSections['hiring'] ? 'is-open' : ''}`}>
+                  <div className="footer-col-header" onClick={() => toggleSection('hiring')}>
+                    <h4>Shine Hiring Moat</h4>
+                    <span className="footer-col-toggle-icon">
+                      <ChevronDown size={15} />
+                    </span>
+                  </div>
                   <ul className="footer-links-list">
                     <li><a href="#!" onClick={(e) => { e.preventDefault(); navigate('recruiter-view'); }}>Verified Skill Scorecard</a></li>
                     <li><a href="#!" onClick={(e) => { e.preventDefault(); navigate('recruiter-view'); }}>Fast-Track to 300k+ Recruiters</a></li>
@@ -101,8 +128,13 @@ export const Footer: React.FC = () => {
                   </ul>
                 </div>
 
-                <div className="footer-nav-col">
-                  <h4>Trust & Help</h4>
+                <div className={`footer-nav-col ${openSections['trust'] ? 'is-open' : ''}`}>
+                  <div className="footer-col-header" onClick={() => toggleSection('trust')}>
+                    <h4>Trust & Help</h4>
+                    <span className="footer-col-toggle-icon">
+                      <ChevronDown size={15} />
+                    </span>
+                  </div>
                   <ul className="footer-links-list">
                     <li><a href="/security" onClick={(e) => { e.preventDefault(); navigate('security-view'); }}>100% Satisfaction Guarantee</a></li>
                     <li><a href="/security" onClick={(e) => { e.preventDefault(); navigate('security-view'); }}>Verified Mentors Screening</a></li>
@@ -114,8 +146,13 @@ export const Footer: React.FC = () => {
             ) : (
               /* Shine Jobs Portal Navigation Columns */
               <>
-                <div className="footer-nav-col">
-                  <h4>Job Seekers</h4>
+                <div className={`footer-nav-col ${openSections['jobseekers'] ? 'is-open' : ''}`}>
+                  <div className="footer-col-header" onClick={() => toggleSection('jobseekers')}>
+                    <h4>Job Seekers</h4>
+                    <span className="footer-col-toggle-icon">
+                      <ChevronDown size={15} />
+                    </span>
+                  </div>
                   <ul className="footer-links-list">
                     <li><a href="#!" onClick={(e) => { e.preventDefault(); navigate('jobs-view'); }}>Job Search</a></li>
                     <li><a href="#!" onClick={(e) => { e.preventDefault(); navigate('jobs-view'); }}>Create Free Job Alert</a></li>
@@ -154,8 +191,13 @@ export const Footer: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="footer-nav-col">
-                  <h4>Employers</h4>
+                <div className={`footer-nav-col ${openSections['employers'] ? 'is-open' : ''}`}>
+                  <div className="footer-col-header" onClick={() => toggleSection('employers')}>
+                    <h4>Employers</h4>
+                    <span className="footer-col-toggle-icon">
+                      <ChevronDown size={15} />
+                    </span>
+                  </div>
                   <ul className="footer-links-list">
                     <li><a href="#!">Employer Home</a></li>
                     <li><a href="#!">Recruiter India</a></li>
@@ -184,8 +226,13 @@ export const Footer: React.FC = () => {
                   </ul>
                 </div>
 
-                <div className="footer-nav-col">
-                  <h4>Company</h4>
+                <div className={`footer-nav-col ${openSections['company'] ? 'is-open' : ''}`}>
+                  <div className="footer-col-header" onClick={() => toggleSection('company')}>
+                    <h4>Company</h4>
+                    <span className="footer-col-toggle-icon">
+                      <ChevronDown size={15} />
+                    </span>
+                  </div>
                   <ul className="footer-links-list">
                     <li><a href="https://www.htmedia.in/" target="_blank" rel="noopener noreferrer">About HT Media Group ↗</a></li>
                     <li><a href="/contact" onClick={(e) => { e.preventDefault(); navigate('contact-view'); }}>Contact Us</a></li>

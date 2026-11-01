@@ -40,7 +40,7 @@ export const ProfileIncompleteBanner: React.FC = () => {
           </div>
           <div className="pib-text-box">
             <p className="pib-message">
-              <strong>Complete Registration:</strong> Your profile is missing mandatory details ({missing.join(', ')}). Fill them in to unlock full mentor matching and 1:1 sessions.
+              <strong>Complete Profile:</strong> Please add your details ({missing.join(', ')}). This helps mentors prepare personalized feedback for your 1:1 sessions.
             </p>
           </div>
         </div>

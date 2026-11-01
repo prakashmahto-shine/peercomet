@@ -9,6 +9,7 @@ import { peerpathApi, API_BASE, apiFetch, AuthUser } from '../services/api';
 import { pathToView, viewToPath } from '../routes';
 import { BRAND } from '../config/brand';
 import { isProfileComplete, parseNameAndRole } from '../utils/profile';
+import { getUserAvatar } from '../utils/avatar';
 
 export interface ToastMessage {
   id: string;
@@ -644,11 +645,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [currentUser?.id]);
 
   const createMentorPost = (postData: { title: string; content: string; tags: string[] }) => {
-    const isMentor = currentUser?.role === 'mentor' || isCreatorMode;
-    if (!isMentor || !currentUser) {
-      showToast('Mentor Access Required', 'Only verified mentors can publish insights in Community.', 'warning');
+    if (!currentUser) {
+      showToast('Sign In Required', 'Please sign in to publish a community post.', 'warning');
       return null;
     }
+    const isMentor = currentUser?.role === 'mentor' || isCreatorMode;
 
     const newPost: CommunityPost = {
       id: `post-${Date.now()}`,
@@ -656,7 +657,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       mentorName: currentUser.name,
       mentorRole: currentUser.headline || (isCreatorMode ? 'Verified Tech Lead & Mentor' : 'Mentor'),
       mentorCompany: currentUser.company || BRAND.name,
-      mentorAvatar: currentUser.avatar || '/brand/android-chrome-192x192.png',
+      mentorAvatar: getUserAvatar(currentUser.name, currentUser.avatar),
       title: postData.title,
       content: postData.content,
       tags: postData.tags.length > 0 ? postData.tags : ['Career Guidance', 'Tech Transition'],
@@ -717,7 +718,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       type: 'mentor_post',
       mentorId: currentUser.id,
       mentorName: currentUser.name,
-      mentorAvatar: currentUser.avatar || '/brand/android-chrome-192x192.png',
+      mentorAvatar: getUserAvatar(currentUser.name, currentUser.avatar),
       postId: newPost.id,
       title: 'New Post Published',
       message: `${currentUser.name} published a new insight: "${postData.title}"`,
@@ -744,7 +745,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       authorId: currentUser.id,
       authorName: currentUser.name,
       authorRole: currentUser.headline || (isMentor ? 'Verified Mentor' : 'Candidate'),
-      authorAvatar: currentUser.avatar || '/brand/android-chrome-192x192.png',
+      authorAvatar: getUserAvatar(currentUser.name, currentUser.avatar),
       authorIsMentor: isMentor,
       content: content.trim(),
       createdAt: 'Just now',
@@ -897,7 +898,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       username: me.id,
       name: profile?.name || cleanName || me.name,
       role: me.isMentor ? 'mentor' : 'candidate',
-      avatar: me.avatar || '/brand/android-chrome-192x192.png',
+      avatar: getUserAvatar(profile?.name || cleanName || me.name, me.avatar),
       email: me.email || '',
       phone: profile?.phone || me.mobile || '',
       mobile: profile?.phone || me.mobile || '',
@@ -1090,8 +1091,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         price: userProfile.mentorRate || 999,
         location: userProfile.location || 'Bengaluru / Remote',
         duration: '45 Mins',
-        avatar: currentUser?.avatar || userProfile.avatar || '/brand/android-chrome-192x192.png',
-        videoPoster: currentUser?.avatar || userProfile.avatar || '/brand/android-chrome-192x192.png',
+        avatar: getUserAvatar(userProfile.name || currentUser?.name, currentUser?.avatar || userProfile.avatar),
+        videoPoster: getUserAvatar(userProfile.name || currentUser?.name, currentUser?.avatar || userProfile.avatar),
         teaserTitle: userProfile.mentorTeaserVideo?.title || `1:1 Mentorship with ${userProfile.name || currentUser?.name || 'Mentor'}`,
         skills: userProfile.skills?.length ? userProfile.skills : [],
         bio: userProfile.summary || userProfile.headline || '',

@@ -9,6 +9,7 @@ import { useApp, rememberCreatorMode } from '../../context/AppContext';
 import { PeerpathLogo } from '../common/PeerpathLogo';
 import { BRAND } from '../../config/brand';
 import { isProfileComplete } from '../../utils/profile';
+import { getUserAvatar } from '../../utils/avatar';
 
 interface HeaderProps {
   currentView: ViewType;
@@ -94,12 +95,144 @@ export const Header: React.FC<HeaderProps> = ({
     onNavigate('jobs-view');
   };
 
+  const renderNavLinks = () => (
+    isPeerpathView ? (
+      /* Peerpath Platform Navigation */
+      isAlreadyMentor && isCreatorMode ? (
+        <>
+          <button 
+            className={`myshine-link ${currentView === 'mentor-dashboard-view' ? 'active' : ''}`}
+            onClick={() => onNavigate('mentor-dashboard-view')} 
+            title="Go to Mentor & Studio Dashboard"
+          >
+            <Sparkles size={15} /> Studio Dashboard
+            <span className="pill-live-red-badge">LIVE</span>
+          </button>
+
+          <button 
+            className={`myshine-link ${currentView === 'sessions-view' ? 'active' : ''}`} 
+            onClick={() => onNavigate('sessions-view')}
+          >
+            <Video size={15} /> Candidate Calls
+            {upcomingCount > 0 && <span className="flyout-count-pill" style={{ marginLeft: '4px' }}>{upcomingCount}</span>}
+          </button>
+
+          {/* Mentor mode is about their own practice; other mentors are under Seek Guidance */}
+          <button 
+            className={`myshine-link ${currentView === 'community-view' ? 'active' : ''}`} 
+            onClick={() => onNavigate('community-view')}
+            title="Mentor-Led Community & Insights"
+          >
+            <MessageSquare size={15} /> Community
+          </button>
+        </>
+      ) : currentUser ? (
+        <>
+          <button 
+            className={`myshine-link ${currentView === 'experts-view' ? 'active' : ''}`} 
+            onClick={() => onNavigate('experts-view')}
+            title="Browse mentors"
+          >
+            <Compass size={15} /> Find Mentors
+          </button>
+
+          <button 
+            className={`myshine-link ${currentView === 'sessions-view' ? 'active' : ''}`} 
+            onClick={() => onNavigate('sessions-view')}
+          >
+            <Video size={15} /> My Bookings
+            {upcomingCount > 0 && <span className="flyout-count-pill" style={{ marginLeft: '4px' }}>{upcomingCount}</span>}
+          </button>
+
+          <button 
+            className={`myshine-link ${currentView === 'community-view' ? 'active' : ''}`} 
+            onClick={() => onNavigate('community-view')}
+            title="Mentor Insights & Discussions"
+          >
+            <MessageSquare size={15} /> Community
+          </button>
+        </>
+      ) : null
+    ) : (
+      /* Shine Jobs Portal Navigation */
+      <>
+        <button 
+          className={`myshine-link ${currentView === 'jobs-view' ? 'active' : ''}`} 
+          onClick={handleGoToMyJobs}
+        >
+          <Briefcase size={15} /> My Jobs
+        </button>
+        
+        <button className="myshine-link">
+          <Bell size={15} /> Job Alerts
+        </button>
+        
+        <button className="myshine-link">
+          <FileText size={15} /> Blogs & Prep
+        </button>
+
+        <button 
+          className={`myshine-link ${currentView === 'profile-view' ? 'active' : ''}`} 
+          onClick={() => onNavigate('profile-view')}
+        >
+          <User size={15} /> My Profile
+        </button>
+      </>
+    )
+  );
+
+  const renderRoleSwitcher = (isMobileMode = false) => {
+    if (!currentUser || !isAlreadyMentor || !isPeerpathView) return null;
+    return (
+      <div 
+        className={`navbar-role-mode-segmented ${isMobileMode ? 'role-mode-mobile-layout' : 'role-mode-desktop-layout'}`} 
+        role="group" 
+        aria-label="Active Platform Mode"
+      >
+        <button
+          type="button"
+          className={`nrms-tab ${isCreatorMode ? 'is-active-mentor' : 'is-inactive'}`}
+          onClick={() => {
+            setIsCreatorMode(true);
+            if (currentUser) rememberCreatorMode(currentUser.id, true);
+            showToast('⚡ Mentor Studio Active', 'Switched to your mentor dashboard & candidate calls.', 'info');
+            onNavigate('mentor-dashboard-view', '/mentor');
+          }}
+          title="Mentor Mode: You are actively hosting sessions and guiding candidates"
+        >
+          <Sparkles size={13} className="nrms-icon" />
+          <span>Mentor</span>
+          {isCreatorMode && <span className="nrms-live-dot" title="Active Mentor" />}
+        </button>
+
+        <button
+          type="button"
+          className={`nrms-tab ${!isCreatorMode ? 'is-active-mentee' : 'is-inactive'}`}
+          onClick={() => {
+            setIsCreatorMode(false);
+            if (currentUser) rememberCreatorMode(currentUser.id, false);
+            showToast('👤 Mentee Mode Active', 'Switched to candidate guidance mode. Browse & book 1:1 sessions.', 'info');
+            onNavigate('guidance-view', '/peercomet');
+          }}
+          title="Need 1:1 guidance for yourself? Switch to Mentee Mode to book sessions"
+        >
+          <Compass size={13} className="nrms-icon" />
+          <span className="nrms-label-wrap">
+            <span className="nrms-desktop-text">Seek Guidance</span>
+            <span className="nrms-mobile-text">Mentee</span>
+          </span>
+        </button>
+      </div>
+    );
+  };
+
   return (
     <header className={`myshine-top-header-prod myshine-navbar ${isPeerpathView ? 'peerpath-ecosystem-header' : 'shine-jobs-header'}`}>
       <div className="myshine-nav-container">
         
-        {/* Left Side: Brand Logo + Contextual Navigation Links */}
-        <div className="myshine-nav-left">
+        {/* ROW 1: Brand Logo on Left | User Actions (Bell + Account) on Right (Same Line on Mobile) */}
+        <div className="myshine-nav-top-row">
+          <div className="myshine-nav-brand-wrap">
           {isPeerpathView ? (
             /* Standalone Peerpath Brand Identity */
             <div 
@@ -124,122 +257,14 @@ export const Header: React.FC<HeaderProps> = ({
               />
             </div>
           )}
+          </div>
 
-          {/* Contextual Navigation Links */}
-          <nav className="myshine-nav-links">
-            {isPeerpathView ? (
-              /* Peerpath Platform Navigation */
-              isAlreadyMentor && isCreatorMode ? (
-                <>
-                  <button 
-                    className={`myshine-link ${currentView === 'mentor-dashboard-view' ? 'active' : ''}`}
-                    onClick={() => onNavigate('mentor-dashboard-view')} 
-                    title="Go to Mentor & Studio Dashboard"
-                  >
-                    <Sparkles size={15} /> Studio Dashboard
-                    <span className="pill-live-red-badge">LIVE</span>
-                  </button>
-
-                  <button 
-                    className={`myshine-link ${currentView === 'sessions-view' ? 'active' : ''}`} 
-                    onClick={() => onNavigate('sessions-view')}
-                  >
-                    <Video size={15} /> Candidate Calls
-                    {upcomingCount > 0 && <span className="flyout-count-pill" style={{ marginLeft: '4px' }}>{upcomingCount}</span>}
-                  </button>
-
-                  {/* Mentor mode is about their own practice; other mentors are under Seek Guidance */}
-                  <button 
-                    className={`myshine-link ${currentView === 'community-view' ? 'active' : ''}`} 
-                    onClick={() => onNavigate('community-view')}
-                    title="Mentor-Led Community & Insights"
-                  >
-                    <MessageSquare size={15} /> Community
-                  </button>
-                </>
-              ) : currentUser ? (
-                <>
-                  <button 
-                    className={`myshine-link ${currentView === 'experts-view' ? 'active' : ''}`} 
-                    onClick={() => onNavigate('experts-view')}
-                    title="Browse mentors"
-                  >
-                    <Compass size={15} /> Find Mentors
-                  </button>
-
-                  <button 
-                    className={`myshine-link ${currentView === 'sessions-view' ? 'active' : ''}`} 
-                    onClick={() => onNavigate('sessions-view')}
-                  >
-                    <Video size={15} /> My Bookings
-                    {upcomingCount > 0 && <span className="flyout-count-pill" style={{ marginLeft: '4px' }}>{upcomingCount}</span>}
-                  </button>
-
-                  <button 
-                    className={`myshine-link ${currentView === 'community-view' ? 'active' : ''}`} 
-                    onClick={() => onNavigate('community-view')}
-                    title="Mentor Insights & Discussions"
-                  >
-                    <MessageSquare size={15} /> Community
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button 
-                    className={`myshine-link ${currentView === 'guidance-view' || currentView === 'experts-view' ? 'active' : ''}`} 
-                    onClick={() => onNavigate('guidance-view', '/peercomet')}
-                    title="Find & Browse Verified Mentors"
-                  >
-                    <Compass size={15} /> Find Mentors
-                  </button>
-
-                  <button 
-                    className={`myshine-link ${currentView === 'become-mentor-view' ? 'active' : ''}`} 
-                    onClick={() => onNavigate('become-mentor-view', '/become-a-mentor')}
-                    title="Apply as a Mentor on PeerComet"
-                  >
-                    <Sparkles size={15} /> Become a Mentor
-                  </button>
-
-                  <button 
-                    className={`myshine-link ${currentView === 'community-view' ? 'active' : ''}`} 
-                    onClick={() => onNavigate('community-view', '/community')}
-                    title="Mentor Insights & Discussions"
-                  >
-                    <MessageSquare size={15} /> Community
-                  </button>
-                </>
-              )
-            ) : (
-              /* Shine Jobs Portal Navigation */
-              <>
-                <button 
-                  className={`myshine-link ${currentView === 'jobs-view' ? 'active' : ''}`} 
-                  onClick={handleGoToMyJobs}
-                >
-                  <Briefcase size={15} /> My Jobs
-                </button>
-                
-                <button className="myshine-link">
-                  <Bell size={15} /> Job Alerts
-                </button>
-                
-                <button className="myshine-link">
-                  <FileText size={15} /> Blogs & Prep
-                </button>
-
-                <button 
-                  className={`myshine-link ${currentView === 'profile-view' ? 'active' : ''}`} 
-                  onClick={() => onNavigate('profile-view')}
-                >
-                  <User size={15} /> My Profile
-                </button>
-              </>
-            )}
+          {/* Desktop Nav Links (inside row 1 next to logo) */}
+          <nav className="myshine-nav-links myshine-nav-links-desktop">
+            {renderNavLinks()}
           </nav>
-        </div>
 
-        {/* Right Side: Search (Shine Jobs) + Creator Toggle + User Dropdown */}
+          {/* Right Side: Search (Shine Jobs) + Creator Toggle + User Dropdown */}
         <div className="myshine-nav-right-prod">
           {!isPeerpathView && (
             <form className="prod-nav-search-bar" onSubmit={handleSearchSubmit}>
@@ -254,50 +279,21 @@ export const Header: React.FC<HeaderProps> = ({
             </form>
           )}
 
-          {/* ⚡ DIRECT NAVBAR MENTOR / SEEK GUIDANCE ROLE SWITCHER */}
-          {currentUser && isAlreadyMentor && isPeerpathView && (
-            <div className="navbar-role-mode-segmented" role="group" aria-label="Active Platform Mode">
-              <button
-                type="button"
-                className={`nrms-tab ${isCreatorMode ? 'is-active-mentor' : 'is-inactive'}`}
-                onClick={() => {
-                  setIsCreatorMode(true);
-                  if (currentUser) rememberCreatorMode(currentUser.id, true);
-                  showToast('⚡ Mentor Studio Active', 'Switched to your mentor dashboard & candidate calls.', 'info');
-                  onNavigate('mentor-dashboard-view', '/mentor');
-                }}
-                title="Mentor Mode: You are actively hosting sessions and guiding candidates"
-              >
-                <Sparkles size={13} className="nrms-icon" />
-                <span>Mentor</span>
-                {isCreatorMode && <span className="nrms-live-dot" title="Active Mentor" />}
-              </button>
-
-              <button
-                type="button"
-                className={`nrms-tab ${!isCreatorMode ? 'is-active-mentee' : 'is-inactive'}`}
-                onClick={() => {
-                  setIsCreatorMode(false);
-                  if (currentUser) rememberCreatorMode(currentUser.id, false);
-                  showToast('👤 Mentee Mode Active', 'Switched to candidate guidance mode. Browse & book 1:1 sessions.', 'info');
-                  onNavigate('guidance-view', '/peercomet');
-                }}
-                title="Need 1:1 guidance for yourself? Switch to Mentee Mode to book sessions"
-              >
-                <Compass size={13} className="nrms-icon" />
-                <span>Seek Guidance</span>
-              </button>
+          {/* Desktop Role Switcher (Authenticated Users Only) */}
+          {currentUser && (
+            <div className="role-switcher-desktop-wrap">
+              {renderRoleSwitcher(false)}
             </div>
           )}
 
-
-
-          {/* Direct Admin Control Center Button */}
-          {currentUser?.isAdmin && (
-            <button
-              type="button"
-              className={`header-bell-btn ${currentView === 'admin-dashboard-view' ? 'active' : ''}`}
-              onClick={() => onNavigate('admin-dashboard-view')}
+            {/* Direct Admin Control Center Button + Notifications + User Avatar Cluster */}
+          <div className="myshine-user-actions">
+            {/* Direct Admin Control Center Button */}
+            {currentUser?.isAdmin && (
+              <button
+                type="button"
+                className={`header-bell-btn ${currentView === 'admin-dashboard-view' ? 'active' : ''}`}
+                onClick={() => onNavigate('admin-dashboard-view')}
               title={`${BRAND.name} Admin Control Center`}
               style={{
                 background: currentView === 'admin-dashboard-view' ? '#f5f3ff' : 'transparent',
@@ -422,7 +418,7 @@ export const Header: React.FC<HeaderProps> = ({
                         }, 250);
                       }}
                     >
-                      <img src={n.mentorAvatar} alt={n.mentorName} className="notif-avatar" />
+                      <img src={getUserAvatar(n.mentorName, n.mentorAvatar)} alt={n.mentorName} className="notif-avatar" />
                       <div className="notif-details">
                         <div className="notif-top">
                           <span className="notif-type-tag">{n.title}</span>
@@ -466,14 +462,16 @@ export const Header: React.FC<HeaderProps> = ({
                   e.stopPropagation();
                   setIsUserMenuOpen(prev => !prev);
                 }}
+                title={currentUser.name}
               >
                 <div className="user-nav-avatar-circle">
                   <img 
-                    src={currentUser.avatar} 
+                    src={getUserAvatar(currentUser.name, currentUser.avatar || userProfile?.avatar)} 
                     alt={currentUser.name} 
                     className="user-nav-avatar-img" 
                   />
                 </div>
+                <span className="user-nav-name-label">{currentUser.name ? currentUser.name.split(' ')[0] : 'Account'}</span>
                 <ChevronDown size={14} className="user-avatar-chevron" />
               </div>
 
@@ -737,7 +735,21 @@ export const Header: React.FC<HeaderProps> = ({
               <span>Login / Register</span>
             </button>
           )}
+            </div>
+          </div>
         </div>
+
+        {/* ROW 2 & ROW 3: Mobile Role Switcher & Nav Links (Authenticated Users Only) */}
+        {currentUser && (
+          <>
+            <div className="role-switcher-mobile-wrap">
+              {renderRoleSwitcher(true)}
+            </div>
+            <nav className="myshine-nav-links myshine-nav-links-mobile">
+              {renderNavLinks()}
+            </nav>
+          </>
+        )}
 
       </div>
     </header>

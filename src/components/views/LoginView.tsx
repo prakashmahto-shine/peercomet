@@ -190,10 +190,10 @@ export const LoginView: React.FC = () => {
             <div className="frosted-glass-sign-in-box">
               
               {/* Campaign / Invite Banner */}
-              {actionParam === 'unlock' ? (
-                <div className="fgb-campaign-pill unlock" style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FCD34D' }}>
-                  <Sparkles size={13} className="text-amber-600 flex-shrink-0" />
-                  <span>Unlock {BRAND.name} • Sign in to set goal &amp; find mentors</span>
+              {actionParam === 'unlock' || actionParam === 'personalize' ? (
+                <div className="fgb-campaign-pill unlock" style={{ background: '#FAF5FF', color: '#6D28D9', border: '1px solid #E9D5FF' }}>
+                  <Sparkles size={13} className="text-purple-600 flex-shrink-0" />
+                  <span>Personalize {BRAND.name} • Sign in to set goal &amp; find mentors</span>
                 </div>
               ) : utmSource === 'whatsapp' ? (
                 <div className="fgb-campaign-pill whatsapp">
@@ -214,10 +214,10 @@ export const LoginView: React.FC = () => {
 
               {/* Box Header */}
               <div className="fgb-header">
-                <h2 className="fgb-title">{actionParam === 'unlock' ? `Unlock ${BRAND.name} 🚀` : 'Welcome 👋'}</h2>
+                <h2 className="fgb-title">Welcome to {BRAND.name} 👋</h2>
                 <p className="fgb-subtitle">
-                  {actionParam === 'unlock' 
-                    ? 'Sign in or create your account to calibrate goal and match with mentors'
+                  {actionParam === 'unlock' || actionParam === 'personalize'
+                    ? 'Sign in or create your account to calibrate your career goal and match with mentors'
                     : 'Sign in or create your account with your email'}
                 </p>
               </div>
