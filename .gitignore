@@ -23,3 +23,7 @@ backend/data/recordings/
 *.json.tmp
 backups/
 backend/data/resumes/
+
+# Local EC2 deployment guides and scripts (kept local only)
+DEPLOY_*.md
+deploy_*.sh
