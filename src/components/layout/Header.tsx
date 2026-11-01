@@ -236,7 +236,7 @@ export const Header: React.FC<HeaderProps> = ({
           {isPeerpathView ? (
             /* Standalone Peerpath Brand Identity */
             <div 
-              onClick={() => onNavigate(isAlreadyMentor && isCreatorMode ? 'mentor-dashboard-view' : 'guidance-view')} 
+              onClick={() => onNavigate(isAlreadyMentor && isCreatorMode ? 'mentor-dashboard-view' : 'guidance-view', isAlreadyMentor && isCreatorMode ? '/mentor' : '/')} 
               style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
               title={`${BRAND.tagline} • Verified 1:1 Mentorship`}
             >

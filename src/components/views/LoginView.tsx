@@ -28,7 +28,21 @@ export const LoginView: React.FC = () => {
         
         {/* Top Navbar */}
         <header className="login-canvas-navbar">
-          <PeerpathLogo size={42} showText={true} textColor="#0F172A" subTextColor="#64748B" theme="light" />
+          <div 
+            className="login-brand-link"
+            onClick={() => navigate('guidance-view', '/')}
+            style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', transition: 'opacity 0.15s ease' }}
+            title={`Return to ${BRAND.name} Home`}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                navigate('guidance-view', '/');
+              }
+            }}
+          >
+            <PeerpathLogo size={42} showText={true} textColor="#0F172A" subTextColor="#64748B" theme="light" />
+          </div>
 
           <div className="navbar-shine-badge" title="An initiative by Shine.com">
             <span className="nsb-label">AN INITIATIVE BY</span>

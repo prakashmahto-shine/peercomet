@@ -24,7 +24,20 @@ export const AdminLoginView: React.FC = () => {
 
       {/* Top Header */}
       <header className="admin-auth-top-bar">
-        <PeerpathLogo size={36} showText={true} />
+        <div 
+          onClick={() => navigate('guidance-view', '/')}
+          style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+          title={`Return to ${BRAND.name} Home`}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              navigate('guidance-view', '/');
+            }
+          }}
+        >
+          <PeerpathLogo size={36} showText={true} />
+        </div>
         <div className="admin-auth-status-chip">
           <span className="pulse-dot"></span>
           <span>Operations Console</span>

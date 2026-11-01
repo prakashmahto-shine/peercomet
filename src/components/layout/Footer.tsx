@@ -40,7 +40,14 @@ export const Footer: React.FC = () => {
           <div className="footer-top-brand-strip">
             <div className="ftbs-left">
               {isPeerpathView ? (
-                <div className="ftbs-peerpath-brand">
+                <div 
+                  className="ftbs-peerpath-brand"
+                  onClick={() => navigate('guidance-view', '/')}
+                  style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+                  title={`Return to ${BRAND.name} Home`}
+                  role="button"
+                  tabIndex={0}
+                >
                   <PeerpathLogo size={38} textColor="#FFFFFF" subTextColor="#CBD5E1" theme="dark" showSubtext={false} />
                 </div>
               ) : (
