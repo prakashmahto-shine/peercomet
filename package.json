@@ -10,7 +10,8 @@
     "server": "python3 run_backend.py",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "python3 tests/test_auth_and_ownership.py"
+    "test": "python3 tests/test_auth_and_ownership.py",
+    "deploy": "./deploy_prod.sh"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.3",
