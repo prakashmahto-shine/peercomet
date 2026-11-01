@@ -179,7 +179,7 @@ export const AdminDashboardView: React.FC = () => {
         paymentCount={bookings.length}
         currentUser={currentUser}
         onLogout={() => logout(true)}
-        onNavigateCandidatePortal={() => navigate('guidance-view', '/peercomet')}
+        onNavigateCandidatePortal={() => navigate('guidance-view', '/')}
       />
 
       {/* 2. Main CRM Content Workspace */}
@@ -219,7 +219,7 @@ export const AdminDashboardView: React.FC = () => {
             <button
               type="button"
               className="btn-crm-candidate-app"
-              onClick={() => navigate('guidance-view', '/peercomet')}
+              onClick={() => navigate('guidance-view', '/')}
               title="Open public candidate directory"
             >
               <span>Candidate Portal</span>

@@ -212,7 +212,7 @@ export const Header: React.FC<HeaderProps> = ({
             setIsCreatorMode(false);
             if (currentUser) rememberCreatorMode(currentUser.id, false);
             showToast('👤 Mentee Mode Active', 'Switched to candidate guidance mode. Browse & book 1:1 sessions.', 'info');
-            onNavigate('guidance-view', '/peercomet');
+            onNavigate('guidance-view', '/');
           }}
           title="Need 1:1 guidance for yourself? Switch to Mentee Mode to book sessions"
         >
@@ -632,12 +632,12 @@ export const Header: React.FC<HeaderProps> = ({
                       </a>
 
                       <a 
-                        href="/peercomet" 
+                        href="/" 
                         className={`flyout-item ${currentView === 'guidance-view' ? 'flyout-item-active' : ''}`} 
                         onClick={(e) => { 
                           e.preventDefault(); 
                           setIsUserMenuOpen(false); 
-                          onNavigate('guidance-view', '/peercomet'); 
+                          onNavigate('guidance-view', '/'); 
                         }}
                       >
                         <Sparkles size={15} className="text-purple-600" /> 
@@ -728,7 +728,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button 
               type="button"
               className="btn-header-login-gold"
-              onClick={() => onNavigate('login-view', '/login?redirect=/peercomet&action=unlock')}
+              onClick={() => onNavigate('login-view', '/login?redirect=/&action=unlock')}
               title="Sign in or register with your email"
             >
               <User size={14} className="bhlg-user-icon" />

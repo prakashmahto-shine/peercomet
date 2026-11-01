@@ -884,6 +884,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
+    if (pathToPush === '/peercomet' || pathToPush === '/peerpath') {
+      pathToPush = '/';
+    }
+
     if (window.location.pathname !== pathToPush) {
       window.history.pushState({}, '', pathToPush);
     }
@@ -962,8 +966,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           // If the user is on /peerpath or in Seek Guidance mode, KEEP THEM on guidance-view!
           if (effectiveCreatorMode && isMentorUser && currentPath === '/' && !window.location.search.includes('redirect')) {
             navigate('mentor-dashboard-view', '/mentor');
-          } else if (!effectiveCreatorMode && currentPath === '/') {
-            navigate('guidance-view', '/peercomet');
+          } else if (!effectiveCreatorMode && (currentPath === '/' || currentPath === '/peercomet' || currentPath === '/peerpath')) {
+            navigate('guidance-view', '/');
           }
         } else {
           const currentPath = window.location.pathname;
@@ -1037,8 +1041,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } else if (isMentorUser && !utmSource && !campaign) {
       navigate('mentor-dashboard-view', '/mentor');
     } else {
-      // Normal candidate login always directs to /peercomet
-      navigate('guidance-view', '/peercomet');
+      // Normal candidate login always directs to /
+      navigate('guidance-view', '/');
     }
 
     showToast(`👋 Welcome, ${account.name || 'there'}!`, `You are now signed in to ${BRAND.name}.`);

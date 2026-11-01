@@ -115,7 +115,7 @@ export const StaticPageView: React.FC<StaticPageViewProps> = ({ initialTab = 'te
             <button 
               type="button" 
               className="slp-modern-back-btn" 
-              onClick={() => navigate('guidance-view', '/peercomet')}
+              onClick={() => navigate('guidance-view', '/')}
               title={`Return to ${BRAND.name}`}
             >
               <ArrowLeft size={14} className="slp-back-arrow" />

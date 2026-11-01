@@ -25,9 +25,17 @@ export const MainLayout: React.FC = () => {
 
   // URL routing & browser back/forward history synchronization
   useEffect(() => {
-    const route = pathToView(window.location.pathname);
+    const rawPath = window.location.pathname;
+    const isLegacyAlias = rawPath === '/peercomet' || rawPath === '/peerpath';
+    const effectivePath = isLegacyAlias ? '/' : rawPath;
+
+    if (isLegacyAlias) {
+      window.history.replaceState({}, '', '/' + window.location.search + window.location.hash);
+    }
+
+    const route = pathToView(effectivePath);
     if (route.view !== currentView) {
-      navigate(route.view, window.location.pathname);
+      navigate(route.view, effectivePath);
     }
     if (route.expertId) {
       selectExpertById(route.expertId);

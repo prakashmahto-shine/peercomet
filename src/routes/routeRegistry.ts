@@ -25,8 +25,8 @@ export const PEERPATH_ROUTES: RouteDefinition[] = [
   {
     id: 'career-guidance',
     name: 'Career Guidance & Skill Gap Analyzer',
-    path: '/peercomet',
-    aliases: ['/', '/peerpath', '/guidance', '/career-guidance', '/dashboard'],
+    path: '/',
+    aliases: ['/peercomet', '/peerpath', '/guidance', '/career-guidance', '/dashboard'],
     view: 'guidance-view',
     title: `Career Guidance & Upward Trajectory | ${BRAND.name}`,
     description: 'Personalized AI skill-gap analyzer and career trajectory roadmap',
@@ -316,7 +316,7 @@ export function viewToPath(view: ViewType, params?: { expertId?: string }): stri
     return `/expert/${params.expertId}`;
   }
   const route = PEERPATH_ROUTES.find(r => r.view === view);
-  return route ? route.path : '/peercomet';
+  return route ? route.path : '/';
 }
 
 /**

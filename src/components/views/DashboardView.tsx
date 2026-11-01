@@ -6,7 +6,7 @@ export const DashboardView: React.FC = () => {
   const { navigate, experts, selectExpertById } = useApp();
 
   useEffect(() => {
-    navigate('guidance-view', '/peercomet');
+    navigate('guidance-view', '/');
   }, []);
 
   return (

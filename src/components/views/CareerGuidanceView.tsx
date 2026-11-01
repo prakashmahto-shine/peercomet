@@ -686,7 +686,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                     <button
                       type="button"
                       className="btn-cm-primary-cta"
-                      onClick={() => navigate('login-view', '/login?redirect=/peercomet')}
+                      onClick={() => navigate('login-view', '/login?redirect=/')}
                     >
                       <Sparkles size={16} />
                       <span>Unlock Your Trajectory</span>
@@ -1023,7 +1023,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
                 if (currentUser) {
                   scrollToMentors();
                 } else {
-                  navigate('login-view', '/login?redirect=/peercomet');
+                  navigate('login-view', '/login?redirect=/');
                 }
               }}
             >
@@ -1492,7 +1492,7 @@ export const CareerGuidanceView: React.FC<CareerGuidanceViewProps> = ({
               if (currentUser) {
                 scrollToMentors();
               } else {
-                navigate('login-view', '/login?redirect=/peercomet');
+                navigate('login-view', '/login?redirect=/');
               }
             }}
           >

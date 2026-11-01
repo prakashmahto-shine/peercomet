@@ -32,7 +32,7 @@ export const AdminLoginView: React.FC = () => {
         <button
           type="button"
           className="btn-admin-auth-portal-link"
-          onClick={() => navigate('guidance-view', '/peercomet')}
+          onClick={() => navigate('guidance-view', '/')}
         >
           <span>Candidate Portal</span>
           <ArrowRight size={13} />
@@ -134,9 +134,9 @@ export const AdminLoginView: React.FC = () => {
                   <button
                     type="button"
                     className="btn-admin-secondary"
-                    onClick={() => navigate('guidance-view', '/peercomet')}
+                    onClick={() => navigate('guidance-view', '/')}
                   >
-                    <span>Return to Candidate Directory (/peercomet)</span>
+                    <span>Return to Candidate Directory</span>
                     <ArrowRight size={15} />
                   </button>
                 </div>
@@ -155,7 +155,7 @@ export const AdminLoginView: React.FC = () => {
                   <button
                     type="button"
                     className="btn-admin-exit-link"
-                    onClick={() => navigate('guidance-view', '/peercomet')}
+                    onClick={() => navigate('guidance-view', '/')}
                   >
                     ← Return to {BRAND.name} Mentorship Portal
                   </button>
